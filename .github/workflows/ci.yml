@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/**"
+  push:
+    branches: ["main"]
+    paths:
+      - "backend/**"
+      - ".github/workflows/**"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: mtchatbot
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d mtchatbot"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      ENV: test
+      DATABASE_URL: postgresql+psycopg://app:app@localhost:5432/mtchatbot
+      JWT_SECRET: test-secret
+      OPENAI_API_KEY: test-key
+      CORS_ORIGINS: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: |
+            backend/pyproject.toml
+
+      - name: Install backend deps (pip)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ./backend
+
+      - name: Lint (ruff)
+        run: |
+          ruff check backend
+
+      - name: Run migrations
+        run: |
+          cd backend
+          alembic upgrade head
+
+      - name: Run tests
+        run: |
+          pytest -q

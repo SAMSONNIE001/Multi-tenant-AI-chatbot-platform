@@ -13,6 +13,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 # Import models so Base.metadata is populated for autogenerate
 import app.db.models  # noqa: F401, E402
+from app.chat.memory_models import Conversation, Message  # noqa: F401, E402
 from app.db.base import Base  # noqa: E402
 
 config = context.config

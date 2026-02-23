@@ -1,0 +1,23 @@
+name: Docker Build (main)
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "backend/**"
+      - "docker-compose*.yml"
+      - ".github/workflows/**"
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: |
+          docker build -t mtchatbot-api:ci -f backend/Dockerfile .
