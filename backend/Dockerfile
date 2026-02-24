@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir poetry \
  && cd /app/backend \
  && poetry config virtualenvs.create false \
  && poetry install --no-interaction --no-ansi --no-root \
+ && pip install --no-cache-dir "bcrypt<4.1" \
  && pip install --no-cache-dir python-multipart
 
 COPY . /app/backend
