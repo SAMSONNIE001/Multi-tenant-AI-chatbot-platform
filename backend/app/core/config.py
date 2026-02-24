@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     )
     OPENAI_API_KEY: str | None = None
     WIDGET_TOKEN_EXP_MINUTES: int = 30
+    HANDOFF_WEBHOOK_URL: str | None = None
     LOG_LEVEL: str = "INFO"
     GUNICORN_WORKERS: int = 2
 

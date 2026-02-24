@@ -12,9 +12,11 @@ ROLE_SCOPES: dict[str, set[str]] = {
         "policy:write",
         "audit:read",
         "conversations:read",
+        "handoff:read",
+        "handoff:write",
     },
-    "auditor": {"audit:read", "conversations:read"},
-    "support": {"docs:read", "conversations:read", "audit:read"},
+    "auditor": {"audit:read", "conversations:read", "handoff:read"},
+    "support": {"docs:read", "conversations:read", "audit:read", "handoff:read", "handoff:write"},
     "user": set(),
 }
 
