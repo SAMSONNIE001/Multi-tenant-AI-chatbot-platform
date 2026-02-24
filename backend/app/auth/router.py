@@ -109,7 +109,14 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
         )
         .first()
     )
-    if not user or not verify_password(payload.password, user.password_hash):
+    password_ok = False
+    if user:
+        try:
+            password_ok = verify_password(payload.password, user.password_hash)
+        except ValueError:
+            password_ok = False
+
+    if not user or not password_ok:
         new_lock = register_failure(login_key)
         if new_lock:
             raise HTTPException(
