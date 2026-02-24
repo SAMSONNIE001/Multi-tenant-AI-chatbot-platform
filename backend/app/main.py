@@ -13,6 +13,8 @@ from app.admin.router import router as admin_router
 from app.system.router import router as system_router
 from app.system.metrics_router import router as metrics_router
 from app.governance.router import router as governance_router
+from app.embed.router import admin_router as embed_admin_router
+from app.embed.router import public_router as embed_public_router
 from app.core.config import settings
 from app.db.init_db import init_db
 from app.db.session import engine
@@ -60,6 +62,8 @@ app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(system_router, prefix="/api/v1/system", tags=["system"])
 app.include_router(metrics_router, prefix="/api/v1/system", tags=["system"])
 app.include_router(governance_router, prefix="/api/v1/governance", tags=["governance"])
+app.include_router(embed_admin_router, prefix="/api/v1/embed", tags=["embed"])
+app.include_router(embed_public_router, prefix="/api/v1/public/embed", tags=["public-embed"])
 
 # --- System ---
 @app.get("/health", tags=["system"])
