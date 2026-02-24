@@ -21,6 +21,9 @@ from app.admin.schemas import (
     PolicyResponse,
     RetentionConfig,
     RetentionResponse,
+    UsageLimitConfig,
+    UsageLimitResponse,
+    UsageSummaryResponse,
 )
 from app.auth.deps import get_current_user
 from app.auth.models import User
@@ -30,6 +33,7 @@ from app.db.session import get_db
 from app.governance.extract_policy import extract_policy_from_text
 from app.governance.models import TenantPolicy
 from app.rag.models import Chunk, Document
+from app.system.usage_service import get_or_create_tenant_limit, usage_summary
 
 router = APIRouter()
 
@@ -614,3 +618,60 @@ def export_audit_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.get("/usage/limits", response_model=UsageLimitResponse)
+def get_usage_limits(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "policy:read")
+    limits = get_or_create_tenant_limit(db, current_user.tenant_id)
+    return {
+        "tenant_id": current_user.tenant_id,
+        "limits": {
+            "daily_request_limit": int(limits.daily_request_limit),
+            "monthly_token_limit": int(limits.monthly_token_limit),
+        },
+    }
+
+
+@router.put("/usage/limits", response_model=UsageLimitResponse)
+def put_usage_limits(
+    payload: UsageLimitConfig,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "policy:write")
+    limits = get_or_create_tenant_limit(db, current_user.tenant_id)
+    limits.daily_request_limit = int(payload.daily_request_limit)
+    limits.monthly_token_limit = int(payload.monthly_token_limit)
+    limits.updated_at = datetime.utcnow()
+    db.add(limits)
+    db.commit()
+    db.refresh(limits)
+    return {
+        "tenant_id": current_user.tenant_id,
+        "limits": {
+            "daily_request_limit": int(limits.daily_request_limit),
+            "monthly_token_limit": int(limits.monthly_token_limit),
+        },
+    }
+
+
+@router.get("/usage/summary", response_model=UsageSummaryResponse)
+def get_usage_summary(
+    since_days: int = Query(default=30, ge=1, le=365),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "audit:read")
+    summary = usage_summary(
+        db=db,
+        tenant_id=current_user.tenant_id,
+        since_days=since_days,
+    )
+    return {
+        "tenant_id": current_user.tenant_id,
+        "summary": summary,
+    }

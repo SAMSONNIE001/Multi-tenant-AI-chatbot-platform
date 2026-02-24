@@ -118,3 +118,32 @@ class AuditListResponse(BaseModel):
     filters: dict[str, bool]
     summary: AuditSummary
     entries: list[AuditLogEntryOut]
+
+
+class UsageLimitConfig(BaseModel):
+    daily_request_limit: int = Field(default=1000, ge=1, le=10_000_000)
+    monthly_token_limit: int = Field(default=1_000_000, ge=1, le=2_000_000_000)
+
+
+class UsageLimitResponse(BaseModel):
+    tenant_id: str
+    limits: UsageLimitConfig
+
+
+class UsageChannelCount(BaseModel):
+    channel: str
+    count: int
+
+
+class UsageSummary(BaseModel):
+    window_days: int
+    total_requests: int
+    total_tokens: int
+    avg_latency_ms: float | None = None
+    refused_requests: int
+    by_channel: list[UsageChannelCount]
+
+
+class UsageSummaryResponse(BaseModel):
+    tenant_id: str
+    summary: UsageSummary

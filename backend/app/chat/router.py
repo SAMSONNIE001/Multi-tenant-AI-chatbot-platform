@@ -25,6 +25,7 @@ from app.rag.models import Document
 
 from app.audit.service import write_chat_audit_log
 from app.system.rate_limit import check_rate_limit
+from app.system.usage_service import check_tenant_quota, write_usage_event
 
 # 8.2 policy guardrails
 from app.governance.policy_engine import evaluate_question_policy
@@ -65,8 +66,12 @@ def ask(
         coverage: Coverage,
         citations: list[Citation],
         sources: list[SourceChunk],
+        prompt_tokens: int | None = None,
+        completion_tokens: int | None = None,
+        total_tokens: int | None = None,
     ) -> AskResponse:
         latency_ms = int((perf_counter() - started_at) * 1000)
+        channel = "embed" if str(current_user.id).startswith("w_") else "api"
 
         append_message(
             db,
@@ -93,9 +98,21 @@ def ask(
             refused=refused,
             model=CHAT_MODEL,
             latency_ms=latency_ms,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
             policy_reason=policy_reason,
             retrieval_doc_count=retrieval_doc_count,
             retrieval_chunk_count=retrieval_chunk_count,
+        )
+        write_usage_event(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            channel=channel,
+            refused=refused,
+            total_tokens=int(total_tokens or 0),
+            latency_ms=latency_ms,
         )
 
         return AskResponse(
@@ -126,6 +143,27 @@ def ask(
             coverage=Coverage(doc_count=0, chunk_count=0),
             citations=[],
             sources=[],
+            total_tokens=0,
+        )
+
+    quota_ok, quota_reason, _ = check_tenant_quota(
+        db=db,
+        tenant_id=current_user.tenant_id,
+    )
+    if not quota_ok:
+        answer = "Usage limit reached for this tenant plan. Please contact support."
+        return _respond_and_log(
+            answer=answer,
+            refused=True,
+            policy_reason=quota_reason,
+            retrieved_chunks=[],
+            citations_json=[],
+            retrieval_doc_count=0,
+            retrieval_chunk_count=0,
+            coverage=Coverage(doc_count=0, chunk_count=0),
+            citations=[],
+            sources=[],
+            total_tokens=0,
         )
 
     # ------------------------------------------------------------------
@@ -145,6 +183,7 @@ def ask(
             coverage=Coverage(doc_count=0, chunk_count=0),
             citations=[],
             sources=[],
+            total_tokens=0,
         )
 
     # ------------------------------------------------------------------
@@ -171,6 +210,7 @@ def ask(
             coverage=Coverage(doc_count=0, chunk_count=0),
             citations=[],
             sources=[],
+            total_tokens=0,
         )
 
     # ------------------------------------------------------------------
@@ -213,13 +253,18 @@ def ask(
             ),
             citations=[],
             sources=[],
+            total_tokens=0,
         )
 
     # ------------------------------------------------------------------
     # LLM answer (doc-only)
     # ------------------------------------------------------------------
     user_prompt = build_user_prompt(payload.question, chunks, messages=history_messages)
-    answer = generate_answer(SYSTEM_PROMPT, user_prompt).strip()
+    answer, prompt_tokens, completion_tokens, total_tokens = generate_answer(
+        SYSTEM_PROMPT,
+        user_prompt,
+    )
+    answer = answer.strip()
 
     # ------------------------------------------------------------------
     # 8.1 Citation validation
@@ -290,4 +335,7 @@ def ask(
         coverage=coverage,
         citations=citations_out,
         sources=sources,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        total_tokens=total_tokens,
     )
