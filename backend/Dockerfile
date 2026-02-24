@@ -15,7 +15,8 @@ COPY pyproject.toml poetry.lock* /app/backend/
 RUN pip install --no-cache-dir poetry \
  && cd /app/backend \
  && poetry config virtualenvs.create false \
- && poetry install --no-interaction --no-ansi --no-root
+ && poetry install --no-interaction --no-ansi --no-root \
+ && pip install --no-cache-dir python-multipart
 
 COPY . /app/backend
 
