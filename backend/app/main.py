@@ -17,6 +17,8 @@ from app.embed.router import admin_router as embed_admin_router
 from app.embed.router import public_router as embed_public_router
 from app.handoff.router import admin_router as handoff_admin_router
 from app.handoff.router import router as handoff_router
+from app.channels.router import admin_router as channels_admin_router
+from app.channels.router import webhook_router as channels_webhook_router
 from app.core.config import settings
 from app.db.init_db import init_db
 from app.db.session import engine
@@ -68,6 +70,9 @@ app.include_router(embed_admin_router, prefix="/api/v1/embed", tags=["embed"])
 app.include_router(embed_public_router, prefix="/api/v1/public/embed", tags=["public-embed"])
 app.include_router(handoff_router, prefix="/api/v1/handoff", tags=["handoff"])
 app.include_router(handoff_admin_router, prefix="/api/v1/admin/handoff", tags=["handoff-admin"])
+app.include_router(channels_admin_router, prefix="/api/v1/admin/channels", tags=["channels-admin"])
+app.include_router(channels_webhook_router, prefix="/api/v1/channels", tags=["channels-webhook"])
+
 
 # --- System ---
 @app.get("/health", tags=["system"])

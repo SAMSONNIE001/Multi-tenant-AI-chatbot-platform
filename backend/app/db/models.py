@@ -7,3 +7,6 @@ from app.chat.memory_models import Conversation, Message  # noqa: F401
 from app.embed.models import TenantBotCredential  # noqa: F401
 from app.system.usage_models import TenantUsageEvent, TenantUsageLimit  # noqa: F401
 from app.handoff.models import HandoffRequest  # noqa: F401
+
+from app.channels.models import TenantChannelAccount  # noqa: F401
+
