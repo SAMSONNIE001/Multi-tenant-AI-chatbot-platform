@@ -53,6 +53,7 @@ def _graph_post(path: str, access_token: str, payload: dict) -> None:
             return
     except Exception:
         logger.exception("Failed to send channel response via Meta Graph API")
+        raise
 
 
 def send_whatsapp_text(account: TenantChannelAccount, *, to: str, text: str) -> None:
@@ -88,6 +89,17 @@ def send_messenger_or_instagram_text(
             "message": {"text": text[:2000]},
         },
     )
+
+
+def _set_channel_error(account: TenantChannelAccount, message: str) -> None:
+    account.last_error = message[:1000]
+    account.last_error_at = datetime.utcnow()
+    account.updated_at = datetime.utcnow()
+
+
+def _clear_channel_error(account: TenantChannelAccount) -> None:
+    account.last_error = None
+    account.last_error_at = None
 
 
 def _resolve_account_for_page_event(
@@ -142,24 +154,31 @@ def _ask_and_reply(
     question: str,
     channel_type: str,
 ) -> None:
-    pseudo_user = SimpleNamespace(
-        id=_safe_user_id(channel_type, external_user_id),
-        tenant_id=account.tenant_id,
-    )
-    answer = ask_internal(
-        payload=AskRequest(question=question),
-        db=db,
-        current_user=pseudo_user,
-    ).answer
+    try:
+        pseudo_user = SimpleNamespace(
+            id=_safe_user_id(channel_type, external_user_id),
+            tenant_id=account.tenant_id,
+        )
+        answer = ask_internal(
+            payload=AskRequest(question=question),
+            db=db,
+            current_user=pseudo_user,
+        ).answer
 
-    if channel_type == "whatsapp":
-        send_whatsapp_text(account, to=external_user_id, text=answer)
-    else:
-        send_messenger_or_instagram_text(account, recipient_id=external_user_id, text=answer)
+        if channel_type == "whatsapp":
+            send_whatsapp_text(account, to=external_user_id, text=answer)
+        else:
+            send_messenger_or_instagram_text(account, recipient_id=external_user_id, text=answer)
 
-    account.last_used_at = datetime.utcnow()
-    account.updated_at = datetime.utcnow()
-    db.add(account)
+        now = datetime.utcnow()
+        account.last_used_at = now
+        account.last_outbound_at = now
+        account.updated_at = now
+        _clear_channel_error(account)
+        db.add(account)
+    except Exception as exc:
+        _set_channel_error(account, str(exc))
+        db.add(account)
 
 
 def process_meta_webhook_payload(db: Session, payload: dict) -> tuple[int, int]:
@@ -187,6 +206,9 @@ def process_meta_webhook_payload(db: Session, payload: dict) -> tuple[int, int]:
                 if not account:
                     ignored += 1
                     continue
+                account.last_webhook_at = datetime.utcnow()
+                account.updated_at = datetime.utcnow()
+                db.add(account)
 
                 for msg in value.get("messages", []):
                     if msg.get("type") != "text":
@@ -241,6 +263,9 @@ def process_meta_webhook_payload(db: Session, payload: dict) -> tuple[int, int]:
                 if not account:
                     ignored += 1
                     continue
+                account.last_webhook_at = datetime.utcnow()
+                account.updated_at = datetime.utcnow()
+                db.add(account)
 
                 _ask_and_reply(
                     db,

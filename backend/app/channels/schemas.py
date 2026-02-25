@@ -49,6 +49,10 @@ class ChannelAccountOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     last_used_at: datetime | None = None
+    last_webhook_at: datetime | None = None
+    last_outbound_at: datetime | None = None
+    last_error: str | None = None
+    last_error_at: datetime | None = None
 
 
 class ChannelAccountRotateTokenResponse(BaseModel):
@@ -60,3 +64,15 @@ class MetaWebhookResponse(BaseModel):
     received: bool
     processed_messages: int
     ignored_events: int
+
+
+class ChannelAccountHealthOut(BaseModel):
+    id: str
+    tenant_id: str
+    channel_type: str
+    is_active: bool
+    status: str
+    last_webhook_at: datetime | None = None
+    last_outbound_at: datetime | None = None
+    last_error: str | None = None
+    last_error_at: datetime | None = None
