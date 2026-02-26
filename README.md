@@ -6,3 +6,4 @@ Enabling companies to deploy governed, domain-specific AI chatbots powered exclu
 Website widget integration guide:
 
 - `docs/website-live-chat.md`
+- `docs/sprint1-tenant-self-serve.md`
