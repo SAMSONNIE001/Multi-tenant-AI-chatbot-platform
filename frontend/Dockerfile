@@ -6,4 +6,4 @@ COPY . /app
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "python -m http.server ${PORT:-8080} --directory /app"]
+CMD ["sh", "-c", "python -m http.server ${PORT:-8080} --directory /app/frontend"]
