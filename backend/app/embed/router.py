@@ -180,6 +180,45 @@ def issue_widget_token(
     )
 
 
+@public_router.post("/widget-token/by-bot/{bot_id}", response_model=WidgetTokenResponse)
+def issue_widget_token_by_bot(
+    bot_id: str,
+    payload: WidgetTokenRequest,
+    db: Session = Depends(get_db),
+):
+    bot = db.execute(
+        select(TenantBotCredential).where(
+            TenantBotCredential.id == bot_id,
+            TenantBotCredential.is_active.is_(True),
+        )
+    ).scalar_one_or_none()
+    if not bot:
+        raise HTTPException(status_code=404, detail="Bot credential not found")
+
+    origin = payload.origin.strip().rstrip("/").lower()
+    allowed = _normalize_origins(bot.allowed_origins or [])
+    if allowed and origin not in allowed:
+        raise HTTPException(status_code=403, detail="Origin not allowed")
+
+    token, ttl_seconds = create_widget_token(
+        tenant_id=bot.tenant_id,
+        bot_id=bot.id,
+        session_id=payload.session_id,
+        origin=origin,
+    )
+
+    bot.last_used_at = datetime.utcnow()
+    db.add(bot)
+    db.commit()
+
+    return WidgetTokenResponse(
+        token=token,
+        expires_in_seconds=ttl_seconds,
+        bot_id=bot.id,
+        tenant_id=bot.tenant_id,
+    )
+
+
 @public_router.post("/ask", response_model=AskResponse)
 def ask_public(
     payload: PublicAskRequest,
