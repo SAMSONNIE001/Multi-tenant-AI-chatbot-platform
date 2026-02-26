@@ -1,0 +1,14 @@
+<!--
+  Copy-paste this into any website (before </body>).
+  Replace BOT_ID with your real bot id from POST /api/v1/embed/bots.
+-->
+<script src="https://YOUR-FRONTEND-DOMAIN/chat-widget.js"></script>
+<script>
+  window.MTChatWidget.init({
+    apiBase: "https://multi-tenant-ai-chatbot-platform-production.up.railway.app",
+    botId: "BOT_ID_HERE",
+    mode: "bubble",
+    title: "Ask us anything",
+    placeholder: "Type your question..."
+  });
+</script>
