@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StaunchBot Tenant Console</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f7fb;
+      color: #0f172a;
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+    .header {
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+    }
+    .header p {
+      margin: 0;
+      color: #475569;
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 8px 24px rgba(2, 6, 23, 0.05);
+    }
+    .card h2 {
+      font-size: 16px;
+      margin: 0 0 10px;
+    }
+    .row {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    label {
+      font-size: 12px;
+      color: #475569;
+      font-weight: 600;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      background: #0f766e;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.alt {
+      background: #334155;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .out {
+      margin-top: 8px;
+      font-size: 12px;
+      background: #0b1220;
+      color: #dbeafe;
+      border-radius: 8px;
+      padding: 10px;
+      white-space: pre-wrap;
+      min-height: 60px;
+    }
+    .small {
+      font-size: 12px;
+      color: #64748b;
+    }
+    .warn {
+      color: #b45309;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>StaunchBot Tenant Console</h1>
+      <p>Self-serve onboarding and tenant operations without Swagger.</p>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>API + Session</h2>
+        <div class="row">
+          <label for="apiBase">API Base</label>
+          <input id="apiBase" value="https://api.staunchbot.com" />
+        </div>
+        <div class="row">
+          <label for="accessToken">Access Token</label>
+          <textarea id="accessToken" placeholder="Bearer token will appear here"></textarea>
+        </div>
+        <button id="saveToken" class="alt">Save Token</button>
+        <button id="clearToken" class="alt">Clear Token</button>
+        <div class="small" style="margin-top:8px;">
+          Token is stored in browser localStorage for this page only.
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Tenant Onboard</h2>
+        <div class="row"><label>Tenant Name</label><input id="obTenantName" value="Demo Tenant Console" /></div>
+        <div class="row"><label>Admin Email</label><input id="obAdminEmail" value="admin-console@demo.com" /></div>
+        <div class="row"><label>Admin Password</label><input id="obAdminPassword" value="StrongPass123!" /></div>
+        <div class="row"><label>Bot Name</label><input id="obBotName" value="Main Website Bot" /></div>
+        <div class="row"><label>Allowed Origins (comma-separated)</label><input id="obAllowedOrigins" value="https://www.staunchbot.com,https://staunchbot.com" /></div>
+        <button id="btnOnboard">Run Onboard</button>
+        <div id="outOnboard" class="out"></div>
+      </section>
+
+      <section class="card">
+        <h2>Tenant Login</h2>
+        <div class="row"><label>Tenant ID</label><input id="lgTenantId" value="t_demo_3" /></div>
+        <div class="row"><label>Email</label><input id="lgEmail" value="admin3@demo.com" /></div>
+        <div class="row"><label>Password</label><input id="lgPassword" value="Abc12345!" /></div>
+        <button id="btnLogin">Login</button>
+        <div id="outLogin" class="out"></div>
+      </section>
+
+      <section class="card">
+        <h2>Bots</h2>
+        <button id="btnBots">Load Bots</button>
+        <div id="outBots" class="out"></div>
+        <div class="row" style="margin-top:10px;">
+          <label>Bot ID for snippet</label>
+          <input id="botId" placeholder="bot_..." />
+        </div>
+        <button id="btnSnippet" class="alt">Get Embed Snippet</button>
+        <div id="outSnippet" class="out"></div>
+      </section>
+
+      <section class="card">
+        <h2>Knowledge Upload + Reindex</h2>
+        <div class="row">
+          <label>Upload file (.txt, .md, .json, .pdf, .docx)</label>
+          <input id="kgFile" type="file" />
+        </div>
+        <button id="btnUpload">Upload</button>
+        <button id="btnStatus" class="alt">Check Status</button>
+        <div id="outUpload" class="out"></div>
+        <div class="row" style="margin-top:10px;">
+          <label>Document ID to reindex</label>
+          <input id="kgDocId" placeholder="d_..." />
+        </div>
+        <button id="btnReindex" class="alt">Reindex</button>
+        <div id="outStatus" class="out"></div>
+      </section>
+    </div>
+
+    <p class="small warn" style="margin-top:14px;">
+      Use this console for development/admin flows. For production tenant UX, add proper auth UI, validation, and rate limiting.
+    </p>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function pretty(v) {
+      try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
+    }
+
+    function getApiBase() {
+      return $("apiBase").value.trim().replace(/\/+$/, "");
+    }
+
+    function getToken() {
+      return $("accessToken").value.trim();
+    }
+
+    function setToken(token) {
+      $("accessToken").value = token || "";
+    }
+
+    async function request(path, options = {}) {
+      const headers = Object.assign({}, options.headers || {});
+      const token = getToken();
+      if (token) headers.Authorization = `Bearer ${token.replace(/^Bearer\s+/i, "")}`;
+      const res = await fetch(`${getApiBase()}${path}`, { ...options, headers });
+      const text = await res.text();
+      let data = text;
+      try { data = JSON.parse(text); } catch (_) {}
+      if (!res.ok) throw new Error(`${res.status} ${pretty(data)}`);
+      return data;
+    }
+
+    function parseOrigins(s) {
+      return String(s || "").split(",").map(v => v.trim()).filter(Boolean);
+    }
+
+    $("saveToken").onclick = () => {
+      localStorage.setItem("tenant_console_token", $("accessToken").value);
+      localStorage.setItem("tenant_console_api_base", $("apiBase").value);
+      alert("Saved.");
+    };
+
+    $("clearToken").onclick = () => {
+      localStorage.removeItem("tenant_console_token");
+      setToken("");
+    };
+
+    $("btnOnboard").onclick = async () => {
+      const out = $("outOnboard");
+      out.textContent = "Running...";
+      try {
+        const body = {
+          tenant_name: $("obTenantName").value.trim(),
+          admin_email: $("obAdminEmail").value.trim(),
+          admin_password: $("obAdminPassword").value,
+          compliance_level: "standard",
+          bot_name: $("obBotName").value.trim(),
+          allowed_origins: parseOrigins($("obAllowedOrigins").value),
+        };
+        const data = await request("/api/v1/tenant/onboard", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        out.textContent = pretty(data);
+        if (data && data.access_token) setToken(data.access_token);
+        if (data && data.bot_id) $("botId").value = data.bot_id;
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+
+    $("btnLogin").onclick = async () => {
+      const out = $("outLogin");
+      out.textContent = "Running...";
+      try {
+        const body = {
+          tenant_id: $("lgTenantId").value.trim(),
+          email: $("lgEmail").value.trim(),
+          password: $("lgPassword").value,
+        };
+        const data = await request("/api/v1/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        out.textContent = pretty(data);
+        if (data && data.access_token) setToken(data.access_token);
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+
+    $("btnBots").onclick = async () => {
+      const out = $("outBots");
+      out.textContent = "Loading...";
+      try {
+        const data = await request("/api/v1/tenant/bots");
+        out.textContent = pretty(data);
+        if (Array.isArray(data) && data.length && data[0].id) {
+          $("botId").value = data[0].id;
+        }
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+
+    $("btnSnippet").onclick = async () => {
+      const out = $("outSnippet");
+      out.textContent = "Loading...";
+      try {
+        const botId = $("botId").value.trim();
+        if (!botId) throw new Error("Provide bot id first.");
+        const data = await request(`/api/v1/tenant/embed/snippet?bot_id=${encodeURIComponent(botId)}`);
+        out.textContent = data.snippet_html || pretty(data);
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+
+    $("btnUpload").onclick = async () => {
+      const out = $("outUpload");
+      out.textContent = "Uploading...";
+      try {
+        const file = $("kgFile").files[0];
+        if (!file) throw new Error("Pick a file first.");
+        const fd = new FormData();
+        fd.append("file", file);
+        const data = await request("/api/v1/tenant/knowledge/upload", {
+          method: "POST",
+          body: fd,
+        });
+        out.textContent = pretty(data);
+        if (data && data.document_id) $("kgDocId").value = data.document_id;
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+
+    $("btnStatus").onclick = async () => {
+      const out = $("outStatus");
+      out.textContent = "Checking...";
+      try {
+        const data = await request("/api/v1/tenant/knowledge/status");
+        out.textContent = pretty(data);
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+
+    $("btnReindex").onclick = async () => {
+      const out = $("outStatus");
+      out.textContent = "Reindexing...";
+      try {
+        const docId = $("kgDocId").value.trim();
+        if (!docId) throw new Error("Provide document id.");
+        const data = await request("/api/v1/tenant/knowledge/reindex", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ document_id: docId }),
+        });
+        out.textContent = pretty(data);
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+
+    (function bootstrap() {
+      const savedToken = localStorage.getItem("tenant_console_token");
+      const savedBase = localStorage.getItem("tenant_console_api_base");
+      if (savedToken) setToken(savedToken);
+      if (savedBase) $("apiBase").value = savedBase;
+    })();
+  </script>
+</body>
+</html>
