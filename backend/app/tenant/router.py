@@ -19,6 +19,7 @@ from app.embed.models import TenantBotCredential
 from app.embed.router import _normalize_origins
 from app.embed.security import generate_bot_key, hash_bot_key
 from app.rag.embeddings import embed_text
+from app.rag.file_extract import extract_text_from_upload
 from app.rag.models import Chunk, Document
 from app.rag.service import ingest_text_document
 from app.tenant.schemas import (
@@ -257,18 +258,17 @@ async def tenant_upload_knowledge(
 ):
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
-    allowed = {"text/plain", "text/markdown", "application/json"}
-    content_type = file.content_type or "text/plain"
-    if content_type not in allowed:
-        raise HTTPException(
-            status_code=415,
-            detail=f"Unsupported file type: {content_type}. Use txt/markdown/json.",
-        )
-
     raw = await file.read()
-    if len(raw) > 2_000_000:
-        raise HTTPException(status_code=413, detail="File too large (max 2MB).")
-    text = raw.decode("utf-8", errors="ignore")
+    if len(raw) > 10_000_000:
+        raise HTTPException(status_code=413, detail="File too large (max 10MB).")
+    try:
+        content_type, text = extract_text_from_upload(
+            filename=file.filename,
+            content_type=file.content_type,
+            raw=raw,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=415, detail=str(exc)) from exc
 
     doc = ingest_text_document(
         db=db,
