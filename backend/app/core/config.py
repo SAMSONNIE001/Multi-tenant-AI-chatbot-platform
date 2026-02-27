@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     META_GRAPH_API_VERSION: str = "v21.0"
     LOG_LEVEL: str = "INFO"
     GUNICORN_WORKERS: int = 2
+    FRONTEND_PUBLIC_BASE_URL: str | None = None
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

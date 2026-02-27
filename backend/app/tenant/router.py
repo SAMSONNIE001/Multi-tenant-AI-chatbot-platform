@@ -18,6 +18,7 @@ from app.db.session import get_db
 from app.embed.models import TenantBotCredential
 from app.embed.router import _normalize_origins
 from app.embed.security import generate_bot_key, hash_bot_key
+from app.core.config import settings
 from app.rag.embeddings import embed_text
 from app.rag.file_extract import extract_text_from_upload
 from app.rag.models import Chunk, Document
@@ -40,6 +41,24 @@ def _slugify(value: str, *, fallback: str) -> str:
     raw = "".join(ch.lower() if ch.isalnum() else "_" for ch in value.strip())
     raw = "_".join(part for part in raw.split("_") if part)
     return raw[:40] if raw else fallback
+
+
+def _https_base(url: str) -> str:
+    cleaned = str(url or "").strip().rstrip("/")
+    if cleaned.startswith("http://"):
+        return "https://" + cleaned[len("http://") :]
+    return cleaned
+
+
+def _resolve_widget_script_base(bot: TenantBotCredential) -> str:
+    explicit = str(settings.FRONTEND_PUBLIC_BASE_URL or "").strip().rstrip("/")
+    if explicit:
+        return _https_base(explicit)
+    for origin in bot.allowed_origins or []:
+        normalized = _https_base(origin)
+        if normalized.startswith("https://"):
+            return normalized
+    return "https://www.staunchbot.com"
 
 
 @router.post("/onboard", response_model=TenantOnboardResponse)
@@ -374,9 +393,10 @@ def tenant_embed_snippet(
     if not bot:
         raise HTTPException(status_code=404, detail="Bot credential not found")
 
-    api_base = str(request.base_url).rstrip("/")
+    api_base = _https_base(str(request.base_url).rstrip("/"))
+    widget_script_base = _resolve_widget_script_base(bot)
     snippet = (
-        '<script src="https://YOUR-FRONTEND-DOMAIN/chat-widget.js"></script>\n'
+        f'<script src="{widget_script_base}/chat-widget.js"></script>\n'
         "<script>\n"
         "window.MTChatWidget.init({\n"
         f'  apiBase: "{api_base}",\n'
