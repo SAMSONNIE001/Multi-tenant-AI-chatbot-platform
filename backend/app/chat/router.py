@@ -270,25 +270,50 @@ def ask(
     # 8.1 Citation validation
     # ------------------------------------------------------------------
     ok, citation_keys = validate_citations(answer, chunks)
+    citation_fallback_used = False
     if not ok:
-        answer = REFUSAL_SENTENCE
-        citation_keys = []
+        # If retrieval succeeded but the model missed strict citation format,
+        # fall back to a grounded answer from the top retrieved chunk instead
+        # of hard-refusing the user.
+        if chunks:
+            top = chunks[0]
+            grounded = (top.text or "").strip()
+            if grounded:
+                grounded = grounded[:500]
+                answer = f"{grounded} [{top.document_id}:{top.id}]"
+                citation_keys = [
+                    Citation(
+                        document_id=top.document_id,
+                        chunk_id=top.id,
+                        chunk_index=top.chunk_index,
+                        score=None,
+                    )
+                ]
+                citation_fallback_used = True
+            else:
+                answer = REFUSAL_SENTENCE
+                citation_keys = []
+        else:
+            answer = REFUSAL_SENTENCE
+            citation_keys = []
 
     # Build citation objects from retrieved chunks
     chunk_map = {(c.document_id, c.id): c for c in chunks}
     citations_out: list[Citation] = []
-
-    for k in citation_keys:
-        c = chunk_map.get((k.document_id, k.chunk_id))
-        if c:
-            citations_out.append(
-                Citation(
-                    document_id=c.document_id,
-                    chunk_id=c.id,
-                    chunk_index=c.chunk_index,
-                    score=None,
+    if citation_keys and isinstance(citation_keys[0], Citation):
+        citations_out = citation_keys  # already normalized from fallback block above
+    else:
+        for k in citation_keys:
+            c = chunk_map.get((k.document_id, k.chunk_id))
+            if c:
+                citations_out.append(
+                    Citation(
+                        document_id=c.document_id,
+                        chunk_id=c.id,
+                        chunk_index=c.chunk_index,
+                        score=None,
+                    )
                 )
-            )
 
     # Coverage
     coverage = Coverage(
@@ -327,7 +352,11 @@ def ask(
     return _respond_and_log(
         answer=answer,
         refused=is_refusal(answer),
-        policy_reason="citation_validation:failed" if not ok else None,
+        policy_reason=(
+            "citation_validation:fallback_top_chunk"
+            if citation_fallback_used
+            else ("citation_validation:failed" if not ok else None)
+        ),
         retrieved_chunks=retrieved_chunks,
         citations_json=citations_json,
         retrieval_doc_count=coverage.doc_count,
