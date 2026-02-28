@@ -273,6 +273,8 @@ def ask(
         user_prompt,
     )
     answer = answer.strip()
+    if len(answer) > 450:
+        answer = REFUSAL_SENTENCE
 
     # ------------------------------------------------------------------
     # 8.1 Citation validation
@@ -298,22 +300,10 @@ def ask(
                 ]
                 citation_fallback_used = True
             else:
-                # Case 2: invalid citation or empty answer -> concise grounded fallback.
-                grounded = _compact_grounded_text(top.text or "")
-                if grounded:
-                    answer = f"{grounded} [{top.document_id}:{top.id}]"
-                    citation_keys = [
-                        Citation(
-                            document_id=top.document_id,
-                            chunk_id=top.id,
-                            chunk_index=top.chunk_index,
-                            score=None,
-                        )
-                    ]
-                    citation_fallback_used = True
-                else:
-                    answer = REFUSAL_SENTENCE
-                    citation_keys = []
+                # Case 2: invalid citation or empty answer -> safe refusal.
+                # Never dump raw chunk text to end users.
+                answer = REFUSAL_SENTENCE
+                citation_keys = []
         else:
             answer = REFUSAL_SENTENCE
             citation_keys = []
