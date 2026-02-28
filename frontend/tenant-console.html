@@ -101,6 +101,23 @@
     .warn {
       color: #b45309;
     }
+    .inline {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .inline > * {
+      flex: 1 1 140px;
+    }
+    select {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+      background: #fff;
+    }
   </style>
 </head>
 <body>
@@ -175,6 +192,84 @@
         </div>
         <button id="btnReindex" class="alt">Reindex</button>
         <div id="outStatus" class="out"></div>
+      </section>
+
+      <section class="card">
+        <h2>Inbox Queue (Handoff)</h2>
+        <div class="row">
+          <label>Status Filter</label>
+          <select id="hfStatus">
+            <option value="">(all)</option>
+            <option value="new">new</option>
+            <option value="open">open</option>
+            <option value="pending_customer">pending_customer</option>
+            <option value="resolved">resolved</option>
+            <option value="closed">closed</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Assigned To Filter (user id)</label>
+          <input id="hfAssignedTo" placeholder="u_admin_3" />
+        </div>
+        <div class="inline">
+          <div class="row">
+            <label>Priority Filter</label>
+            <select id="hfPriorityFilter">
+              <option value="">(all)</option>
+              <option value="low">low</option>
+              <option value="normal">normal</option>
+              <option value="high">high</option>
+              <option value="urgent">urgent</option>
+            </select>
+          </div>
+          <div class="row">
+            <label>SLA</label>
+            <select id="hfBreachedOnly">
+              <option value="false">all</option>
+              <option value="true">breached only</option>
+            </select>
+          </div>
+        </div>
+        <button id="btnHandoffList">Load Queue</button>
+        <div id="outHandoffList" class="out"></div>
+
+        <div class="row" style="margin-top:10px;">
+          <label>Handoff ID</label>
+          <input id="hfId" placeholder="ho_..." />
+        </div>
+        <div class="inline">
+          <div class="row">
+            <label>Assign To (user id)</label>
+            <input id="hfAssignTo" placeholder="u_admin_3" />
+          </div>
+          <div class="row">
+            <label>Priority</label>
+            <select id="hfPriority">
+              <option value="">(no change)</option>
+              <option value="low">low</option>
+              <option value="normal">normal</option>
+              <option value="high">high</option>
+              <option value="urgent">urgent</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <label>Set Status</label>
+          <select id="hfSetStatus">
+            <option value="">(no change)</option>
+            <option value="new">new</option>
+            <option value="open">open</option>
+            <option value="pending_customer">pending_customer</option>
+            <option value="resolved">resolved</option>
+            <option value="closed">closed</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Resolution Note</label>
+          <input id="hfResolutionNote" placeholder="Resolved after customer confirmation." />
+        </div>
+        <button id="btnHandoffPatch" class="alt">Patch Handoff</button>
+        <div id="outHandoffPatch" class="out"></div>
       </section>
     </div>
 
@@ -342,6 +437,58 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ document_id: docId }),
+        });
+        out.textContent = pretty(data);
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+
+    $("btnHandoffList").onclick = async () => {
+      const out = $("outHandoffList");
+      out.textContent = "Loading queue...";
+      try {
+        const params = new URLSearchParams();
+        const status = $("hfStatus").value.trim();
+        const assignedTo = $("hfAssignedTo").value.trim();
+        const priority = $("hfPriorityFilter").value.trim();
+        const breachedOnly = $("hfBreachedOnly").value === "true";
+        if (status) params.set("status", status);
+        if (assignedTo) params.set("assigned_to", assignedTo);
+        if (priority) params.set("priority", priority);
+        if (breachedOnly) params.set("breached_only", "true");
+        const query = params.toString() ? `?${params.toString()}` : "";
+        const data = await request(`/api/v1/admin/handoff${query}`);
+        out.textContent = pretty(data);
+        if (data && Array.isArray(data.items) && data.items.length && data.items[0].id) {
+          $("hfId").value = data.items[0].id;
+        }
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+
+    $("btnHandoffPatch").onclick = async () => {
+      const out = $("outHandoffPatch");
+      out.textContent = "Patching...";
+      try {
+        const handoffId = $("hfId").value.trim();
+        if (!handoffId) throw new Error("Provide handoff id.");
+        const body = {};
+        const status = $("hfSetStatus").value.trim();
+        const assignTo = $("hfAssignTo").value.trim();
+        const priority = $("hfPriority").value.trim();
+        const resolutionNote = $("hfResolutionNote").value.trim();
+        if (status) body.status = status;
+        if (assignTo) body.assigned_to_user_id = assignTo;
+        if (priority) body.priority = priority;
+        if (resolutionNote) body.resolution_note = resolutionNote;
+        if (!Object.keys(body).length) throw new Error("Pick at least one field to update.");
+
+        const data = await request(`/api/v1/admin/handoff/${encodeURIComponent(handoffId)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
         });
         out.textContent = pretty(data);
       } catch (e) {
