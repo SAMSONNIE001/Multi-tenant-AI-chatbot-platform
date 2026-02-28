@@ -34,6 +34,14 @@ from app.governance.doc_policy import evaluate_doc_policy
 router = APIRouter()
 
 
+def _compact_grounded_text(text: str, max_len: int = 260) -> str:
+    """Keep grounded fallback concise so widget replies are readable."""
+    cleaned = " ".join((text or "").split()).strip()
+    if len(cleaned) <= max_len:
+        return cleaned
+    return cleaned[: max_len - 1].rstrip() + "…"
+
+
 @router.post("/ask", response_model=AskResponse)
 def ask(
     payload: AskRequest,
@@ -272,15 +280,14 @@ def ask(
     ok, citation_keys = validate_citations(answer, chunks)
     citation_fallback_used = False
     if not ok:
-        # If retrieval succeeded but the model missed strict citation format,
-        # fall back to a grounded answer from the top retrieved chunk instead
-        # of hard-refusing the user.
         if chunks:
             top = chunks[0]
-            grounded = (top.text or "").strip()
-            if grounded:
-                grounded = grounded[:500]
-                answer = f"{grounded} [{top.document_id}:{top.id}]"
+
+            # Case 1: model gave a useful answer but missed citation format.
+            # Keep the answer and attach a valid citation instead of replacing
+            # it with raw chunk text.
+            if answer and answer != REFUSAL_SENTENCE and not citation_keys:
+                answer = f"{answer.rstrip()} [{top.document_id}:{top.id}]"
                 citation_keys = [
                     Citation(
                         document_id=top.document_id,
@@ -291,8 +298,22 @@ def ask(
                 ]
                 citation_fallback_used = True
             else:
-                answer = REFUSAL_SENTENCE
-                citation_keys = []
+                # Case 2: invalid citation or empty answer -> concise grounded fallback.
+                grounded = _compact_grounded_text(top.text or "")
+                if grounded:
+                    answer = f"{grounded} [{top.document_id}:{top.id}]"
+                    citation_keys = [
+                        Citation(
+                            document_id=top.document_id,
+                            chunk_id=top.id,
+                            chunk_index=top.chunk_index,
+                            score=None,
+                        )
+                    ]
+                    citation_fallback_used = True
+                else:
+                    answer = REFUSAL_SENTENCE
+                    citation_keys = []
         else:
             answer = REFUSAL_SENTENCE
             citation_keys = []
