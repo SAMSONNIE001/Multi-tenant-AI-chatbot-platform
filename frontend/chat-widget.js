@@ -84,6 +84,13 @@
     var botId = config.botId;
     var origin = normalizeOrigin(config.origin || window.location.origin);
     var sessionId = config.sessionId || ("sess_" + Math.random().toString(36).slice(2));
+    var convStoreKey = "mtw_conv_" + botId + "_" + btoa(origin).replace(/=+$/g, "");
+    var conversationId = config.conversationId || null;
+    try {
+      if (!conversationId && window.localStorage) {
+        conversationId = window.localStorage.getItem(convStoreKey);
+      }
+    } catch (_) {}
     var widgetToken = null;
 
     async function getWidgetToken() {
@@ -108,6 +115,7 @@
           question: question,
           top_k: topK || 5,
           memory_turns: memoryTurns || 8,
+          conversation_id: conversationId,
         }),
       });
 
@@ -115,7 +123,16 @@
         widgetToken = null;
       }
       if (!res.ok) throw new Error("ask failed (" + res.status + ")");
-      return res.json();
+      var data = await res.json();
+      if (data && data.conversation_id) {
+        conversationId = data.conversation_id;
+        try {
+          if (window.localStorage) {
+            window.localStorage.setItem(convStoreKey, conversationId);
+          }
+        } catch (_) {}
+      }
+      return data;
     }
 
     return { ask: ask, getWidgetToken: getWidgetToken };
@@ -175,4 +192,3 @@
 
   window.MTChatWidget = { init: init };
 })();
-
