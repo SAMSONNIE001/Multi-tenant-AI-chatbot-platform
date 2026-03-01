@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 class BotCredentialCreateRequest(BaseModel):
     name: str = Field(min_length=2, max_length=255)
+    avatar_url: str | None = Field(default=None, min_length=3, max_length=1024)
     allowed_origins: list[str] = Field(default_factory=list)
 
 
@@ -20,6 +21,7 @@ class BotCredentialOut(BaseModel):
     id: str
     tenant_id: str
     name: str
+    avatar_url: str | None = None
     allowed_origins: list[str]
     is_active: bool
     created_at: datetime
@@ -29,6 +31,7 @@ class BotCredentialOut(BaseModel):
 
 class BotCredentialPatchRequest(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=255)
+    avatar_url: str | None = Field(default=None, min_length=3, max_length=1024)
     allowed_origins: list[str] | None = None
     is_active: bool | None = None
 

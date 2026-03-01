@@ -12,6 +12,7 @@ class TenantBotCredential(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    avatar_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     key_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
     allowed_origins: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

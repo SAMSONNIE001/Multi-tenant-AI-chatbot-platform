@@ -61,6 +61,10 @@ def _resolve_widget_script_base(bot: TenantBotCredential) -> str:
     return "https://www.staunchbot.com"
 
 
+def _js_escape(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
 @router.post("/onboard", response_model=TenantOnboardResponse)
 def tenant_onboard(
     payload: TenantOnboardRequest,
@@ -189,6 +193,7 @@ def tenant_create_bot(
         id=f"bot_{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}",
         tenant_id=current_user.tenant_id,
         name=name,
+        avatar_url=(str(payload.get("avatar_url", "")).strip() or None),
         key_hash=hash_bot_key(raw_key),
         allowed_origins=_normalize_origins(allowed_origins),
         is_active=True,
@@ -226,6 +231,8 @@ def tenant_patch_bot(
         if len(name) < 2:
             raise HTTPException(status_code=422, detail="name must be at least 2 characters")
         bot.name = name
+    if "avatar_url" in payload:
+        bot.avatar_url = str(payload["avatar_url"]).strip() or None
     if "allowed_origins" in payload:
         if not isinstance(payload["allowed_origins"], list):
             raise HTTPException(status_code=422, detail="allowed_origins must be a list")
@@ -395,6 +402,10 @@ def tenant_embed_snippet(
 
     api_base = _https_base(str(request.base_url).rstrip("/"))
     widget_script_base = _resolve_widget_script_base(bot)
+    bot_title = (bot.name or "").strip() or "AI Assistant"
+    avatar_cfg = (
+        f',\n  avatarUrl: "{_js_escape(bot.avatar_url)}"' if bot.avatar_url else ""
+    )
     snippet = (
         f'<script src="{widget_script_base}/chat-widget.js"></script>\n'
         "<script>\n"
@@ -402,7 +413,8 @@ def tenant_embed_snippet(
         f'  apiBase: "{api_base}",\n'
         f'  botId: "{bot.id}",\n'
         '  mode: "bubble",\n'
-        '  title: "Live Chat",\n'
+        f'  title: "{_js_escape(bot_title)}",\n'
+        f"{avatar_cfg}\n"
         '  placeholder: "Ask a question..."\n'
         "});\n"
         "</script>"

@@ -23,6 +23,7 @@ from app.chat.citations import validate_citations, REFUSAL_SENTENCE, is_refusal
 
 from app.rag.service import search_chunks
 from app.rag.models import Document
+from app.tenants.models import Tenant
 
 from app.audit.service import write_chat_audit_log
 from app.system.rate_limit import check_rate_limit
@@ -122,15 +123,27 @@ def _is_probable_name_only_reply(question: str) -> str | None:
     return None
 
 
-def _small_talk_response(question: str, preferred_name: str | None) -> str | None:
+def _small_talk_response(
+    question: str,
+    preferred_name: str | None,
+    *,
+    company_name: str,
+    bot_name: str,
+) -> str | None:
     q = (question or "").strip()
     if not q:
         return None
     name_part = f" {preferred_name}" if preferred_name else ""
     if _GREETING_RE.search(q):
         if preferred_name:
-            return f"Hi{name_part}. I can help with anything. What can I do for you today?"
-        return "Hi. I can help with anything. Before we start, what name should I call you?"
+            return (
+                f"Hi{name_part}, welcome to {company_name}. "
+                f"I'm {bot_name}. I can help with anything. What can I do for you today?"
+            )
+        return (
+            f"Welcome to {company_name}. I'm {bot_name}. "
+            "Before we start, what name should I call you?"
+        )
     if _THANKS_RE.search(q):
         return f"You are welcome{name_part}. If you need anything else, I am here to help."
     if _BYE_RE.search(q):
@@ -169,6 +182,14 @@ def ask(
     direct_name = _extract_name_from_text(payload.question)
     if direct_name:
         preferred_name = direct_name
+    company_name = (
+        str(getattr(current_user, "tenant_name", "") or "").strip()
+        or str(
+            db.execute(select(Tenant.name).where(Tenant.id == current_user.tenant_id)).scalar_one_or_none()
+            or "our company"
+        ).strip()
+    )
+    bot_name = str(getattr(current_user, "bot_display_name", "") or "").strip() or "AI Assistant"
 
     def _respond_and_log(
         *,
@@ -285,7 +306,10 @@ def ask(
     # If name is provided explicitly, acknowledge and continue naturally.
     if direct_name:
         return _respond_and_log(
-            answer=f"Great to meet you, {direct_name}. I can help with anything. What do you need help with today?",
+            answer=(
+                f"Great to meet you, {direct_name}. "
+                f"Welcome to {company_name}. I'm {bot_name}. What do you need help with today?"
+            ),
             refused=False,
             policy_reason="conversation:name_captured",
             retrieved_chunks=[],
@@ -322,7 +346,12 @@ def ask(
             )
 
     # Conversational small-talk that does not require document grounding.
-    small_talk = _small_talk_response(payload.question, preferred_name)
+    small_talk = _small_talk_response(
+        payload.question,
+        preferred_name,
+        company_name=company_name,
+        bot_name=bot_name,
+    )
     if small_talk:
         return _respond_and_log(
             answer=small_talk,

@@ -30,6 +30,7 @@ from app.embed.security import (
     hash_bot_key,
 )
 from app.handoff.service import create_handoff_request
+from app.tenants.models import Tenant
 
 admin_router = APIRouter()
 public_router = APIRouter()
@@ -84,6 +85,7 @@ def create_bot(
         id=f"bot_{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}",
         tenant_id=current_user.tenant_id,
         name=payload.name,
+        avatar_url=(payload.avatar_url.strip() if payload.avatar_url else None),
         key_hash=hash_bot_key(raw_key),
         allowed_origins=_normalize_origins(payload.allowed_origins),
         is_active=True,
@@ -110,6 +112,8 @@ def patch_bot(
     bot = _require_bot_for_tenant(db, tenant_id=current_user.tenant_id, bot_id=bot_id)
     if payload.name is not None:
         bot.name = payload.name
+    if payload.avatar_url is not None:
+        bot.avatar_url = payload.avatar_url.strip() or None
     if payload.allowed_origins is not None:
         bot.allowed_origins = _normalize_origins(payload.allowed_origins)
     if payload.is_active is not None:
@@ -253,7 +257,20 @@ def ask_public(
         raise HTTPException(status_code=403, detail="Origin not allowed")
 
     widget_user_id = f"w_{claims['bot_id']}_{claims['session_id']}"[:64]
-    pseudo_user = SimpleNamespace(id=widget_user_id, tenant_id=claims["tenant_id"])
+    tenant_name = (
+        db.execute(
+            select(Tenant.name).where(Tenant.id == claims["tenant_id"])
+        ).scalar_one_or_none()
+        or "our company"
+    )
+    bot_display_name = (bot.name or "").strip() or "AI Assistant"
+    pseudo_user = SimpleNamespace(
+        id=widget_user_id,
+        tenant_id=claims["tenant_id"],
+        tenant_name=tenant_name,
+        bot_display_name=bot_display_name,
+        bot_avatar_url=bot.avatar_url,
+    )
 
     bot.last_used_at = datetime.utcnow()
     db.add(bot)
