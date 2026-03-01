@@ -116,6 +116,39 @@
       background: #fff;
       margin-top: 10px;
     }
+    .thread-box {
+      border: 1px solid #dbe3ee;
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      max-height: 420px;
+      overflow: auto;
+      margin-top: 10px;
+    }
+    .msg {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 8px;
+      margin-bottom: 8px;
+    }
+    .msg .meta {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+    .msg.user {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+    }
+    .msg.assistant {
+      background: #ecfeff;
+      border-color: #a5f3fc;
+    }
+    .msg.agent {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+    }
     table.queue {
       width: 100%;
       border-collapse: collapse;
@@ -365,6 +398,17 @@
           <button id="btnResumeAI" class="alt">Resume AI</button>
         </div>
         <div id="outHandoffAgent" class="out"></div>
+
+        <div class="row" style="margin-top:12px;">
+          <label>Conversation ID</label>
+          <div class="inline">
+            <input id="convId" placeholder="conv_..." />
+            <button id="btnLoadConversation" class="alt">Load Thread</button>
+          </div>
+          <div class="small">Selecting a queue row auto-fills this if available.</div>
+        </div>
+        <div id="outConversationMeta" class="out"></div>
+        <div id="conversationThread" class="thread-box" style="display:none;"></div>
       </section>
     </div>
 
@@ -450,10 +494,43 @@
       }
       body.querySelectorAll("button[data-hid]").forEach((btn) => {
         btn.addEventListener("click", () => {
-          $("hfId").value = btn.getAttribute("data-hid") || "";
+          const handoffId = btn.getAttribute("data-hid") || "";
+          $("hfId").value = handoffId;
+          const selected = (items || []).find((x) => x.id === handoffId);
+          if (selected && selected.conversation_id) {
+            $("convId").value = selected.conversation_id;
+          }
           $("outHandoffAgent").textContent = `Selected handoff: ${$("hfId").value}`;
         });
       });
+    }
+
+    function roleClass(role) {
+      const r = String(role || "").toLowerCase();
+      if (r === "user") return "user";
+      if (r === "assistant") return "assistant";
+      if (r === "agent") return "agent";
+      return "";
+    }
+
+    function renderConversationThread(payload) {
+      const box = $("conversationThread");
+      if (!payload || !Array.isArray(payload.messages) || !payload.messages.length) {
+        box.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
+      box.style.display = "block";
+      box.innerHTML = payload.messages.map((m) => {
+        const role = esc(m.role || "unknown");
+        return `
+          <div class="msg ${roleClass(m.role)}">
+            <div class="meta">${role} • ${esc(shortDate(m.created_at))}</div>
+            <div>${esc(m.content || "")}</div>
+          </div>
+        `;
+      }).join("");
+      box.scrollTop = box.scrollHeight;
     }
 
     $("saveToken").onclick = () => {
@@ -680,6 +757,10 @@
           body: JSON.stringify(body),
         });
         out.textContent = pretty(data);
+        $("hfAgentReply").value = "";
+        if ($("convId").value.trim()) {
+          $("btnLoadConversation").click();
+        }
       } catch (e) {
         out.textContent = String(e);
       }
@@ -704,6 +785,23 @@
 
     $("btnPauseAI").onclick = () => setAIToggle(true);
     $("btnResumeAI").onclick = () => setAIToggle(false);
+
+    $("btnLoadConversation").onclick = async () => {
+      const out = $("outConversationMeta");
+      out.textContent = "Loading conversation...";
+      try {
+        const conversationId = $("convId").value.trim();
+        if (!conversationId) throw new Error("Provide conversation id.");
+        const data = await request(
+          `/api/v1/admin/conversations/${encodeURIComponent(conversationId)}/messages?limit=200&offset=0`
+        );
+        out.textContent = `Conversation: ${data.conversation_id}\nMessages: ${Array.isArray(data.messages) ? data.messages.length : 0}`;
+        renderConversationThread(data);
+      } catch (e) {
+        out.textContent = String(e);
+        renderConversationThread(null);
+      }
+    };
 
     (function bootstrap() {
       const savedToken = localStorage.getItem("tenant_console_token");
