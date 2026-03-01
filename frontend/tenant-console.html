@@ -216,6 +216,15 @@
     .tag.pending_customer { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
     .tag.resolved { background: #ecfdf5; color: #15803d; border-color: #bbf7d0; }
     .tag.closed { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+    .tag.priority.low { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+    .tag.priority.normal { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .tag.priority.high { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+    .tag.priority.urgent { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+    .tag.escalated {
+      background: #fef2f2;
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
     .row-action {
       font-size: 11px;
       padding: 5px 8px;
@@ -236,6 +245,10 @@
     }
     .sla-breach {
       background: #fff1f2;
+    }
+    .escalation-row {
+      box-shadow: inset 3px 0 0 #dc2626;
+      background: #fef2f2;
     }
     .sla-badge {
       display: inline-block;
@@ -272,6 +285,10 @@
       background: #f8fafc;
       border-radius: 6px;
     }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+    }
   </style>
 </head>
 <body>
@@ -279,6 +296,7 @@
     <div class="header">
       <h1>StaunchBot Tenant Console</h1>
       <p>Self-serve onboarding and tenant operations without Swagger.</p>
+      <p class="small">Build: customer-profiles + escalation-ops (2026-03-01)</p>
     </div>
 
     <div class="grid">
@@ -522,6 +540,64 @@
       </section>
 
       <section class="card">
+        <h2>Customer Profiles</h2>
+        <div class="small">View linked customer identities across channels and merge duplicates.</div>
+        <div class="inline" style="margin-top:10px;">
+          <div class="row">
+            <label>Limit</label>
+            <input id="cpLimit" value="100" />
+          </div>
+          <div class="row" style="align-self:end;">
+            <button id="btnProfilesList">Load Profiles</button>
+          </div>
+        </div>
+        <div id="outProfilesList" class="out"></div>
+        <div id="profilesTableWrap" class="table-wrap" style="display:none;">
+          <table class="queue">
+            <thead>
+              <tr>
+                <th>Profile</th>
+                <th>Display</th>
+                <th>Handles</th>
+                <th>Conversations</th>
+                <th>Handoffs</th>
+                <th>Updated</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="profilesTableBody"></tbody>
+          </table>
+        </div>
+        <div class="inline" style="margin-top:10px;">
+          <div class="row">
+            <label>Source Profile ID</label>
+            <input id="cpSourceId" placeholder="cp_..." />
+          </div>
+          <div class="row">
+            <label>Target Profile ID</label>
+            <input id="cpTargetId" placeholder="cp_..." />
+          </div>
+        </div>
+        <div class="inline">
+          <button id="btnProfilesMerge" class="alt">Merge Profiles</button>
+          <button id="btnQaMergeFlow" class="alt">QA Merge Flow</button>
+        </div>
+        <div id="outProfilesMerge" class="out"></div>
+      </section>
+
+      <section class="card">
+        <h2>Escalation Ops</h2>
+        <div class="small">Run SLA escalation sweep and inspect escalation KPIs.</div>
+        <div class="inline" style="margin-top:10px;">
+          <button id="btnEscMetrics">Load Escalation Metrics</button>
+          <button id="btnEscSweep" class="alt">Run Escalation Sweep</button>
+          <button id="btnQaSweepFlow" class="alt">QA Sweep Flow</button>
+        </div>
+        <div id="outEscalationOps" class="out"></div>
+        <div id="escMetricsGrid" class="kpi-grid" style="display:none;"></div>
+      </section>
+
+      <section class="card">
         <h2>Productivity Metrics</h2>
         <button id="btnLoadProdMetrics">Load Metrics</button>
         <div id="outProdMetrics" class="out"></div>
@@ -568,6 +644,8 @@
     const $ = (id) => document.getElementById(id);
     let queueTimer = null;
     let lastReplyReview = null;
+    let lastQueueItems = [];
+    let lastProfiles = [];
 
     function pretty(v) {
       try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
@@ -632,15 +710,22 @@
         const firstBreached = !!(item.first_response_due_at && !item.first_responded_at && ["new", "open"].includes(item.status));
         const resolutionBreached = !!(item.resolution_due_at && ["open", "pending_customer"].includes(item.status));
         const isBreached = firstBreached || resolutionBreached;
+        const isEscalated = !!item.escalation_flag;
         if (isBreached) tr.className = "sla-breach";
+        if (isEscalated) tr.className = `${tr.className ? `${tr.className} ` : ""}escalation-row`;
+        const priority = String(item.priority || "").toLowerCase();
         const breachBadges = [
           firstBreached ? '<span class="sla-badge">first response breached</span>' : "",
           resolutionBreached ? '<span class="sla-badge">resolution breached</span>' : "",
         ].filter(Boolean).join(" ");
+        const escalationBadge = isEscalated
+          ? `<span class="tag escalated" title="${esc(shortDate(item.escalated_at))}">escalated</span>`
+          : "";
+        const priorityBadge = `<span class="tag priority ${esc(priority)}">${esc(item.priority || "-")}</span>`;
         tr.innerHTML = `
           <td title="${esc(item.id)}">${esc(item.id || "-")}</td>
           <td><span class="tag ${statusClass}">${esc(item.status || "-")}</span>${breachBadges ? `<div style="margin-top:4px;">${breachBadges}</div>` : ""}</td>
-          <td>${esc(item.priority || "-")}</td>
+          <td>${priorityBadge}${escalationBadge ? `<div style="margin-top:4px;">${escalationBadge}${priority === "urgent" ? '<span class="sla-badge">priority bumped</span>' : ""}</div>` : ""}</td>
           <td>${esc(item.source_channel || "-")}</td>
           <td>${esc(item.assigned_to_user_id || "-")}</td>
           <td>${esc(shortDate(item.created_at))}</td>
@@ -668,13 +753,15 @@
       const byStatus = { new: 0, open: 0, pending_customer: 0, resolved: 0, closed: 0 };
       let breached = 0;
       let unassigned = 0;
+      let escalated = 0;
       for (const x of rows) {
         const s = String(x.status || "");
         if (Object.prototype.hasOwnProperty.call(byStatus, s)) byStatus[s] += 1;
         if (!x.assigned_to_user_id) unassigned += 1;
         if (isSlaBreached(x)) breached += 1;
+        if (x.escalation_flag) escalated += 1;
       }
-      return { total: rows.length, breached, unassigned, ...byStatus };
+      return { total: rows.length, breached, unassigned, escalated, ...byStatus };
     }
 
     function renderQueueMetrics(items) {
@@ -694,8 +781,74 @@
         ["Resolved", m.resolved],
         ["Closed", m.closed],
         ["Breached", m.breached],
+        ["Escalated", m.escalated],
         ["Unassigned", m.unassigned],
       ];
+      box.innerHTML = cards.map(([k, v]) => `<div class="kpi"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
+    }
+
+    function renderProfilesTable(data) {
+      const wrap = $("profilesTableWrap");
+      const body = $("profilesTableBody");
+      body.innerHTML = "";
+      const profiles = Array.isArray(data && data.profiles) ? data.profiles : [];
+      lastProfiles = profiles;
+      if (!profiles.length) {
+        wrap.style.display = "none";
+        return;
+      }
+      wrap.style.display = "block";
+      body.innerHTML = profiles.map((p) => {
+        const handles = Array.isArray(p.handles) ? p.handles : [];
+        const handleText = handles.length
+          ? handles.map((h) => `${h.channel_type}:${h.external_user_id}`).join(", ")
+          : "-";
+        return `
+          <tr>
+            <td class="mono">${esc(p.id || "-")}</td>
+            <td>${esc(p.display_name || "-")}</td>
+            <td title="${esc(handleText)}" style="max-width:320px;white-space:normal;">${esc(handleText)}</td>
+            <td>${esc(p.conversation_count || 0)}</td>
+            <td>${esc(p.handoff_count || 0)}</td>
+            <td>${esc(shortDate(p.updated_at))}</td>
+            <td>
+              <button class="row-action" data-cp-source="${esc(p.id || "")}">Source</button>
+              <button class="row-action" data-cp-target="${esc(p.id || "")}">Target</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+      body.querySelectorAll("button[data-cp-source]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          $("cpSourceId").value = btn.getAttribute("data-cp-source") || "";
+        });
+      });
+      body.querySelectorAll("button[data-cp-target]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          $("cpTargetId").value = btn.getAttribute("data-cp-target") || "";
+        });
+      });
+    }
+
+    function renderEscalationMetricsCards(data) {
+      const box = $("escMetricsGrid");
+      if (!data || !data.window_24h || !data.window_7d || !data.totals) {
+        box.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
+      const w24 = data.window_24h;
+      const w7d = data.window_7d;
+      const t = data.totals;
+      const cards = [
+        ["Escalated (total)", t.escalated_tickets ?? "-"],
+        ["24h Escalation %", `${((w24.escalation_rate || 0) * 100).toFixed(1)}%`],
+        ["7d Escalation %", `${((w7d.escalation_rate || 0) * 100).toFixed(1)}%`],
+        ["24h Breach %", `${((w24.breach_rate || 0) * 100).toFixed(1)}%`],
+        ["7d Breach %", `${((w7d.breach_rate || 0) * 100).toFixed(1)}%`],
+        ["As Of", shortDate(data.as_of)],
+      ];
+      box.style.display = "grid";
       box.innerHTML = cards.map(([k, v]) => `<div class="kpi"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
     }
 
@@ -976,6 +1129,7 @@
         const query = params.toString() ? `?${params.toString()}` : "";
         const data = await request(`/api/v1/admin/handoff${query}`);
         const items = sortQueueItems((data && data.items) || []);
+        lastQueueItems = items;
         if (!silent) out.textContent = pretty({ ...data, items });
         renderQueueMetrics(items);
         renderQueueTable(items);
@@ -984,8 +1138,168 @@
         }
       } catch (e) {
         out.textContent = String(e);
+        lastQueueItems = [];
         renderQueueMetrics([]);
         renderQueueTable([]);
+      }
+    }
+
+    async function loadProfiles() {
+      const out = $("outProfilesList");
+      out.textContent = "Loading profiles...";
+      try {
+        const limit = Math.max(1, Math.min(500, parseInt($("cpLimit").value, 10) || 100));
+        const data = await request(`/api/v1/admin/channels/profiles?limit=${limit}`);
+        out.textContent = pretty({ tenant_id: data.tenant_id, count: Array.isArray(data.profiles) ? data.profiles.length : 0 });
+        renderProfilesTable(data);
+        return data;
+      } catch (e) {
+        out.textContent = String(e);
+        renderProfilesTable(null);
+        throw e;
+      }
+    }
+
+    async function mergeProfiles() {
+      const out = $("outProfilesMerge");
+      out.textContent = "Merging profiles...";
+      try {
+        const source = $("cpSourceId").value.trim();
+        const target = $("cpTargetId").value.trim();
+        if (!source || !target) throw new Error("Provide both source and target profile IDs.");
+        const data = await request("/api/v1/admin/channels/profiles/merge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source_profile_id: source, target_profile_id: target }),
+        });
+        out.textContent = pretty(data);
+        await loadProfiles();
+        return data;
+      } catch (e) {
+        out.textContent = String(e);
+        throw e;
+      }
+    }
+
+    async function loadEscalationMetrics() {
+      const out = $("outEscalationOps");
+      out.textContent = "Loading escalation metrics...";
+      try {
+        const data = await request("/api/v1/admin/handoff/metrics");
+        out.textContent = pretty({ tenant_id: data.tenant_id, as_of: data.as_of, escalated_total: data.totals && data.totals.escalated_tickets });
+        renderEscalationMetricsCards(data);
+        return data;
+      } catch (e) {
+        out.textContent = String(e);
+        renderEscalationMetricsCards(null);
+        throw e;
+      }
+    }
+
+    async function runEscalationSweep() {
+      const out = $("outEscalationOps");
+      out.textContent = "Running escalation sweep...";
+      try {
+        const data = await request("/api/v1/admin/handoff/escalation/sweep", { method: "POST" });
+        out.textContent = pretty(data);
+        await loadHandoffQueue(true);
+        await loadEscalationMetrics();
+        return data;
+      } catch (e) {
+        out.textContent = String(e);
+        throw e;
+      }
+    }
+
+    async function runQaSweepFlow() {
+      const out = $("outEscalationOps");
+      out.textContent = "Running QA sweep flow...";
+      try {
+        let selectedId = $("hfId").value.trim();
+        let before = null;
+        if (selectedId) {
+          await loadHandoffQueue(true);
+          before = (lastQueueItems || []).find((x) => x.id === selectedId) || null;
+        }
+        if (!before) {
+          const breached = await request("/api/v1/admin/handoff?breached_only=true");
+          const candidate = Array.isArray(breached && breached.items) && breached.items.length ? breached.items[0] : null;
+          if (!candidate || !candidate.id) {
+            throw new Error("No breached tickets found. Create or wait for an SLA breach, then rerun QA flow.");
+          }
+          selectedId = candidate.id;
+          $("hfId").value = selectedId;
+          await loadHandoffQueue(true);
+          before = (lastQueueItems || []).find((x) => x.id === selectedId) || candidate;
+        }
+        const beforePriority = String(before.priority || "").toLowerCase();
+        const beforeEsc = !!before.escalation_flag;
+        const sweep = await runEscalationSweep();
+        const after = (lastQueueItems || []).find((x) => x.id === selectedId);
+        out.textContent = pretty({
+          qa_flow: "breached_ticket_sweep",
+          selected_handoff_id: selectedId,
+          before: {
+            priority: beforePriority,
+            escalation_flag: beforeEsc,
+          },
+          after: after
+            ? {
+                priority: after.priority,
+                escalation_flag: !!after.escalation_flag,
+                escalated_at: after.escalated_at || null,
+              }
+            : null,
+          sweep_result: sweep,
+          verified: !!(after && after.escalation_flag && ["high", "urgent"].includes(String(after.priority || "").toLowerCase())),
+        });
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    }
+
+    async function runQaMergeFlow() {
+      const out = $("outProfilesMerge");
+      out.textContent = "Running QA merge flow...";
+      try {
+        const source = $("cpSourceId").value.trim();
+        const target = $("cpTargetId").value.trim();
+        if (!source || !target) throw new Error("Provide source and target profile IDs.");
+        const beforeData = await loadProfiles();
+        const beforeProfiles = Array.isArray(beforeData.profiles) ? beforeData.profiles : [];
+        const beforeSource = beforeProfiles.find((p) => p.id === source) || null;
+        const beforeTarget = beforeProfiles.find((p) => p.id === target) || null;
+        if (!beforeSource || !beforeTarget) throw new Error("Source/target must exist in profile list before merge.");
+        const merge = await mergeProfiles();
+        const afterData = await loadProfiles();
+        const afterProfiles = Array.isArray(afterData.profiles) ? afterData.profiles : [];
+        const afterSource = afterProfiles.find((p) => p.id === source) || null;
+        const afterTarget = afterProfiles.find((p) => p.id === target) || null;
+        const beforeSourceConv = beforeSource.conversation_count || 0;
+        const beforeSourceHandoff = beforeSource.handoff_count || 0;
+        const beforeTargetConv = beforeTarget.conversation_count || 0;
+        const beforeTargetHandoff = beforeTarget.handoff_count || 0;
+        const afterTargetConv = afterTarget ? (afterTarget.conversation_count || 0) : null;
+        const afterTargetHandoff = afterTarget ? (afterTarget.handoff_count || 0) : null;
+        out.textContent = pretty({
+          qa_flow: "merge_profiles_ownership_move",
+          source_profile_id: source,
+          target_profile_id: target,
+          merge_result: merge,
+          checks: {
+            source_removed: !afterSource,
+            target_conversations_before: beforeTargetConv,
+            target_conversations_after: afterTargetConv,
+            target_handoffs_before: beforeTargetHandoff,
+            target_handoffs_after: afterTargetHandoff,
+            expected_target_conversations_min: beforeTargetConv + beforeSourceConv,
+            expected_target_handoffs_min: beforeTargetHandoff + beforeSourceHandoff,
+            ownership_moved_conversations: afterTargetConv != null ? afterTargetConv >= (beforeTargetConv + Math.max(merge.moved_conversations || 0, beforeSourceConv)) : false,
+            ownership_moved_handoffs: afterTargetHandoff != null ? afterTargetHandoff >= (beforeTargetHandoff + Math.max(merge.moved_handoffs || 0, beforeSourceHandoff)) : false,
+          },
+        });
+      } catch (e) {
+        out.textContent = String(e);
       }
     }
 
@@ -1333,6 +1647,14 @@
         renderProductivityMetrics(null);
       }
     };
+
+    $("btnProfilesList").onclick = () => loadProfiles();
+    $("btnProfilesMerge").onclick = () => mergeProfiles();
+    $("btnQaMergeFlow").onclick = () => runQaMergeFlow();
+
+    $("btnEscMetrics").onclick = () => loadEscalationMetrics();
+    $("btnEscSweep").onclick = () => runEscalationSweep();
+    $("btnQaSweepFlow").onclick = () => runQaSweepFlow();
 
     (function bootstrap() {
       const savedToken = localStorage.getItem("tenant_console_token");
