@@ -200,6 +200,20 @@
       box-sizing: border-box;
       background: #fff;
     }
+    .sla-breach {
+      background: #fff1f2;
+    }
+    .sla-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      color: #b91c1c;
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      border-radius: 999px;
+      padding: 1px 6px;
+      margin-left: 4px;
+    }
   </style>
 </head>
 <body>
@@ -312,6 +326,24 @@
             </select>
           </div>
         </div>
+        <div class="inline">
+          <div class="row">
+            <label>Sort</label>
+            <select id="hfSort">
+              <option value="priority_sla">priority + SLA</option>
+              <option value="newest">newest first</option>
+            </select>
+          </div>
+          <div class="row">
+            <label>Auto-refresh</label>
+            <select id="hfAutoRefresh">
+              <option value="0">off</option>
+              <option value="5">5s</option>
+              <option value="10">10s</option>
+              <option value="15">15s</option>
+            </select>
+          </div>
+        </div>
         <button id="btnHandoffList">Load Queue</button>
         <div id="outHandoffList" class="out"></div>
         <div id="queueTableWrap" class="table-wrap" style="display:none;">
@@ -419,6 +451,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
+    let queueTimer = null;
 
     function pretty(v) {
       try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
@@ -480,9 +513,17 @@
       for (const item of items) {
         const tr = document.createElement("tr");
         const statusClass = esc(item.status || "");
+        const firstBreached = !!(item.first_response_due_at && !item.first_responded_at && ["new", "open"].includes(item.status));
+        const resolutionBreached = !!(item.resolution_due_at && ["open", "pending_customer"].includes(item.status));
+        const isBreached = firstBreached || resolutionBreached;
+        if (isBreached) tr.className = "sla-breach";
+        const breachBadges = [
+          firstBreached ? '<span class="sla-badge">first response breached</span>' : "",
+          resolutionBreached ? '<span class="sla-badge">resolution breached</span>' : "",
+        ].filter(Boolean).join(" ");
         tr.innerHTML = `
           <td title="${esc(item.id)}">${esc(item.id || "-")}</td>
-          <td><span class="tag ${statusClass}">${esc(item.status || "-")}</span></td>
+          <td><span class="tag ${statusClass}">${esc(item.status || "-")}</span>${breachBadges ? `<div style="margin-top:4px;">${breachBadges}</div>` : ""}</td>
           <td>${esc(item.priority || "-")}</td>
           <td>${esc(item.source_channel || "-")}</td>
           <td>${esc(item.assigned_to_user_id || "-")}</td>
@@ -531,6 +572,76 @@
         `;
       }).join("");
       box.scrollTop = box.scrollHeight;
+    }
+
+    function priorityRank(priority) {
+      const p = String(priority || "").toLowerCase();
+      if (p === "urgent") return 4;
+      if (p === "high") return 3;
+      if (p === "normal") return 2;
+      if (p === "low") return 1;
+      return 0;
+    }
+
+    function isSlaBreached(item) {
+      const firstBreached = !!(item.first_response_due_at && !item.first_responded_at && ["new", "open"].includes(item.status));
+      const resolutionBreached = !!(item.resolution_due_at && ["open", "pending_customer"].includes(item.status));
+      return firstBreached || resolutionBreached;
+    }
+
+    function sortQueueItems(items) {
+      const mode = $("hfSort").value;
+      const arr = Array.isArray(items) ? [...items] : [];
+      if (mode === "newest") {
+        return arr.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      }
+      return arr.sort((a, b) => {
+        const breachDiff = Number(isSlaBreached(b)) - Number(isSlaBreached(a));
+        if (breachDiff !== 0) return breachDiff;
+        const prioDiff = priorityRank(b.priority) - priorityRank(a.priority);
+        if (prioDiff !== 0) return prioDiff;
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      });
+    }
+
+    function setQueueAutoRefresh() {
+      if (queueTimer) {
+        clearInterval(queueTimer);
+        queueTimer = null;
+      }
+      const seconds = parseInt($("hfAutoRefresh").value, 10) || 0;
+      if (seconds > 0) {
+        queueTimer = setInterval(() => {
+          loadHandoffQueue(true);
+        }, seconds * 1000);
+      }
+    }
+
+    async function loadHandoffQueue(silent = false) {
+      const out = $("outHandoffList");
+      if (!silent) out.textContent = "Loading queue...";
+      try {
+        const params = new URLSearchParams();
+        const status = $("hfStatus").value.trim();
+        const assignedTo = $("hfAssignedTo").value.trim();
+        const priority = $("hfPriorityFilter").value.trim();
+        const breachedOnly = $("hfBreachedOnly").value === "true";
+        if (status) params.set("status", status);
+        if (assignedTo) params.set("assigned_to", assignedTo);
+        if (priority) params.set("priority", priority);
+        if (breachedOnly) params.set("breached_only", "true");
+        const query = params.toString() ? `?${params.toString()}` : "";
+        const data = await request(`/api/v1/admin/handoff${query}`);
+        const items = sortQueueItems((data && data.items) || []);
+        if (!silent) out.textContent = pretty({ ...data, items });
+        renderQueueTable(items);
+        if (items.length && items[0].id && !$("hfId").value.trim()) {
+          $("hfId").value = items[0].id;
+        }
+      } catch (e) {
+        out.textContent = String(e);
+        renderQueueTable([]);
+      }
     }
 
     $("saveToken").onclick = () => {
@@ -664,30 +775,10 @@
       }
     };
 
-    $("btnHandoffList").onclick = async () => {
-      const out = $("outHandoffList");
-      out.textContent = "Loading queue...";
-      try {
-        const params = new URLSearchParams();
-        const status = $("hfStatus").value.trim();
-        const assignedTo = $("hfAssignedTo").value.trim();
-        const priority = $("hfPriorityFilter").value.trim();
-        const breachedOnly = $("hfBreachedOnly").value === "true";
-        if (status) params.set("status", status);
-        if (assignedTo) params.set("assigned_to", assignedTo);
-        if (priority) params.set("priority", priority);
-        if (breachedOnly) params.set("breached_only", "true");
-        const query = params.toString() ? `?${params.toString()}` : "";
-        const data = await request(`/api/v1/admin/handoff${query}`);
-        out.textContent = pretty(data);
-        renderQueueTable((data && data.items) || []);
-        if (data && Array.isArray(data.items) && data.items.length && data.items[0].id) {
-          $("hfId").value = data.items[0].id;
-        }
-      } catch (e) {
-        out.textContent = String(e);
-        renderQueueTable([]);
-      }
+    $("btnHandoffList").onclick = () => loadHandoffQueue(false);
+    $("hfAutoRefresh").onchange = () => setQueueAutoRefresh();
+    $("hfSort").onchange = () => {
+      if ($("queueTableWrap").style.display !== "none") loadHandoffQueue(true);
     };
 
     $("btnHandoffPatch").onclick = async () => {
@@ -808,7 +899,9 @@
       const savedBase = localStorage.getItem("tenant_console_api_base");
       if (savedToken) setToken(savedToken);
       if (savedBase) $("apiBase").value = savedBase;
+      setQueueAutoRefresh();
     })();
   </script>
 </body>
 </html>
+
