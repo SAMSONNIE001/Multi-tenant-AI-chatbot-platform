@@ -116,6 +116,28 @@
       background: #fff;
       margin-top: 10px;
     }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .kpi {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 8px;
+    }
+    .kpi .k {
+      font-size: 11px;
+      color: #64748b;
+    }
+    .kpi .v {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 2px;
+    }
     .thread-box {
       border: 1px solid #dbe3ee;
       border-radius: 8px;
@@ -358,6 +380,7 @@
         </div>
         <button id="btnHandoffList">Load Queue</button>
         <div id="outHandoffList" class="out"></div>
+        <div id="queueMetrics" class="kpi-grid" style="display:none;"></div>
         <div id="queueTableWrap" class="table-wrap" style="display:none;">
           <table class="queue" id="queueTable">
             <thead>
@@ -568,6 +591,42 @@
       });
     }
 
+    function queueMetrics(items) {
+      const rows = Array.isArray(items) ? items : [];
+      const byStatus = { new: 0, open: 0, pending_customer: 0, resolved: 0, closed: 0 };
+      let breached = 0;
+      let unassigned = 0;
+      for (const x of rows) {
+        const s = String(x.status || "");
+        if (Object.prototype.hasOwnProperty.call(byStatus, s)) byStatus[s] += 1;
+        if (!x.assigned_to_user_id) unassigned += 1;
+        if (isSlaBreached(x)) breached += 1;
+      }
+      return { total: rows.length, breached, unassigned, ...byStatus };
+    }
+
+    function renderQueueMetrics(items) {
+      const box = $("queueMetrics");
+      const m = queueMetrics(items);
+      if (!m.total) {
+        box.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
+      box.style.display = "grid";
+      const cards = [
+        ["Total", m.total],
+        ["New", m.new],
+        ["Open", m.open],
+        ["Pending", m.pending_customer],
+        ["Resolved", m.resolved],
+        ["Closed", m.closed],
+        ["Breached", m.breached],
+        ["Unassigned", m.unassigned],
+      ];
+      box.innerHTML = cards.map(([k, v]) => `<div class="kpi"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
+    }
+
     function roleClass(role) {
       const r = String(role || "").toLowerCase();
       if (r === "user") return "user";
@@ -683,12 +742,14 @@
         const data = await request(`/api/v1/admin/handoff${query}`);
         const items = sortQueueItems((data && data.items) || []);
         if (!silent) out.textContent = pretty({ ...data, items });
+        renderQueueMetrics(items);
         renderQueueTable(items);
         if (items.length && items[0].id && !$("hfId").value.trim()) {
           $("hfId").value = items[0].id;
         }
       } catch (e) {
         out.textContent = String(e);
+        renderQueueMetrics([]);
         renderQueueTable([]);
       }
     }
