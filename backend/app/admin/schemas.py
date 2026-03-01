@@ -147,3 +147,25 @@ class UsageSummary(BaseModel):
 class UsageSummaryResponse(BaseModel):
     tenant_id: str
     summary: UsageSummary
+
+
+class OpsAuditLogCreateRequest(BaseModel):
+    action_type: str = Field(min_length=3, max_length=64)
+    reason: str = Field(min_length=8, max_length=500)
+    metadata_json: dict[str, Any] = Field(default_factory=dict)
+
+
+class OpsAuditLogEntryOut(BaseModel):
+    id: str
+    tenant_id: str
+    actor_user_id: str
+    action_type: str
+    reason: str
+    metadata_json: dict[str, Any]
+    created_at: datetime
+
+
+class OpsAuditListResponse(BaseModel):
+    tenant_id: str
+    count: int
+    entries: list[OpsAuditLogEntryOut]

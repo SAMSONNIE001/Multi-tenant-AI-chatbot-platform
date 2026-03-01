@@ -37,3 +37,18 @@ class ChatAuditLog(Base):
 
 
 Index("ix_chat_audit_tenant_created_at", ChatAuditLog.tenant_id, ChatAuditLog.created_at)
+
+
+class OpsAuditLog(Base):
+    __tablename__ = "ops_audit_logs"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # e.g. opl_abc123
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    actor_user_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    action_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False)
+    metadata_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+Index("ix_ops_audit_tenant_created_at", OpsAuditLog.tenant_id, OpsAuditLog.created_at)

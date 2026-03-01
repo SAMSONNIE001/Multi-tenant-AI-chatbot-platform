@@ -306,12 +306,22 @@
           <label for="apiBase">API Base</label>
           <input id="apiBase" value="https://api.staunchbot.com" />
         </div>
+        <div class="inline">
+          <button id="btnEnvProd" class="alt">Use Prod</button>
+          <button id="btnEnvStaging" class="alt">Use Staging</button>
+          <button id="btnEnvLocal" class="alt">Use Local</button>
+        </div>
+        <div class="row">
+          <label for="stagingApiBase">Staging API Base</label>
+          <input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" />
+        </div>
         <div class="row">
           <label for="accessToken">Access Token</label>
           <textarea id="accessToken" placeholder="Bearer token will appear here"></textarea>
         </div>
         <button id="saveToken" class="alt">Save Token</button>
         <button id="clearToken" class="alt">Clear Token</button>
+        <button id="btnRunStagingQaPack" class="alt">Run Staging QA Pack</button>
         <div class="small" style="margin-top:8px;">
           Token is stored in browser localStorage for this page only.
         </div>
@@ -704,7 +714,7 @@
 
     function isProdApiBase() {
       const base = getApiBase().toLowerCase();
-      return base.includes("api.staunchbot.com") || base.includes("railway.app");
+      return base.includes("api.staunchbot.com");
     }
 
     function nowIso() {
@@ -729,7 +739,7 @@
       return claims.sub || claims.email || "unknown_actor";
     }
 
-    function appendOpsAudit(entry) {
+    function appendOpsAuditLocal(entry) {
       try {
         const raw = localStorage.getItem("tenant_console_ops_audit");
         const parsed = JSON.parse(raw || "[]");
@@ -740,16 +750,48 @@
       } catch (_) {}
     }
 
-    function loadOpsAudit() {
+    async function appendOpsAudit(entry) {
+      appendOpsAuditLocal(entry);
+      try {
+        await request("/api/v1/admin/ops/audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action_type: entry.operation || "unknown",
+            reason: entry.reason || "no_reason",
+            metadata_json: entry,
+          }),
+        });
+      } catch (_) {
+        // Keep local fallback if backend endpoint is unavailable.
+      }
+    }
+
+    async function loadOpsAudit() {
       const out = $("outOpsAudit");
+      try {
+        const data = await request("/api/v1/admin/ops/audit?limit=50&offset=0");
+        out.textContent = pretty({ source: "backend", count: data.count, items: data.entries || [] });
+        return;
+      } catch (_) {
+        // Fallback to local cache.
+      }
       try {
         const raw = localStorage.getItem("tenant_console_ops_audit");
         const parsed = JSON.parse(raw || "[]");
         const list = Array.isArray(parsed) ? parsed : [];
-        out.textContent = pretty({ count: list.length, items: list.slice(0, 25) });
+        out.textContent = pretty({ source: "local_fallback", count: list.length, items: list.slice(0, 25) });
       } catch (e) {
         out.textContent = String(e);
       }
+    }
+
+    function switchApiBase(url) {
+      const v = String(url || "").trim();
+      if (!v) return;
+      $("apiBase").value = v;
+      localStorage.setItem("tenant_console_api_base", v);
+      applyQaAvailability();
     }
 
     function requireReasonAndConfirm(reasonText, actionLabel) {
@@ -1331,7 +1373,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ source_profile_id: source, target_profile_id: target }),
         });
-        appendOpsAudit({
+        await appendOpsAudit({
           at: nowIso(),
           actor: currentActorId(),
           operation: "profiles.merge",
@@ -1342,7 +1384,7 @@
         });
         out.textContent = pretty(data);
         await loadProfiles();
-        loadOpsAudit();
+        await loadOpsAudit();
         return data;
       } catch (e) {
         out.textContent = String(e);
@@ -1375,7 +1417,7 @@
           at: nowIso(),
           result: data,
         };
-        appendOpsAudit({
+        await appendOpsAudit({
           at: nowIso(),
           actor: currentActorId(),
           operation: "handoff.escalation_sweep",
@@ -1386,7 +1428,7 @@
         await loadHandoffQueue(true);
         const metrics = await loadEscalationMetrics();
         renderOpsMonitorGrid(metrics, lastQueueItems);
-        loadOpsAudit();
+        await loadOpsAudit();
         return data;
       } catch (e) {
         out.textContent = String(e);
@@ -1460,6 +1502,35 @@
           external_user_id: externalId,
           webhook_result: res,
           profiles_count: lastProfiles.length,
+        });
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    }
+
+    async function runStagingQaPack() {
+      const out = $("outEscalationOps");
+      out.textContent = "Running staging QA pack...";
+      try {
+        if (isProdApiBase()) throw new Error("Switch API Base to staging/dev first.");
+        await seedProfileActivity();
+        await loadProfiles();
+        if (!$("escSweepReason").value.trim()) {
+          $("escSweepReason").value = `staging qa sweep ${new Date().toISOString()}`;
+        }
+        await runQaSweepFlow();
+        if (lastProfiles.length >= 2) {
+          $("cpSourceId").value = lastProfiles[0].id;
+          $("cpTargetId").value = lastProfiles[1].id;
+          $("cpMergeReason").value = `staging qa merge ${new Date().toISOString()}`;
+          await runQaMergeFlow();
+        }
+        out.textContent = pretty({
+          qa_pack: "staging_full",
+          api_base: getApiBase(),
+          profiles_loaded: lastProfiles.length,
+          sweep_test: "completed",
+          merge_test: lastProfiles.length >= 2 ? "completed" : "skipped_not_enough_profiles",
         });
       } catch (e) {
         out.textContent = String(e);
@@ -1566,6 +1637,7 @@
     $("saveToken").onclick = () => {
       localStorage.setItem("tenant_console_token", $("accessToken").value);
       localStorage.setItem("tenant_console_api_base", $("apiBase").value);
+      localStorage.setItem("tenant_console_staging_api_base", $("stagingApiBase").value);
       alert("Saved.");
     };
 
@@ -1944,13 +2016,19 @@
     $("btnQaSweepFlow").onclick = () => runQaSweepFlow();
     $("btnLoadOpsMonitor").onclick = () => loadOpsMonitor();
     $("btnLoadOpsAudit").onclick = () => loadOpsAudit();
+    $("btnEnvProd").onclick = () => switchApiBase("https://api.staunchbot.com");
+    $("btnEnvStaging").onclick = () => switchApiBase($("stagingApiBase").value.trim());
+    $("btnEnvLocal").onclick = () => switchApiBase("http://localhost:8000");
+    $("btnRunStagingQaPack").onclick = () => runStagingQaPack();
     $("apiBase").onchange = () => applyQaAvailability();
 
     (function bootstrap() {
       const savedToken = localStorage.getItem("tenant_console_token");
       const savedBase = localStorage.getItem("tenant_console_api_base");
+      const savedStaging = localStorage.getItem("tenant_console_staging_api_base");
       if (savedToken) setToken(savedToken);
       if (savedBase) $("apiBase").value = savedBase;
+      if (savedStaging) $("stagingApiBase").value = savedStaging;
       $("hfStatus").value = "new_open";
       $("hfSort").value = "urgent_escalated";
       $("hfEscalatedOnly").value = "false";

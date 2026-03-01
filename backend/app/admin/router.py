@@ -1,5 +1,6 @@
 import csv
 import io
+import secrets
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -19,6 +20,9 @@ from app.admin.schemas import (
     PolicyGeneratedResponse,
     PolicyPutRequest,
     PolicyResponse,
+    OpsAuditListResponse,
+    OpsAuditLogCreateRequest,
+    OpsAuditLogEntryOut,
     RetentionConfig,
     RetentionResponse,
     UsageLimitConfig,
@@ -28,6 +32,7 @@ from app.admin.schemas import (
 from app.auth.deps import get_current_user
 from app.auth.models import User
 from app.audit.models import ChatAuditLog
+from app.audit.models import OpsAuditLog
 from app.chat.memory_models import Conversation, Message
 from app.db.session import get_db
 from app.governance.extract_policy import extract_policy_from_text
@@ -36,6 +41,18 @@ from app.rag.models import Chunk, Document
 from app.system.usage_service import get_or_create_tenant_limit, usage_summary
 
 router = APIRouter()
+
+
+def _to_ops_audit_out(row: OpsAuditLog) -> dict:
+    return {
+        "id": row.id,
+        "tenant_id": row.tenant_id,
+        "actor_user_id": row.actor_user_id,
+        "action_type": row.action_type,
+        "reason": row.reason,
+        "metadata_json": row.metadata_json or {},
+        "created_at": row.created_at,
+    }
 
 
 @router.get("/documents", response_model=DocumentsListResponse)
@@ -440,6 +457,58 @@ def list_conversation_messages(
             }
             for m in msgs
         ],
+    }
+
+
+@router.post("/ops/audit", response_model=OpsAuditLogEntryOut)
+def create_ops_audit_log(
+    payload: OpsAuditLogCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "audit:write")
+
+    row = OpsAuditLog(
+        id=f"opl_{secrets.token_hex(10)}",
+        tenant_id=current_user.tenant_id,
+        actor_user_id=current_user.id,
+        action_type=payload.action_type.strip().lower(),
+        reason=payload.reason.strip(),
+        metadata_json=payload.metadata_json or {},
+        created_at=datetime.utcnow(),
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _to_ops_audit_out(row)
+
+
+@router.get("/ops/audit", response_model=OpsAuditListResponse)
+def list_ops_audit_logs(
+    action_type: str | None = Query(default=None, min_length=3, max_length=64),
+    since_hours: int = Query(default=168, ge=1, le=24 * 90),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0, le=100_000),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "audit:read")
+
+    since = datetime.utcnow() - timedelta(hours=since_hours)
+    stmt = select(OpsAuditLog).where(
+        OpsAuditLog.tenant_id == current_user.tenant_id,
+        OpsAuditLog.created_at >= since,
+    )
+    if action_type:
+        stmt = stmt.where(OpsAuditLog.action_type == action_type.strip().lower())
+
+    rows = db.execute(
+        stmt.order_by(desc(OpsAuditLog.created_at)).limit(limit).offset(offset)
+    ).scalars().all()
+    return {
+        "tenant_id": current_user.tenant_id,
+        "count": len(rows),
+        "entries": [_to_ops_audit_out(r) for r in rows],
     }
 
 
