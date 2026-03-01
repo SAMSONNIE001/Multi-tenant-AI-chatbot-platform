@@ -500,6 +500,35 @@ def ask(
         .all()
     )
 
+    # Defense-in-depth: if retrieved chunk document IDs do not fully map to
+    # tenant-scoped documents, refuse instead of answering with partial context.
+    found_doc_ids = {d.id for d in documents}
+    if found_doc_ids != set(doc_ids):
+        retrieved_chunks = [
+            {
+                "document_id": c.document_id,
+                "chunk_id": c.id,
+                "chunk_index": c.chunk_index,
+            }
+            for c in chunks
+        ]
+        return _respond_and_log(
+            answer="Request refused due to document access inconsistency.",
+            refused=True,
+            policy_reason="retrieval:document_lookup_mismatch",
+            retrieved_chunks=retrieved_chunks,
+            citations_json=[],
+            retrieval_doc_count=len({c.document_id for c in chunks}),
+            retrieval_chunk_count=len(chunks),
+            coverage=Coverage(
+                doc_count=len({c.document_id for c in chunks}),
+                chunk_count=len(chunks),
+            ),
+            citations=[],
+            sources=[],
+            total_tokens=0,
+        )
+
     doc_policy = evaluate_doc_policy(documents=documents, current_user=current_user)
     if doc_policy.action == "refuse":
         answer = doc_policy.message or "Request refused by document access policy."
