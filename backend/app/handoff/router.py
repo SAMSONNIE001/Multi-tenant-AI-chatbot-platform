@@ -17,6 +17,7 @@ from app.handoff.models import HandoffInternalNote, HandoffRequest
 from app.handoff.schemas import (
     HandoffAgentReplyRequest,
     HandoffDailyMetric,
+    HandoffEscalationSweepResponse,
     HandoffAgentMetric,
     HandoffAIToggleRequest,
     HandoffClaimRequest,
@@ -58,6 +59,8 @@ def _to_out(row: HandoffRequest) -> HandoffOut:
         first_response_due_at=row.first_response_due_at,
         first_responded_at=row.first_responded_at,
         resolution_due_at=row.resolution_due_at,
+        escalation_flag=bool(row.escalation_flag),
+        escalated_at=row.escalated_at,
         created_at=row.created_at,
         updated_at=row.updated_at,
         resolved_at=row.resolved_at,
@@ -112,11 +115,48 @@ def _is_sla_breached(row: HandoffRequest, now: datetime) -> bool:
     return first_response_breach or resolution_breach
 
 
+def _escalate_if_breached(row: HandoffRequest, now: datetime) -> tuple[bool, str]:
+    """
+    Auto-escalation rules:
+    - Apply only to active tickets with breached SLA.
+    - Bump priority low/normal -> high, high -> urgent.
+    - Set escalation_flag/escalated_at once.
+    Returns (changed, bump_result) where bump_result is one of:
+    "to_high" | "to_urgent" | "unchanged" | "none"
+    """
+    if row.status in {"resolved", "closed"}:
+        return False, "none"
+    if not _is_sla_breached(row, now):
+        return False, "none"
+
+    changed = False
+    bump_result = "unchanged"
+    current_priority = (row.priority or "normal").strip().lower()
+    if current_priority in {"low", "normal"}:
+        row.priority = "high"
+        changed = True
+        bump_result = "to_high"
+    elif current_priority == "high":
+        row.priority = "urgent"
+        changed = True
+        bump_result = "to_urgent"
+
+    if not bool(row.escalation_flag):
+        row.escalation_flag = True
+        row.escalated_at = now
+        changed = True
+
+    if changed:
+        row.updated_at = now
+    return changed, bump_result
+
+
 def _window_metrics(rows: list[HandoffRequest], now: datetime, hours: int) -> HandoffWindowMetrics:
     cutoff = now.timestamp() - (hours * 3600)
     in_window = [r for r in rows if r.created_at and r.created_at.timestamp() >= cutoff]
     total = len(in_window)
     breached = sum(1 for r in in_window if _is_sla_breached(r, now))
+    escalated = sum(1 for r in in_window if bool(getattr(r, "escalation_flag", False)))
 
     first_response_mins = []
     resolution_mins = []
@@ -129,11 +169,14 @@ def _window_metrics(rows: list[HandoffRequest], now: datetime, hours: int) -> Ha
     avg_first = round(sum(first_response_mins) / len(first_response_mins), 2) if first_response_mins else None
     avg_resolution = round(sum(resolution_mins) / len(resolution_mins), 2) if resolution_mins else None
     breach_rate = round((breached / total), 4) if total else 0.0
+    escalation_rate = round((escalated / total), 4) if total else 0.0
     return HandoffWindowMetrics(
         window_hours=hours,
         total_tickets=total,
         breached_tickets=breached,
         breach_rate=breach_rate,
+        escalated_tickets=escalated,
+        escalation_rate=escalation_rate,
         avg_first_response_min=avg_first,
         avg_resolution_min=avg_resolution,
     )
@@ -327,6 +370,7 @@ def handoff_metrics(
     resolved_tickets = sum(1 for r in rows if r.status in {"resolved", "closed"} or r.resolved_at is not None)
     unresolved_tickets = max(0, all_tickets - resolved_tickets)
     resolved_rate = round((resolved_tickets / all_tickets), 4) if all_tickets else 0.0
+    escalated_tickets = sum(1 for r in rows if bool(getattr(r, "escalation_flag", False)))
 
     return HandoffMetricsResponse(
         tenant_id=current_user.tenant_id,
@@ -340,8 +384,59 @@ def handoff_metrics(
             resolved_tickets=resolved_tickets,
             unresolved_tickets=unresolved_tickets,
             resolved_rate=resolved_rate,
+            escalated_tickets=escalated_tickets,
         ),
     )
+
+
+@admin_router.post("/escalation/sweep", response_model=HandoffEscalationSweepResponse)
+def run_escalation_sweep(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "handoff:write")
+
+    now = datetime.utcnow()
+    rows = (
+        db.execute(
+            select(HandoffRequest).where(
+                HandoffRequest.tenant_id == current_user.tenant_id,
+                HandoffRequest.status.in_(["new", "open", "pending_customer"]),
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    escalated_tickets = 0
+    bumped_to_high = 0
+    bumped_to_urgent = 0
+    unchanged_priority = 0
+
+    for row in rows:
+        changed, bump = _escalate_if_breached(row, now)
+        if not changed:
+            continue
+        db.add(row)
+        escalated_tickets += 1
+        if bump == "to_high":
+            bumped_to_high += 1
+        elif bump == "to_urgent":
+            bumped_to_urgent += 1
+        else:
+            unchanged_priority += 1
+
+    if escalated_tickets:
+        db.commit()
+
+    return {
+        "tenant_id": current_user.tenant_id,
+        "scanned_tickets": len(rows),
+        "escalated_tickets": escalated_tickets,
+        "bumped_to_high": bumped_to_high,
+        "bumped_to_urgent": bumped_to_urgent,
+        "unchanged_priority": unchanged_priority,
+    }
 
 
 @admin_router.post("/reply-review", response_model=HandoffReplyReviewResponse)

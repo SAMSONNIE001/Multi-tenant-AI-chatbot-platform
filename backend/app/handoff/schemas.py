@@ -49,6 +49,8 @@ class HandoffOut(BaseModel):
     first_response_due_at: datetime | None
     first_responded_at: datetime | None
     resolution_due_at: datetime | None
+    escalation_flag: bool
+    escalated_at: datetime | None
     created_at: datetime
     updated_at: datetime
     resolved_at: datetime | None
@@ -106,6 +108,8 @@ class HandoffWindowMetrics(BaseModel):
     total_tickets: int
     breached_tickets: int
     breach_rate: float
+    escalated_tickets: int = 0
+    escalation_rate: float = 0.0
     avg_first_response_min: float | None = None
     avg_resolution_min: float | None = None
 
@@ -128,6 +132,16 @@ class HandoffTotalsMetric(BaseModel):
     resolved_tickets: int
     unresolved_tickets: int
     resolved_rate: float
+    escalated_tickets: int = 0
+
+
+class HandoffEscalationSweepResponse(BaseModel):
+    tenant_id: str
+    scanned_tickets: int
+    escalated_tickets: int
+    bumped_to_high: int
+    bumped_to_urgent: int
+    unchanged_priority: int
 
 
 class HandoffMetricsResponse(BaseModel):

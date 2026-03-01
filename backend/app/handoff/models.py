@@ -28,6 +28,8 @@ class HandoffRequest(Base):
     first_responded_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     resolution_due_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    escalation_flag: Mapped[bool] = mapped_column(nullable=False, default=False)
+    escalated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
