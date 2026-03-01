@@ -1,5 +1,6 @@
 
 from time import perf_counter
+import re
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -30,8 +31,14 @@ from app.system.usage_service import check_tenant_quota, write_usage_event
 # 8.2 policy guardrails
 from app.governance.policy_engine import evaluate_question_policy
 from app.governance.doc_policy import evaluate_doc_policy
+from app.handoff.service import create_handoff_request
 
 router = APIRouter()
+
+_HUMAN_INTENT_RE = re.compile(
+    r"\b(human|agent|representative|live agent|support team|talk to .*human|speak to .*human)\b",
+    re.IGNORECASE,
+)
 
 
 def _compact_grounded_text(text: str, max_len: int = 260) -> str:
@@ -164,6 +171,36 @@ def ask(
             answer=answer,
             refused=True,
             policy_reason=quota_reason,
+            retrieved_chunks=[],
+            citations_json=[],
+            retrieval_doc_count=0,
+            retrieval_chunk_count=0,
+            coverage=Coverage(doc_count=0, chunk_count=0),
+            citations=[],
+            sources=[],
+            total_tokens=0,
+        )
+
+    # Auto-handoff: detect human-agent intent from normal user messages.
+    if _HUMAN_INTENT_RE.search(payload.question or ""):
+        handoff = create_handoff_request(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            question=payload.question,
+            conversation_id=conversation.id,
+            reason="human_requested",
+            destination=None,
+            source_channel=("embed" if str(current_user.id).startswith("w_") else "api"),
+        )
+        answer = (
+            "I have connected you to our support team. "
+            f"Please hold while an agent takes over. Ticket ID: {handoff.id}"
+        )
+        return _respond_and_log(
+            answer=answer,
+            refused=False,
+            policy_reason="handoff:auto_intent_detected",
             retrieved_chunks=[],
             citations_json=[],
             retrieval_doc_count=0,

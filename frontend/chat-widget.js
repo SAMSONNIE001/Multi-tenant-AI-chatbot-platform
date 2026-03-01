@@ -33,7 +33,6 @@
       ".mtw-input{flex:1;min-width:0;padding:9px 10px;border:1px solid #d1d5db;border-radius:9px;outline:none}" +
       ".mtw-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}" +
       ".mtw-send{padding:9px 12px;border:0;border-radius:9px;background:#0f766e;color:#fff;cursor:pointer}" +
-      ".mtw-human{padding:9px 12px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:#0f172a;cursor:pointer}" +
       ".mtw-send:disabled{opacity:.6;cursor:not-allowed}" +
       ".mtw-fab{position:fixed;right:18px;bottom:18px;width:56px;height:56px;border-radius:999px;border:0;background:#0f766e;color:#fff;box-shadow:0 12px 28px rgba(0,0,0,.22);cursor:pointer;z-index:999998;font-size:22px}" +
       ".mtw-hidden{display:none}";
@@ -51,7 +50,6 @@
       placeholder: opts.placeholder || "Ask a question...",
       "aria-label": "Chat input",
     }, row);
-    var human = el("button", { class: "mtw-human", text: "Human", type: "button" }, row);
     var send = el("button", { class: "mtw-send", text: "Send", type: "button" }, row);
 
     var fab = null;
@@ -71,7 +69,7 @@
     }
 
     document.body.appendChild(shell);
-    return { shell: shell, log: log, input: input, send: send, human: human, fab: fab };
+    return { shell: shell, log: log, input: input, send: send, fab: fab };
   }
 
   function addMessage(log, text, from) {
@@ -137,27 +135,7 @@
       return data;
     }
 
-    async function requestHandoff(question, reason, destination) {
-      if (!widgetToken) await getWidgetToken();
-      var res = await fetch(base + "/api/v1/public/embed/handoff", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          widget_token: widgetToken,
-          question: question,
-          reason: reason || "human_handoff",
-          destination: destination || null,
-          conversation_id: conversationId,
-        }),
-      });
-      if (res.status === 401) {
-        widgetToken = null;
-      }
-      if (!res.ok) throw new Error("handoff failed (" + res.status + ")");
-      return await res.json();
-    }
-
-    return { ask: ask, getWidgetToken: getWidgetToken, requestHandoff: requestHandoff };
+    return { ask: ask, getWidgetToken: getWidgetToken };
   }
 
   function init(userConfig) {
@@ -181,12 +159,9 @@
     var ui = createUI(config);
     var client = createClient(config);
     var pending = false;
-    var lastUserQuestion = "";
-
     function setPending(v) {
       pending = v;
       ui.send.disabled = v;
-      ui.human.disabled = v;
       ui.input.disabled = v;
     }
 
@@ -194,7 +169,6 @@
       if (pending) return;
       var q = ui.input.value.trim();
       if (!q) return;
-      lastUserQuestion = q;
       ui.input.value = "";
       addMessage(ui.log, q, "you");
       setPending(true);
@@ -210,30 +184,6 @@
     }
 
     ui.send.addEventListener("click", sendMessage);
-    ui.human.addEventListener("click", async function () {
-      if (pending) return;
-      var q = ui.input.value.trim() || lastUserQuestion || "User requested human support.";
-      if (!q) return;
-      if (ui.input.value.trim()) {
-        lastUserQuestion = ui.input.value.trim();
-        addMessage(ui.log, ui.input.value.trim(), "you");
-        ui.input.value = "";
-      }
-      setPending(true);
-      try {
-        var handoff = await client.requestHandoff(q, "human_handoff", null);
-        addMessage(
-          ui.log,
-          "I created a support ticket for a human agent. Ticket ID: " + handoff.handoff_id,
-          "bot"
-        );
-      } catch (err) {
-        addMessage(ui.log, "Error: " + (err && err.message ? err.message : "Unknown"), "bot");
-      } finally {
-        setPending(false);
-        ui.input.focus();
-      }
-    });
     ui.input.addEventListener("keydown", function (e) {
       if (e.key === "Enter") sendMessage();
     });
