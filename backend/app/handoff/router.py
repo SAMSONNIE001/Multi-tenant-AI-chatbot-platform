@@ -26,6 +26,7 @@ from app.handoff.schemas import (
     HandoffNotesResponse,
     HandoffOut,
     HandoffPatchRequest,
+    HandoffTotalsMetric,
     HandoffWindowMetrics,
 )
 from app.handoff.service import create_handoff_request
@@ -246,6 +247,11 @@ def handoff_metrics(
     ]
     per_agent.sort(key=lambda x: (x.assigned_count, x.resolved_count), reverse=True)
 
+    all_tickets = len(rows)
+    resolved_tickets = sum(1 for r in rows if r.status in {"resolved", "closed"} or r.resolved_at is not None)
+    unresolved_tickets = max(0, all_tickets - resolved_tickets)
+    resolved_rate = round((resolved_tickets / all_tickets), 4) if all_tickets else 0.0
+
     return HandoffMetricsResponse(
         tenant_id=current_user.tenant_id,
         as_of=now,
@@ -253,6 +259,12 @@ def handoff_metrics(
         window_7d=_window_metrics(rows, now, 24 * 7),
         by_agent=per_agent[:20],
         daily=_daily_metrics(rows, now, 7),
+        totals=HandoffTotalsMetric(
+            all_tickets=all_tickets,
+            resolved_tickets=resolved_tickets,
+            unresolved_tickets=unresolved_tickets,
+            resolved_rate=resolved_rate,
+        ),
     )
 
 

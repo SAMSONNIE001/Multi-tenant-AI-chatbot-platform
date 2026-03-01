@@ -102,6 +102,13 @@ class HandoffDailyMetric(BaseModel):
     breach_rate: float
 
 
+class HandoffTotalsMetric(BaseModel):
+    all_tickets: int
+    resolved_tickets: int
+    unresolved_tickets: int
+    resolved_rate: float
+
+
 class HandoffMetricsResponse(BaseModel):
     tenant_id: str
     as_of: datetime
@@ -109,3 +116,4 @@ class HandoffMetricsResponse(BaseModel):
     window_7d: HandoffWindowMetrics
     by_agent: list[HandoffAgentMetric]
     daily: list[HandoffDailyMetric]
+    totals: HandoffTotalsMetric

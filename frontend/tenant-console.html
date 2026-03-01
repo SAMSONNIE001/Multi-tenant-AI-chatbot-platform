@@ -518,6 +518,10 @@
         <div id="prodMetricsGrid" class="kpi-grid" style="display:none;"></div>
         <div id="prodCharts" class="chart-wrap" style="display:none;">
           <div class="chart-box">
+            <div class="chart-title">Resolved vs Unresolved vs All</div>
+            <svg id="chartResolvedSplit" class="chart-svg" viewBox="0 0 600 130" preserveAspectRatio="none"></svg>
+          </div>
+          <div class="chart-box">
             <div class="chart-title">7-day Ticket Volume</div>
             <svg id="chartTickets" class="chart-svg" viewBox="0 0 600 130" preserveAspectRatio="none"></svg>
           </div>
@@ -700,7 +704,12 @@
 
       const w24 = data.window_24h;
       const w7d = data.window_7d;
+      const totals = data.totals || {};
       const cards = [
+        ["All Tickets", totals.all_tickets ?? "-"],
+        ["Resolved", totals.resolved_tickets ?? "-"],
+        ["Unresolved", totals.unresolved_tickets ?? "-"],
+        ["Resolved %", totals.resolved_rate != null ? `${(totals.resolved_rate * 100).toFixed(1)}%` : "-"],
         ["24h Tickets", w24.total_tickets],
         ["24h Breach %", `${(w24.breach_rate * 100).toFixed(1)}%`],
         ["24h First Resp (min)", w24.avg_first_response_min ?? "-"],
@@ -785,6 +794,14 @@
     }
 
     function renderProdCharts(data) {
+      const totals = data.totals || {};
+      const splitVals = [
+        Number(totals.resolved_tickets || 0),
+        Number(totals.unresolved_tickets || 0),
+        Number(totals.all_tickets || 0),
+      ];
+      renderBarSvg("chartResolvedSplit", splitVals, ["Resolved", "Unresolved", "All"], "#7c3aed");
+
       const daily = Array.isArray(data.daily) ? data.daily : [];
       const ticketSeries = daily.map((d) => Number(d.tickets || 0));
       const breachSeries = daily.map((d) => Number(d.breach_rate || 0) * 100);
