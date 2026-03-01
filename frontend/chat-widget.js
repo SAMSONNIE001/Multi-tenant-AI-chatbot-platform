@@ -25,7 +25,9 @@
     style.textContent =
       ".mtw-shell{position:fixed;right:18px;bottom:18px;width:360px;max-width:calc(100vw - 24px);background:#fff;border:1px solid #e4e6eb;border-radius:12px;box-shadow:0 20px 45px rgba(0,0,0,.18);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;overflow:hidden;z-index:999999}" +
       ".mtw-head{padding:10px 12px;border-bottom:1px solid #eef1f4;font-weight:700;color:#0f172a;background:#f8fafc;display:flex;align-items:center;gap:10px}" +
-      ".mtw-head-title{line-height:1.2}" +
+      ".mtw-head-titles{line-height:1.2;display:flex;flex-direction:column}" +
+      ".mtw-head-title{font-weight:700}" +
+      ".mtw-head-subtitle{font-size:11px;color:#64748b;font-weight:500;margin-top:2px}" +
       ".mtw-avatar{width:28px;height:28px;border-radius:999px;object-fit:cover;display:inline-block;background:#dbeafe}" +
       ".mtw-avatar-fallback{width:28px;height:28px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#0f766e;color:#fff;font-size:12px;font-weight:700}" +
       ".mtw-log{height:360px;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px;background:#fff}" +
@@ -48,15 +50,19 @@
     var showFab = opts.mode === "bubble";
     var shell = el("section", { class: "mtw-shell" });
     var head = el("div", { class: "mtw-head" }, shell);
-    var title = el("div", { class: "mtw-head-title", text: opts.title || "Live Chat" }, head);
+    var titles = el("div", { class: "mtw-head-titles" }, head);
+    var title = el("div", { class: "mtw-head-title", text: opts.title || "Live Chat" }, titles);
+    if (opts.subtitle) {
+      el("div", { class: "mtw-head-subtitle", text: opts.subtitle }, titles);
+    }
     if (opts.avatarUrl) {
       var avatar = el("img", { class: "mtw-avatar", src: opts.avatarUrl, alt: "Bot avatar" }, head);
       avatar.onerror = function () {
         avatar.replaceWith(el("span", { class: "mtw-avatar-fallback", text: "AI" }));
       };
-      head.insertBefore(avatar, title);
+      head.insertBefore(avatar, titles);
     } else {
-      head.insertBefore(el("span", { class: "mtw-avatar-fallback", text: "AI" }), title);
+      head.insertBefore(el("span", { class: "mtw-avatar-fallback", text: "AI" }), titles);
     }
 
     var log = el("div", { class: "mtw-log" }, shell);
@@ -215,6 +221,10 @@
         botId: "",
         mode: "bubble",
         title: "Live Chat",
+        subtitle: "",
+        companyName: "",
+        assistantName: "",
+        welcomeMessage: "",
         placeholder: "Ask a question...",
         avatarUrl: "",
         topK: 5,
@@ -236,6 +246,15 @@
       pending = v;
       ui.send.disabled = v;
       ui.input.disabled = v;
+    }
+
+    function buildWelcomeMessage() {
+      if (config.welcomeMessage && String(config.welcomeMessage).trim()) {
+        return String(config.welcomeMessage).trim();
+      }
+      var company = String(config.companyName || "").trim() || "our company";
+      var assistant = String(config.assistantName || "").trim() || "AI Assistant";
+      return "Welcome to " + company + ". I'm " + assistant + ", your AI customer agent. How can I help you today?";
     }
 
     async function sendMessage() {
@@ -281,6 +300,11 @@
     ui.send.addEventListener("click", sendMessage);
     ui.input.addEventListener("keydown", function (e) {
       if (e.key === "Enter") sendMessage();
+    });
+
+    // Show immediate welcome when chat opens, before user sends first message.
+    addMessage(ui.log, buildWelcomeMessage(), "bot", {
+      avatarUrl: config.avatarUrl || "",
     });
 
     pollHandle = window.setInterval(pollAgentUpdates, 3000);

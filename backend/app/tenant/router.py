@@ -412,9 +412,14 @@ def tenant_embed_snippet(
     widget_script_base = _resolve_widget_script_base(bot)
     tenant = db.get(Tenant, current_user.tenant_id)
     bot_title = (bot.name or "").strip() or "AI Assistant"
+    company_name = ((tenant.name if tenant else "") or "our company").strip()
     effective_avatar_url = (bot.avatar_url or (tenant.avatar_url if tenant else None) or "").strip()
     avatar_cfg = (
         f',\n  avatarUrl: "{_js_escape(effective_avatar_url)}"' if effective_avatar_url else ""
+    )
+    welcome_message = (
+        f"Welcome to {company_name}. "
+        f"I'm {bot_title}, your AI customer agent. How can I help you today?"
     )
     snippet = (
         f'<script src="{widget_script_base}/chat-widget.js"></script>\n'
@@ -423,7 +428,11 @@ def tenant_embed_snippet(
         f'  apiBase: "{api_base}",\n'
         f'  botId: "{bot.id}",\n'
         '  mode: "bubble",\n'
-        f'  title: "{_js_escape(bot_title)}",\n'
+        '  title: "Live Chat",\n'
+        f'  subtitle: "{_js_escape(bot_title)}",\n'
+        f'  companyName: "{_js_escape(company_name)}",\n'
+        f'  assistantName: "{_js_escape(bot_title)}",\n'
+        f'  welcomeMessage: "{_js_escape(welcome_message)}",\n'
         f"{avatar_cfg}\n"
         '  placeholder: "Ask a question..."\n'
         "});\n"

@@ -159,11 +159,11 @@ def _small_talk_response(
         if preferred_name:
             return (
                 f"Hi{name_part}, welcome to {company_name}. "
-                f"I'm {bot_name}. I can help with anything. What can I do for you today?"
+                f"I'm {bot_name}, your AI customer agent. How can I help you today?"
             )
         return (
-            f"Welcome to {company_name}. I'm {bot_name}. "
-            "Before we start, what name should I call you?"
+            f"Welcome to {company_name}. I'm {bot_name}, your AI customer agent. "
+            "How can I help you today?"
         )
     if _THANKS_RE.search(q):
         return f"You are welcome{name_part}. If you need anything else, I am here to help."

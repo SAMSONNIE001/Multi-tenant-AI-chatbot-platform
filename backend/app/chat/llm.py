@@ -1,9 +1,12 @@
 import os
 from openai import OpenAI, APIError, APIConnectionError, APITimeoutError, RateLimitError
 
-CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4o-mini")
+CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4.1")
 _client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-FALLBACK_ANSWER = "I don't have that information in the provided documents."
+FALLBACK_ANSWER = (
+    "I couldn't find that in the available support information yet. "
+    "If you want, I can connect you to a human agent."
+)
 
 
 def generate_answer(

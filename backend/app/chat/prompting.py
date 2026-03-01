@@ -3,7 +3,10 @@ import re
 
 from app.rag.models import Chunk
 
-REFUSAL_SENTENCE = "I don't have that information in the provided documents."
+REFUSAL_SENTENCE = (
+    "I couldn't find that in the available support information yet. "
+    "If you want, I can connect you to a human agent."
+)
 
 SYSTEM_PROMPT = f"""You are a governance-first assistant for a single tenant.
 

@@ -2,7 +2,10 @@ import re
 from dataclasses import dataclass
 from typing import Iterable
 
-REFUSAL_SENTENCE = "I don't have that information in the provided documents."
+REFUSAL_SENTENCE = (
+    "I couldn't find that in the available support information yet. "
+    "If you want, I can connect you to a human agent."
+)
 
 # Matches: [d_abc123:c_xyz789]
 _CIT_RE = re.compile(r"\[([^\[\]:\s]+):([^\[\]\s]+)\]")
