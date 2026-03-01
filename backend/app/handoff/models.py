@@ -18,9 +18,15 @@ class HandoffRequest(Base):
     question: Mapped[str] = mapped_column(Text, nullable=False)
     reason: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="open")
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="new")
+    assigned_to_user_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    priority: Mapped[str] = mapped_column(String(16), nullable=False, default="normal")
     destination: Mapped[str | None] = mapped_column(String(255), nullable=True)
     resolution_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    first_response_due_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    first_responded_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    resolution_due_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)

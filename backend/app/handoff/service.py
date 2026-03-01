@@ -1,6 +1,6 @@
 import json
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib import request
 
 from sqlalchemy.orm import Session
@@ -39,6 +39,7 @@ def create_handoff_request(
     destination: str | None,
     source_channel: str = "api",
 ) -> HandoffRequest:
+    now = datetime.utcnow()
     row = HandoffRequest(
         id=f"ho_{secrets.token_hex(12)}",
         tenant_id=tenant_id,
@@ -47,10 +48,13 @@ def create_handoff_request(
         source_channel=source_channel,
         question=question,
         reason=reason,
-        status="open",
+        status="new",
+        priority="normal",
         destination=destination,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        first_response_due_at=now + timedelta(minutes=15),
+        resolution_due_at=now + timedelta(hours=24),
+        created_at=now,
+        updated_at=now,
     )
     db.add(row)
     db.commit()

@@ -1,0 +1,59 @@
+StaunchBot Support FAQ Knowledge Base (v1)
+
+Purpose
+- Help users with common support questions.
+- Keep answers short and actionable.
+- Escalate when account, billing, or security risk is involved.
+
+---
+
+Q: How do I reset my password?
+A: Use the "Forgot password" option on the login page. If you do not receive the reset email, contact support.
+
+Q: Why can’t I log in?
+A: Check email/password spelling, then try password reset. If login still fails, contact support and include your tenant ID.
+
+Q: How do I update billing details?
+A: Go to Billing settings in your account dashboard and update payment method. If the page fails, contact support.
+
+Q: How do I cancel my subscription?
+A: Open Billing settings and select Cancel plan. Your account remains active until the current billing period ends.
+
+Q: Why was my payment declined?
+A: Common causes are expired card, insufficient funds, or bank block. Retry with a valid method or contact your bank.
+
+Q: How do I connect website live chat?
+A: Generate your embed snippet from tenant tools and paste it before </body> on your website page.
+
+Q: Why does the widget show "Failed to fetch"?
+A: Check API base URL, allowed origins, and CORS settings. Confirm your website domain is in allowed origins.
+
+Q: How do I upload knowledge files?
+A: Use tenant knowledge upload and then run reindex. Supported formats depend on deployment settings.
+
+Q: Why does the bot answer "I don't have that information"?
+A: The knowledge base may not contain relevant content or indexing is incomplete. Upload clearer Q/A content and reindex.
+
+Q: How do I contact human support?
+A: Use the support email or handoff channel configured by your tenant admin.
+
+---
+
+Escalation Rules
+Escalate to human support immediately for:
+- Account lockout after reset attempt
+- Billing disputes/refunds/chargebacks
+- Security incidents or suspected account compromise
+- Legal, compliance, or financial advice requests
+
+---
+
+Response Style Rules
+1. Answer in 2-5 lines max unless user asks for detail.
+2. Provide one concrete next step.
+3. Avoid repeating policy blocks.
+4. If unknown, use fallback response exactly.
+
+Fallback Response
+I don't have that information in the provided documents.
+

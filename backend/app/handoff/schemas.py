@@ -11,7 +11,9 @@ class HandoffCreateRequest(BaseModel):
 
 
 class HandoffPatchRequest(BaseModel):
-    status: str = Field(min_length=2, max_length=32)
+    status: str | None = Field(default=None, min_length=2, max_length=32)
+    assigned_to_user_id: str | None = Field(default=None, min_length=3, max_length=64)
+    priority: str | None = Field(default=None, min_length=2, max_length=16)
     resolution_note: str | None = Field(default=None, min_length=1, max_length=5000)
 
 
@@ -24,11 +26,17 @@ class HandoffOut(BaseModel):
     question: str
     reason: str | None
     status: str
+    assigned_to_user_id: str | None
+    priority: str
     destination: str | None
     resolution_note: str | None
+    first_response_due_at: datetime | None
+    first_responded_at: datetime | None
+    resolution_due_at: datetime | None
     created_at: datetime
     updated_at: datetime
     resolved_at: datetime | None
+    closed_at: datetime | None
 
 
 class HandoffListResponse(BaseModel):
