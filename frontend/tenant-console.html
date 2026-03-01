@@ -372,12 +372,18 @@
           <label>Status Filter</label>
           <select id="hfStatus">
             <option value="">(all)</option>
+            <option value="new_open">new + open</option>
             <option value="new">new</option>
             <option value="open">open</option>
             <option value="pending_customer">pending_customer</option>
             <option value="resolved">resolved</option>
             <option value="closed">closed</option>
           </select>
+        </div>
+        <div class="inline">
+          <button id="btnQuickOpenNew" class="alt">Quick: Open/New</button>
+          <button id="btnQuickEscalated" class="alt">Quick: Escalated</button>
+          <button id="btnQuickResetQueue" class="alt">Quick: Reset</button>
         </div>
         <div class="row">
           <label>Assigned To Filter (user id)</label>
@@ -401,11 +407,19 @@
               <option value="true">breached only</option>
             </select>
           </div>
+          <div class="row">
+            <label>Escalation</label>
+            <select id="hfEscalatedOnly">
+              <option value="false">all</option>
+              <option value="true">escalated only</option>
+            </select>
+          </div>
         </div>
         <div class="inline">
           <div class="row">
             <label>Sort</label>
             <select id="hfSort">
+              <option value="urgent_escalated">urgent/escalated first</option>
               <option value="priority_sla">priority + SLA</option>
               <option value="newest">newest first</option>
             </select>
@@ -582,19 +596,51 @@
           <button id="btnProfilesMerge" class="alt">Merge Profiles</button>
           <button id="btnQaMergeFlow" class="alt">QA Merge Flow</button>
         </div>
+        <div class="row" style="margin-top:10px;">
+          <label>Merge Reason (required)</label>
+          <input id="cpMergeReason" placeholder="duplicate handles from same customer across channels" />
+        </div>
         <div id="outProfilesMerge" class="out"></div>
+        <div class="row" style="margin-top:10px;">
+          <label>Profile Seed (via inbound webhook simulation)</label>
+          <div class="inline">
+            <input id="cpSeedExternalId" placeholder="ext_customer_1001" />
+            <input id="cpSeedMessage" value="I need human support with my order." />
+          </div>
+        </div>
+        <div class="inline">
+          <button id="btnSeedProfileData" class="alt">Seed Profile Activity</button>
+        </div>
+        <div id="outProfileSeed" class="out"></div>
       </section>
 
       <section class="card">
         <h2>Escalation Ops</h2>
         <div class="small">Run SLA escalation sweep and inspect escalation KPIs.</div>
+        <div id="qaEnvBanner" class="small warn" style="display:none;margin-top:6px;">QA flow buttons are disabled on production API base.</div>
         <div class="inline" style="margin-top:10px;">
           <button id="btnEscMetrics">Load Escalation Metrics</button>
           <button id="btnEscSweep" class="alt">Run Escalation Sweep</button>
           <button id="btnQaSweepFlow" class="alt">QA Sweep Flow</button>
         </div>
+        <div class="row" style="margin-top:10px;">
+          <label>Sweep Reason (required)</label>
+          <input id="escSweepReason" placeholder="scheduled SLA breach triage" />
+        </div>
         <div id="outEscalationOps" class="out"></div>
         <div id="escMetricsGrid" class="kpi-grid" style="display:none;"></div>
+        <div class="row" style="margin-top:10px;">
+          <label>Ops Monitoring</label>
+          <div class="inline">
+            <button id="btnLoadOpsMonitor" class="alt">Load Ops Monitor</button>
+          </div>
+        </div>
+        <div id="opsMonitorGrid" class="kpi-grid" style="display:none;"></div>
+        <div class="row" style="margin-top:10px;">
+          <label>Ops Audit Trail (local)</label>
+          <button id="btnLoadOpsAudit" class="alt">Refresh Audit Trail</button>
+        </div>
+        <div id="outOpsAudit" class="out"></div>
       </section>
 
       <section class="card">
@@ -646,6 +692,7 @@
     let lastReplyReview = null;
     let lastQueueItems = [];
     let lastProfiles = [];
+    let lastSweepRun = null;
 
     function pretty(v) {
       try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
@@ -653,6 +700,66 @@
 
     function getApiBase() {
       return $("apiBase").value.trim().replace(/\/+$/, "");
+    }
+
+    function isProdApiBase() {
+      const base = getApiBase().toLowerCase();
+      return base.includes("api.staunchbot.com") || base.includes("railway.app");
+    }
+
+    function nowIso() {
+      return new Date().toISOString();
+    }
+
+    function safeJwtField(index) {
+      const token = getToken().replace(/^Bearer\s+/i, "");
+      const parts = token.split(".");
+      if (parts.length < 2) return null;
+      try {
+        const b64 = parts[index].replace(/-/g, "+").replace(/_/g, "/");
+        const json = atob(b64);
+        return JSON.parse(json);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function currentActorId() {
+      const claims = safeJwtField(1) || {};
+      return claims.sub || claims.email || "unknown_actor";
+    }
+
+    function appendOpsAudit(entry) {
+      try {
+        const raw = localStorage.getItem("tenant_console_ops_audit");
+        const parsed = JSON.parse(raw || "[]");
+        const list = Array.isArray(parsed) ? parsed : [];
+        list.unshift(entry);
+        const trimmed = list.slice(0, 100);
+        localStorage.setItem("tenant_console_ops_audit", JSON.stringify(trimmed));
+      } catch (_) {}
+    }
+
+    function loadOpsAudit() {
+      const out = $("outOpsAudit");
+      try {
+        const raw = localStorage.getItem("tenant_console_ops_audit");
+        const parsed = JSON.parse(raw || "[]");
+        const list = Array.isArray(parsed) ? parsed : [];
+        out.textContent = pretty({ count: list.length, items: list.slice(0, 25) });
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    }
+
+    function requireReasonAndConfirm(reasonText, actionLabel) {
+      const reason = String(reasonText || "").trim();
+      if (reason.length < 8) {
+        throw new Error("Provide a reason (at least 8 chars) before running this action.");
+      }
+      const ok = window.confirm(`${actionLabel}\n\nReason: ${reason}\n\nProceed?`);
+      if (!ok) throw new Error("Action canceled by operator.");
+      return reason;
     }
 
     function getToken() {
@@ -850,6 +957,36 @@
       ];
       box.style.display = "grid";
       box.innerHTML = cards.map(([k, v]) => `<div class="kpi"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
+    }
+
+    function renderOpsMonitorGrid(metricsData, queueItems) {
+      const box = $("opsMonitorGrid");
+      const items = Array.isArray(queueItems) ? queueItems : [];
+      const urgentBacklog = items.filter((x) => String(x.priority || "").toLowerCase() === "urgent" && ["new", "open", "pending_customer"].includes(String(x.status || ""))).length;
+      const escalatedOpen = items.filter((x) => x.escalation_flag && ["new", "open", "pending_customer"].includes(String(x.status || ""))).length;
+      const m = metricsData || {};
+      const t = m.totals || {};
+      const w24 = m.window_24h || {};
+      const cards = [
+        ["Urgent Backlog", urgentBacklog],
+        ["Escalated Open", escalatedOpen],
+        ["Escalated Total", t.escalated_tickets ?? "-"],
+        ["24h Escalation %", w24.escalation_rate != null ? `${(Number(w24.escalation_rate) * 100).toFixed(1)}%` : "-"],
+        ["24h Tickets", w24.total_tickets ?? "-"],
+        ["Last Sweep", lastSweepRun ? shortDate(lastSweepRun.at) : "never"],
+      ];
+      box.style.display = "grid";
+      box.innerHTML = cards.map(([k, v]) => `<div class="kpi"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
+    }
+
+    function applyQaAvailability() {
+      const isProd = isProdApiBase();
+      const qaBtns = ["btnQaSweepFlow", "btnQaMergeFlow"];
+      for (const id of qaBtns) {
+        const el = $(id);
+        if (el) el.disabled = isProd;
+      }
+      $("qaEnvBanner").style.display = isProd ? "block" : "none";
     }
 
     function renderProductivityMetrics(data) {
@@ -1091,6 +1228,19 @@
       if (mode === "newest") {
         return arr.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       }
+      if (mode === "urgent_escalated") {
+        return arr.sort((a, b) => {
+          const escDiff = Number(!!b.escalation_flag) - Number(!!a.escalation_flag);
+          if (escDiff !== 0) return escDiff;
+          const urgentDiff = Number(String(b.priority || "").toLowerCase() === "urgent") - Number(String(a.priority || "").toLowerCase() === "urgent");
+          if (urgentDiff !== 0) return urgentDiff;
+          const highDiff = Number(String(b.priority || "").toLowerCase() === "high") - Number(String(a.priority || "").toLowerCase() === "high");
+          if (highDiff !== 0) return highDiff;
+          const breachDiff = Number(isSlaBreached(b)) - Number(isSlaBreached(a));
+          if (breachDiff !== 0) return breachDiff;
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        });
+      }
       return arr.sort((a, b) => {
         const breachDiff = Number(isSlaBreached(b)) - Number(isSlaBreached(a));
         if (breachDiff !== 0) return breachDiff;
@@ -1122,13 +1272,21 @@
         const assignedTo = $("hfAssignedTo").value.trim();
         const priority = $("hfPriorityFilter").value.trim();
         const breachedOnly = $("hfBreachedOnly").value === "true";
-        if (status) params.set("status", status);
+        const escalatedOnly = $("hfEscalatedOnly").value === "true";
+        if (status && status !== "new_open") params.set("status", status);
         if (assignedTo) params.set("assigned_to", assignedTo);
         if (priority) params.set("priority", priority);
         if (breachedOnly) params.set("breached_only", "true");
         const query = params.toString() ? `?${params.toString()}` : "";
         const data = await request(`/api/v1/admin/handoff${query}`);
-        const items = sortQueueItems((data && data.items) || []);
+        let items = Array.isArray(data && data.items) ? data.items : [];
+        if (status === "new_open") {
+          items = items.filter((x) => ["new", "open"].includes(String(x.status || "")));
+        }
+        if (escalatedOnly) {
+          items = items.filter((x) => !!x.escalation_flag);
+        }
+        items = sortQueueItems(items);
         lastQueueItems = items;
         if (!silent) out.textContent = pretty({ ...data, items });
         renderQueueMetrics(items);
@@ -1167,13 +1325,24 @@
         const source = $("cpSourceId").value.trim();
         const target = $("cpTargetId").value.trim();
         if (!source || !target) throw new Error("Provide both source and target profile IDs.");
+        const reason = requireReasonAndConfirm($("cpMergeReason").value, "Merge customer profiles");
         const data = await request("/api/v1/admin/channels/profiles/merge", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ source_profile_id: source, target_profile_id: target }),
         });
+        appendOpsAudit({
+          at: nowIso(),
+          actor: currentActorId(),
+          operation: "profiles.merge",
+          reason,
+          source_profile_id: source,
+          target_profile_id: target,
+          result: data,
+        });
         out.textContent = pretty(data);
         await loadProfiles();
+        loadOpsAudit();
         return data;
       } catch (e) {
         out.textContent = String(e);
@@ -1200,10 +1369,24 @@
       const out = $("outEscalationOps");
       out.textContent = "Running escalation sweep...";
       try {
+        const reason = requireReasonAndConfirm($("escSweepReason").value, "Run escalation sweep");
         const data = await request("/api/v1/admin/handoff/escalation/sweep", { method: "POST" });
+        lastSweepRun = {
+          at: nowIso(),
+          result: data,
+        };
+        appendOpsAudit({
+          at: nowIso(),
+          actor: currentActorId(),
+          operation: "handoff.escalation_sweep",
+          reason,
+          result: data,
+        });
         out.textContent = pretty(data);
         await loadHandoffQueue(true);
-        await loadEscalationMetrics();
+        const metrics = await loadEscalationMetrics();
+        renderOpsMonitorGrid(metrics, lastQueueItems);
+        loadOpsAudit();
         return data;
       } catch (e) {
         out.textContent = String(e);
@@ -1211,10 +1394,83 @@
       }
     }
 
+    async function loadOpsMonitor() {
+      const out = $("outEscalationOps");
+      out.textContent = "Loading ops monitor...";
+      try {
+        await loadHandoffQueue(true);
+        const metrics = await request("/api/v1/admin/handoff/metrics");
+        renderEscalationMetricsCards(metrics);
+        renderOpsMonitorGrid(metrics, lastQueueItems);
+        out.textContent = pretty({
+          tenant_id: metrics.tenant_id,
+          as_of: metrics.as_of,
+          urgent_backlog: (lastQueueItems || []).filter((x) => String(x.priority || "").toLowerCase() === "urgent" && ["new", "open", "pending_customer"].includes(String(x.status || ""))).length,
+          escalated_open: (lastQueueItems || []).filter((x) => !!x.escalation_flag && ["new", "open", "pending_customer"].includes(String(x.status || ""))).length,
+          last_sweep_at: lastSweepRun ? lastSweepRun.at : null,
+        });
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    }
+
+    async function seedProfileActivity() {
+      const out = $("outProfileSeed");
+      out.textContent = "Seeding profile activity...";
+      try {
+        const externalId = $("cpSeedExternalId").value.trim() || `ext_customer_${Date.now()}`;
+        const message = $("cpSeedMessage").value.trim() || "I need human support with my order.";
+        const accounts = await request("/api/v1/admin/channels/accounts");
+        const pageLike = (Array.isArray(accounts) ? accounts : []).find((a) =>
+          ["messenger", "facebook", "instagram"].includes(String(a.channel_type || "").toLowerCase()) &&
+          (a.page_id || a.instagram_account_id)
+        );
+        if (!pageLike) {
+          throw new Error("No messenger/facebook/instagram channel account with page_id/instagram_account_id found. Configure one first.");
+        }
+        const recipientId = pageLike.page_id || pageLike.instagram_account_id;
+        const objectType = String(pageLike.channel_type || "").toLowerCase() === "instagram" ? "instagram" : "page";
+        const payload = {
+          object: objectType,
+          entry: [
+            {
+              id: "seed_entry",
+              time: Date.now(),
+              messaging: [
+                {
+                  sender: { id: externalId },
+                  recipient: { id: recipientId },
+                  timestamp: Date.now(),
+                  message: { mid: `seed_${Date.now()}`, text: message },
+                },
+              ],
+            },
+          ],
+        };
+        const res = await request("/api/v1/channels/meta/webhook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        await loadProfiles();
+        out.textContent = pretty({
+          seeded: true,
+          channel_account_id: pageLike.id,
+          channel_type: pageLike.channel_type,
+          external_user_id: externalId,
+          webhook_result: res,
+          profiles_count: lastProfiles.length,
+        });
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    }
+
     async function runQaSweepFlow() {
       const out = $("outEscalationOps");
       out.textContent = "Running QA sweep flow...";
       try {
+        if (isProdApiBase()) throw new Error("QA sweep flow disabled on production API base.");
         let selectedId = $("hfId").value.trim();
         let before = null;
         if (selectedId) {
@@ -1234,6 +1490,9 @@
         }
         const beforePriority = String(before.priority || "").toLowerCase();
         const beforeEsc = !!before.escalation_flag;
+        if (!$("escSweepReason").value.trim()) {
+          $("escSweepReason").value = `qa sweep validation ${new Date().toISOString()}`;
+        }
         const sweep = await runEscalationSweep();
         const after = (lastQueueItems || []).find((x) => x.id === selectedId);
         out.textContent = pretty({
@@ -1262,6 +1521,7 @@
       const out = $("outProfilesMerge");
       out.textContent = "Running QA merge flow...";
       try {
+        if (isProdApiBase()) throw new Error("QA merge flow disabled on production API base.");
         const source = $("cpSourceId").value.trim();
         const target = $("cpTargetId").value.trim();
         if (!source || !target) throw new Error("Provide source and target profile IDs.");
@@ -1438,6 +1698,28 @@
     $("hfAutoRefresh").onchange = () => setQueueAutoRefresh();
     $("hfSort").onchange = () => {
       if ($("queueTableWrap").style.display !== "none") loadHandoffQueue(true);
+    };
+    $("btnQuickOpenNew").onclick = () => {
+      $("hfStatus").value = "new_open";
+      $("hfEscalatedOnly").value = "false";
+      $("hfBreachedOnly").value = "false";
+      $("hfSort").value = "urgent_escalated";
+      loadHandoffQueue(false);
+    };
+    $("btnQuickEscalated").onclick = () => {
+      $("hfEscalatedOnly").value = "true";
+      $("hfStatus").value = "new_open";
+      $("hfSort").value = "urgent_escalated";
+      loadHandoffQueue(false);
+    };
+    $("btnQuickResetQueue").onclick = () => {
+      $("hfStatus").value = "";
+      $("hfAssignedTo").value = "";
+      $("hfPriorityFilter").value = "";
+      $("hfBreachedOnly").value = "false";
+      $("hfEscalatedOnly").value = "false";
+      $("hfSort").value = "urgent_escalated";
+      loadHandoffQueue(false);
     };
 
     $("btnHandoffPatch").onclick = async () => {
@@ -1649,18 +1931,33 @@
     };
 
     $("btnProfilesList").onclick = () => loadProfiles();
-    $("btnProfilesMerge").onclick = () => mergeProfiles();
+    $("btnProfilesMerge").onclick = async () => {
+      try { await mergeProfiles(); } catch (_) {}
+    };
     $("btnQaMergeFlow").onclick = () => runQaMergeFlow();
+    $("btnSeedProfileData").onclick = () => seedProfileActivity();
 
     $("btnEscMetrics").onclick = () => loadEscalationMetrics();
-    $("btnEscSweep").onclick = () => runEscalationSweep();
+    $("btnEscSweep").onclick = async () => {
+      try { await runEscalationSweep(); } catch (_) {}
+    };
     $("btnQaSweepFlow").onclick = () => runQaSweepFlow();
+    $("btnLoadOpsMonitor").onclick = () => loadOpsMonitor();
+    $("btnLoadOpsAudit").onclick = () => loadOpsAudit();
+    $("apiBase").onchange = () => applyQaAvailability();
 
     (function bootstrap() {
       const savedToken = localStorage.getItem("tenant_console_token");
       const savedBase = localStorage.getItem("tenant_console_api_base");
       if (savedToken) setToken(savedToken);
       if (savedBase) $("apiBase").value = savedBase;
+      $("hfStatus").value = "new_open";
+      $("hfSort").value = "urgent_escalated";
+      $("hfEscalatedOnly").value = "false";
+      if (!$("escSweepReason").value.trim()) $("escSweepReason").value = "scheduled SLA triage sweep";
+      if (!$("cpMergeReason").value.trim()) $("cpMergeReason").value = "dedupe duplicate customer identities";
+      applyQaAvailability();
+      loadOpsAudit();
       setQueueAutoRefresh();
     })();
   </script>
