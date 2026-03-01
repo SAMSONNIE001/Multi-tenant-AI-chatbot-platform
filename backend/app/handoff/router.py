@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -14,6 +14,7 @@ from app.chat.memory_service import append_message, touch_conversation
 from app.handoff.models import HandoffInternalNote, HandoffRequest
 from app.handoff.schemas import (
     HandoffAgentReplyRequest,
+    HandoffDailyMetric,
     HandoffAgentMetric,
     HandoffAIToggleRequest,
     HandoffClaimRequest,
@@ -117,6 +118,26 @@ def _window_metrics(rows: list[HandoffRequest], now: datetime, hours: int) -> Ha
         avg_first_response_min=avg_first,
         avg_resolution_min=avg_resolution,
     )
+
+
+def _daily_metrics(rows: list[HandoffRequest], now: datetime, days: int = 7) -> list[HandoffDailyMetric]:
+    buckets: list[HandoffDailyMetric] = []
+    start = now.date() - timedelta(days=days - 1)
+    for i in range(days):
+        day = start + timedelta(days=i)
+        day_rows = [r for r in rows if r.created_at and r.created_at.date() == day]
+        total = len(day_rows)
+        breached = sum(1 for r in day_rows if _is_sla_breached(r, now))
+        rate = round((breached / total), 4) if total else 0.0
+        buckets.append(
+            HandoffDailyMetric(
+                day=day.isoformat(),
+                tickets=total,
+                breached_tickets=breached,
+                breach_rate=rate,
+            )
+        )
+    return buckets
 
 
 @router.post("/request", response_model=HandoffOut)
@@ -231,6 +252,7 @@ def handoff_metrics(
         window_24h=_window_metrics(rows, now, 24),
         window_7d=_window_metrics(rows, now, 24 * 7),
         by_agent=per_agent[:20],
+        daily=_daily_metrics(rows, now, 7),
     )
 
 
