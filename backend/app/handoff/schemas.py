@@ -58,3 +58,23 @@ class HandoffListResponse(BaseModel):
     tenant_id: str
     count: int
     items: list[HandoffOut]
+
+
+class HandoffNoteCreateRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class HandoffNoteOut(BaseModel):
+    id: str
+    handoff_id: str
+    tenant_id: str
+    author_user_id: str
+    content: str
+    created_at: datetime
+
+
+class HandoffNotesResponse(BaseModel):
+    tenant_id: str
+    handoff_id: str
+    count: int
+    items: list[HandoffNoteOut]

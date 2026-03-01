@@ -1,7 +1,8 @@
 from datetime import datetime
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import and_, desc, or_, select
+from sqlalchemy import and_, asc, desc, or_, select
 from sqlalchemy.orm import Session
 
 from app.admin.rbac import require_scope
@@ -10,13 +11,16 @@ from app.auth.models import User
 from app.db.session import get_db
 from app.chat.memory_models import Conversation
 from app.chat.memory_service import append_message, touch_conversation
-from app.handoff.models import HandoffRequest
+from app.handoff.models import HandoffInternalNote, HandoffRequest
 from app.handoff.schemas import (
     HandoffAgentReplyRequest,
     HandoffAIToggleRequest,
     HandoffClaimRequest,
     HandoffCreateRequest,
     HandoffListResponse,
+    HandoffNoteCreateRequest,
+    HandoffNoteOut,
+    HandoffNotesResponse,
     HandoffOut,
     HandoffPatchRequest,
 )
@@ -57,6 +61,17 @@ def _append_internal_note(existing: str | None, note: str, author_id: str) -> st
     if not existing:
         return line
     return f"{existing.rstrip()}\n{line}"
+
+
+def _to_note_out(row: HandoffInternalNote) -> HandoffNoteOut:
+    return HandoffNoteOut(
+        id=row.id,
+        handoff_id=row.handoff_id,
+        tenant_id=row.tenant_id,
+        author_user_id=row.author_user_id,
+        content=row.content,
+        created_at=row.created_at,
+    )
 
 
 @router.post("/request", response_model=HandoffOut)
@@ -177,16 +192,102 @@ def patch_handoff(
     if payload.resolution_note is not None:
         row.resolution_note = payload.resolution_note
     if payload.internal_note_append is not None:
+        note_text = payload.internal_note_append.strip()
         row.internal_notes = _append_internal_note(
             row.internal_notes,
-            payload.internal_note_append,
+            note_text,
             current_user.id,
+        )
+        db.add(
+            HandoffInternalNote(
+                id=f"hon_{uuid4().hex[:16]}",
+                handoff_id=row.id,
+                tenant_id=row.tenant_id,
+                author_user_id=current_user.id,
+                content=note_text,
+            )
         )
 
     db.add(row)
     db.commit()
     db.refresh(row)
     return _to_out(row)
+
+
+@admin_router.get("/{handoff_id}/notes", response_model=HandoffNotesResponse)
+def list_handoff_notes(
+    handoff_id: str,
+    limit: int = Query(default=200, ge=1, le=500),
+    offset: int = Query(default=0, ge=0, le=100_000),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "handoff:read")
+
+    exists = db.execute(
+        select(HandoffRequest.id).where(
+            HandoffRequest.id == handoff_id,
+            HandoffRequest.tenant_id == current_user.tenant_id,
+        )
+    ).scalar_one_or_none()
+    if not exists:
+        raise HTTPException(status_code=404, detail="Handoff not found")
+
+    rows = (
+        db.execute(
+            select(HandoffInternalNote)
+            .where(
+                HandoffInternalNote.handoff_id == handoff_id,
+                HandoffInternalNote.tenant_id == current_user.tenant_id,
+            )
+            .order_by(asc(HandoffInternalNote.created_at))
+            .limit(limit)
+            .offset(offset)
+        )
+        .scalars()
+        .all()
+    )
+    return {
+        "tenant_id": current_user.tenant_id,
+        "handoff_id": handoff_id,
+        "count": len(rows),
+        "items": [_to_note_out(r) for r in rows],
+    }
+
+
+@admin_router.post("/{handoff_id}/notes", response_model=HandoffNoteOut)
+def add_handoff_note(
+    handoff_id: str,
+    payload: HandoffNoteCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "handoff:write")
+
+    row = db.execute(
+        select(HandoffRequest).where(
+            HandoffRequest.id == handoff_id,
+            HandoffRequest.tenant_id == current_user.tenant_id,
+        )
+    ).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Handoff not found")
+
+    text = payload.content.strip()
+    note = HandoffInternalNote(
+        id=f"hon_{uuid4().hex[:16]}",
+        handoff_id=row.id,
+        tenant_id=row.tenant_id,
+        author_user_id=current_user.id,
+        content=text,
+    )
+    row.internal_notes = _append_internal_note(row.internal_notes, text, current_user.id)
+    row.updated_at = datetime.utcnow()
+    db.add(row)
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+    return _to_note_out(note)
 
 
 @admin_router.post("/{handoff_id}/claim", response_model=HandoffOut)

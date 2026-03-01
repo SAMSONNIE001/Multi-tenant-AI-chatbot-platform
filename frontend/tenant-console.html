@@ -149,6 +149,18 @@
       background: #f0fdf4;
       border-color: #bbf7d0;
     }
+    .note {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 8px;
+      margin-bottom: 8px;
+    }
+    .note .meta {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
     table.queue {
       width: 100%;
       border-collapse: collapse;
@@ -433,8 +445,12 @@
           <label>Internal Note (private, agent only)</label>
           <textarea id="hfInternalNote" placeholder="Add private context for your team..."></textarea>
         </div>
-        <button id="btnAddInternalNote" class="alt">Add Internal Note</button>
+        <div class="inline">
+          <button id="btnAddInternalNote" class="alt">Add Internal Note</button>
+          <button id="btnLoadNotes" class="alt">Load Notes</button>
+        </div>
         <div id="outHandoffAgent" class="out"></div>
+        <div id="notesTimeline" class="thread-box" style="display:none;"></div>
 
         <div class="row" style="margin-top:12px;">
           <label>Conversation ID</label>
@@ -547,6 +563,7 @@
             $("convId").value = selected.conversation_id;
           }
           $("outHandoffAgent").textContent = `Selected handoff: ${$("hfId").value}`;
+          $("btnLoadNotes").click();
         });
       });
     }
@@ -577,6 +594,33 @@
         `;
       }).join("");
       box.scrollTop = box.scrollHeight;
+    }
+
+    function renderNotesTimeline(payload) {
+      const box = $("notesTimeline");
+      if (!payload || !Array.isArray(payload.items) || !payload.items.length) {
+        box.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
+      box.style.display = "block";
+      box.innerHTML = payload.items.map((n) => {
+        return `
+          <div class="note">
+            <div class="meta">${esc(n.author_user_id || "-")} - ${esc(shortDate(n.created_at))}</div>
+            <div>${esc(n.content || "")}</div>
+          </div>
+        `;
+      }).join("");
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function loadHandoffNotes() {
+      const handoffId = $("hfId").value.trim();
+      if (!handoffId) throw new Error("Provide handoff id.");
+      const data = await request(`/api/v1/admin/handoff/${encodeURIComponent(handoffId)}/notes?limit=200&offset=0`);
+      renderNotesTimeline(data);
+      return data;
     }
 
     function priorityRank(priority) {
@@ -889,15 +933,27 @@
         if (!handoffId) throw new Error("Provide handoff id.");
         const note = $("hfInternalNote").value.trim();
         if (!note) throw new Error("Write an internal note first.");
-        const data = await request(`/api/v1/admin/handoff/${encodeURIComponent(handoffId)}`, {
-          method: "PATCH",
+        const data = await request(`/api/v1/admin/handoff/${encodeURIComponent(handoffId)}/notes`, {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ internal_note_append: note }),
+          body: JSON.stringify({ content: note }),
         });
         $("hfInternalNote").value = "";
         out.textContent = pretty(data);
+        await loadHandoffNotes();
       } catch (e) {
         out.textContent = String(e);
+      }
+    };
+    $("btnLoadNotes").onclick = async () => {
+      const out = $("outHandoffAgent");
+      out.textContent = "Loading notes...";
+      try {
+        const data = await loadHandoffNotes();
+        out.textContent = pretty({ handoff_id: data.handoff_id, count: data.count });
+      } catch (e) {
+        out.textContent = String(e);
+        renderNotesTimeline(null);
       }
     };
 
