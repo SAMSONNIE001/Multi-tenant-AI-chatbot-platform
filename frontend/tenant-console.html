@@ -109,6 +109,55 @@
     .inline > * {
       flex: 1 1 140px;
     }
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid #dbe3ee;
+      border-radius: 8px;
+      background: #fff;
+      margin-top: 10px;
+    }
+    table.queue {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    table.queue th, table.queue td {
+      border-bottom: 1px solid #eef2f7;
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    table.queue th {
+      background: #f8fafc;
+      color: #334155;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+    }
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid #dbe3ee;
+      background: #f8fafc;
+    }
+    .tag.new { background: #ecfeff; color: #0f766e; border-color: #a5f3fc; }
+    .tag.open { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .tag.pending_customer { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+    .tag.resolved { background: #ecfdf5; color: #15803d; border-color: #bbf7d0; }
+    .tag.closed { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+    .row-action {
+      font-size: 11px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 0;
+      background: #334155;
+      color: #fff;
+      cursor: pointer;
+    }
     select {
       width: 100%;
       padding: 9px 10px;
@@ -232,6 +281,23 @@
         </div>
         <button id="btnHandoffList">Load Queue</button>
         <div id="outHandoffList" class="out"></div>
+        <div id="queueTableWrap" class="table-wrap" style="display:none;">
+          <table class="queue" id="queueTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Source</th>
+                <th>Assigned</th>
+                <th>Created</th>
+                <th>Question</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="queueTableBody"></tbody>
+          </table>
+        </div>
 
         <div class="row" style="margin-top:10px;">
           <label>Handoff ID</label>
@@ -340,6 +406,54 @@
 
     function parseOrigins(s) {
       return String(s || "").split(",").map(v => v.trim()).filter(Boolean);
+    }
+
+    function esc(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function shortDate(iso) {
+      if (!iso) return "-";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      return d.toLocaleString();
+    }
+
+    function renderQueueTable(items) {
+      const wrap = $("queueTableWrap");
+      const body = $("queueTableBody");
+      body.innerHTML = "";
+      if (!Array.isArray(items) || !items.length) {
+        wrap.style.display = "none";
+        return;
+      }
+      wrap.style.display = "block";
+      for (const item of items) {
+        const tr = document.createElement("tr");
+        const statusClass = esc(item.status || "");
+        tr.innerHTML = `
+          <td title="${esc(item.id)}">${esc(item.id || "-")}</td>
+          <td><span class="tag ${statusClass}">${esc(item.status || "-")}</span></td>
+          <td>${esc(item.priority || "-")}</td>
+          <td>${esc(item.source_channel || "-")}</td>
+          <td>${esc(item.assigned_to_user_id || "-")}</td>
+          <td>${esc(shortDate(item.created_at))}</td>
+          <td title="${esc(item.question || "")}" style="max-width:280px;white-space:normal;">${esc(item.question || "-")}</td>
+          <td><button class="row-action" data-hid="${esc(item.id || "")}">Use</button></td>
+        `;
+        body.appendChild(tr);
+      }
+      body.querySelectorAll("button[data-hid]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          $("hfId").value = btn.getAttribute("data-hid") || "";
+          $("outHandoffAgent").textContent = `Selected handoff: ${$("hfId").value}`;
+        });
+      });
     }
 
     $("saveToken").onclick = () => {
@@ -489,11 +603,13 @@
         const query = params.toString() ? `?${params.toString()}` : "";
         const data = await request(`/api/v1/admin/handoff${query}`);
         out.textContent = pretty(data);
+        renderQueueTable((data && data.items) || []);
         if (data && Array.isArray(data.items) && data.items.length && data.items[0].id) {
           $("hfId").value = data.items[0].id;
         }
       } catch (e) {
         out.textContent = String(e);
+        renderQueueTable([]);
       }
     };
 
