@@ -270,6 +270,35 @@
         </div>
         <button id="btnHandoffPatch" class="alt">Patch Handoff</button>
         <div id="outHandoffPatch" class="out"></div>
+
+        <div class="row" style="margin-top:12px;">
+          <label>Agent Actions (same handoff)</label>
+          <div class="inline">
+            <button id="btnHandoffClaim">Claim</button>
+            <input id="hfClaimUser" placeholder="claim as user id (optional)" />
+          </div>
+        </div>
+        <div class="row">
+          <label>Agent Reply Message</label>
+          <textarea id="hfAgentReply" placeholder="Write reply as agent..."></textarea>
+        </div>
+        <div class="inline">
+          <div class="row">
+            <label>Mark after reply</label>
+            <select id="hfMarkPending">
+              <option value="true">pending_customer</option>
+              <option value="false">open</option>
+            </select>
+          </div>
+          <div class="row" style="align-self:end;">
+            <button id="btnHandoffReply" class="alt">Send Agent Reply</button>
+          </div>
+        </div>
+        <div class="inline">
+          <button id="btnPauseAI" class="alt">Pause AI</button>
+          <button id="btnResumeAI" class="alt">Resume AI</button>
+        </div>
+        <div id="outHandoffAgent" class="out"></div>
       </section>
     </div>
 
@@ -495,6 +524,70 @@
         out.textContent = String(e);
       }
     };
+
+    $("btnHandoffClaim").onclick = async () => {
+      const out = $("outHandoffAgent");
+      out.textContent = "Claiming...";
+      try {
+        const handoffId = $("hfId").value.trim();
+        if (!handoffId) throw new Error("Provide handoff id.");
+        const claimUser = $("hfClaimUser").value.trim();
+        const body = {};
+        if (claimUser) body.assigned_to_user_id = claimUser;
+        const data = await request(`/api/v1/admin/handoff/${encodeURIComponent(handoffId)}/claim`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        out.textContent = pretty(data);
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+
+    $("btnHandoffReply").onclick = async () => {
+      const out = $("outHandoffAgent");
+      out.textContent = "Sending agent reply...";
+      try {
+        const handoffId = $("hfId").value.trim();
+        if (!handoffId) throw new Error("Provide handoff id.");
+        const message = $("hfAgentReply").value.trim();
+        if (!message) throw new Error("Write an agent reply message.");
+        const markPendingCustomer = $("hfMarkPending").value === "true";
+        const body = {
+          message,
+          mark_pending_customer: markPendingCustomer,
+        };
+        const data = await request(`/api/v1/admin/handoff/${encodeURIComponent(handoffId)}/reply`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        out.textContent = pretty(data);
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+
+    async function setAIToggle(aiPaused) {
+      const out = $("outHandoffAgent");
+      out.textContent = aiPaused ? "Pausing AI..." : "Resuming AI...";
+      try {
+        const handoffId = $("hfId").value.trim();
+        if (!handoffId) throw new Error("Provide handoff id.");
+        const data = await request(`/api/v1/admin/handoff/${encodeURIComponent(handoffId)}/ai-toggle`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ai_paused: aiPaused }),
+        });
+        out.textContent = pretty(data);
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    }
+
+    $("btnPauseAI").onclick = () => setAIToggle(true);
+    $("btnResumeAI").onclick = () => setAIToggle(false);
 
     (function bootstrap() {
       const savedToken = localStorage.getItem("tenant_console_token");
