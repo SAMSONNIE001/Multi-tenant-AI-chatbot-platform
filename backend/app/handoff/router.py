@@ -84,6 +84,19 @@ def _to_note_out(row: HandoffInternalNote) -> HandoffNoteOut:
     )
 
 
+def _is_admin(user: User) -> bool:
+    return (getattr(user, "role", "") or "").strip().lower() == "admin"
+
+
+def _assert_handoff_operator(row: HandoffRequest, current_user: User) -> None:
+    """
+    Non-admin users can operate only unassigned handoffs or handoffs assigned to them.
+    """
+    assigned = (row.assigned_to_user_id or "").strip()
+    if assigned and assigned != current_user.id and not _is_admin(current_user):
+        raise HTTPException(status_code=409, detail=f"Handoff is assigned to {assigned}")
+
+
 def _is_sla_breached(row: HandoffRequest, now: datetime) -> bool:
     first_response_breach = bool(
         row.first_response_due_at
@@ -289,39 +302,6 @@ def handoff_metrics(
         .all()
     )
 
-
-@admin_router.post("/reply-review", response_model=HandoffReplyReviewResponse)
-def review_agent_reply(
-    payload: HandoffReplyReviewRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_scope(current_user, "handoff:write")
-
-    row = db.execute(
-        select(HandoffRequest).where(
-            HandoffRequest.id == payload.handoff_id,
-            HandoffRequest.tenant_id == current_user.tenant_id,
-        )
-    ).scalar_one_or_none()
-    if not row:
-        raise HTTPException(status_code=404, detail="Handoff not found")
-
-    improved = _rewrite_with_llm(row.question, payload.draft, payload.rewrite_mode)
-    flags = _review_risk_flags(improved)
-    requires_override = any(f.severity == "high" for f in flags)
-    base_conf = 0.92
-    penalty = sum(0.35 if f.severity == "high" else 0.12 if f.severity == "medium" else 0.04 for f in flags)
-    confidence = max(0.05, round(base_conf - penalty, 2))
-
-    return HandoffReplyReviewResponse(
-        handoff_id=row.id,
-        improved_draft=improved,
-        confidence=confidence,
-        requires_override=requires_override,
-        risk_flags=flags,
-    )
-
     by_agent: dict[str, dict[str, int]] = {}
     for r in rows:
         agent = (r.assigned_to_user_id or "").strip()
@@ -364,6 +344,39 @@ def review_agent_reply(
     )
 
 
+@admin_router.post("/reply-review", response_model=HandoffReplyReviewResponse)
+def review_agent_reply(
+    payload: HandoffReplyReviewRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "handoff:write")
+
+    row = db.execute(
+        select(HandoffRequest).where(
+            HandoffRequest.id == payload.handoff_id,
+            HandoffRequest.tenant_id == current_user.tenant_id,
+        )
+    ).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Handoff not found")
+
+    improved = _rewrite_with_llm(row.question, payload.draft, payload.rewrite_mode)
+    flags = _review_risk_flags(improved)
+    requires_override = any(f.severity == "high" for f in flags)
+    base_conf = 0.92
+    penalty = sum(0.35 if f.severity == "high" else 0.12 if f.severity == "medium" else 0.04 for f in flags)
+    confidence = max(0.05, round(base_conf - penalty, 2))
+
+    return HandoffReplyReviewResponse(
+        handoff_id=row.id,
+        improved_draft=improved,
+        confidence=confidence,
+        requires_override=requires_override,
+        risk_flags=flags,
+    )
+
+
 @admin_router.patch("/{handoff_id}", response_model=HandoffOut)
 def patch_handoff(
     handoff_id: str,
@@ -381,6 +394,8 @@ def patch_handoff(
     ).scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Handoff not found")
+
+    _assert_handoff_operator(row, current_user)
 
     now = datetime.utcnow()
     allowed_status = {"new", "open", "pending_customer", "resolved", "closed"}
@@ -404,7 +419,10 @@ def patch_handoff(
             row.closed_at = None
 
     if payload.assigned_to_user_id is not None:
-        row.assigned_to_user_id = payload.assigned_to_user_id.strip() or None
+        target = payload.assigned_to_user_id.strip() or None
+        if target and target != current_user.id and not _is_admin(current_user):
+            raise HTTPException(status_code=403, detail="Only admin can assign handoff to another user")
+        row.assigned_to_user_id = target
 
     if payload.priority is not None:
         priority = payload.priority.strip().lower()
@@ -496,6 +514,7 @@ def add_handoff_note(
     ).scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Handoff not found")
+    _assert_handoff_operator(row, current_user)
 
     text = payload.content.strip()
     note = HandoffInternalNote(
@@ -532,8 +551,15 @@ def claim_handoff(
     if not row:
         raise HTTPException(status_code=404, detail="Handoff not found")
 
+    if row.assigned_to_user_id and row.assigned_to_user_id != current_user.id and not _is_admin(current_user):
+        raise HTTPException(status_code=409, detail=f"Handoff is assigned to {row.assigned_to_user_id}")
+
+    requested_assignee = (payload.assigned_to_user_id or "").strip()
+    if requested_assignee and requested_assignee != current_user.id and not _is_admin(current_user):
+        raise HTTPException(status_code=403, detail="Only admin can assign handoff to another user")
+
     now = datetime.utcnow()
-    row.assigned_to_user_id = payload.assigned_to_user_id or current_user.id
+    row.assigned_to_user_id = requested_assignee or current_user.id
     if row.status == "new":
         row.status = "open"
     if row.first_responded_at is None:
@@ -576,6 +602,7 @@ def handoff_agent_reply(
     ).scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Handoff not found")
+    _assert_handoff_operator(row, current_user)
     if not row.conversation_id:
         raise HTTPException(status_code=422, detail="Handoff has no conversation_id")
 
@@ -624,6 +651,7 @@ def handoff_ai_toggle(
     ).scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Handoff not found")
+    _assert_handoff_operator(row, current_user)
     if not row.conversation_id:
         raise HTTPException(status_code=422, detail="Handoff has no conversation_id")
 
