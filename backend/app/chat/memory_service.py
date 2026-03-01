@@ -26,6 +26,21 @@ def get_or_create_conversation(
         if conv:
             return conv
 
+    # If no explicit conversation_id was provided, reuse the latest
+    # conversation for this tenant+user to preserve memory across channels.
+    if not conversation_id:
+        latest = db.execute(
+            select(Conversation)
+            .where(
+                Conversation.tenant_id == tenant_id,
+                Conversation.user_id == user_id,
+            )
+            .order_by(Conversation.last_activity_at.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+        if latest:
+            return latest
+
     # Create new conversation
     conv = Conversation(
         id=f"conv_{secrets.token_hex(10)}",

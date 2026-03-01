@@ -396,7 +396,7 @@ def ask(
             conversation_id=conversation.id,
             reason="human_requested",
             destination=None,
-            source_channel=("embed" if str(current_user.id).startswith("w_") else "api"),
+            source_channel=source_channel,
         )
         answer = (
             "I have connected you to our support team. "
@@ -621,3 +621,4 @@ def ask(
         completion_tokens=completion_tokens,
         total_tokens=total_tokens,
     )
+    source_channel = str(getattr(current_user, "source_channel", "") or "").strip().lower() or "api"

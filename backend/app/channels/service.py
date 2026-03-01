@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import logging
+import re
 import secrets
 from datetime import datetime
 from types import SimpleNamespace
@@ -13,11 +14,16 @@ from sqlalchemy.orm import Session
 from app.channels.models import TenantChannelAccount
 from app.chat.router import ask as ask_internal
 from app.chat.schemas import AskRequest
+from app.handoff.service import create_handoff_request
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 SUPPORTED_CHANNELS = {"whatsapp", "messenger", "instagram", "facebook"}
+_SOCIAL_HANDOFF_INTENT_RE = re.compile(
+    r"\b(human|agent|customer service|support person|real person|someone)\b",
+    re.IGNORECASE,
+)
 
 
 def generate_verify_token() -> str:
@@ -54,6 +60,53 @@ def _graph_post(path: str, access_token: str, payload: dict) -> None:
     except Exception:
         logger.exception("Failed to send channel response via Meta Graph API")
         raise
+
+
+def _clean_social_answer(answer: str) -> str:
+    text = " ".join((answer or "").split()).strip()
+    # Hide internal citation/debug tags from social channels.
+    text = re.sub(r"\s*\[[^\]]+:[^\]]+\]\s*", " ", text)
+    text = re.sub(r"\s{2,}", " ", text).strip()
+    return text
+
+
+def _split_message(text: str, limit: int) -> list[str]:
+    s = (text or "").strip()
+    if not s:
+        return []
+    if len(s) <= limit:
+        return [s]
+
+    out: list[str] = []
+    buf = s
+    while len(buf) > limit:
+        cut = buf.rfind(" ", 0, limit)
+        if cut < int(limit * 0.6):
+            cut = limit
+        part = buf[:cut].strip()
+        if part:
+            out.append(part)
+        buf = buf[cut:].strip()
+    if buf:
+        out.append(buf)
+    return out
+
+
+def _format_for_channel(channel_type: str, answer: str) -> list[str]:
+    cleaned = _clean_social_answer(answer)
+    limit = 1500 if channel_type in {"messenger", "instagram", "facebook"} else 1200
+    return _split_message(cleaned, limit)
+
+
+def _social_handoff_intent(question: str) -> bool:
+    q = (question or "").strip().lower()
+    if not q:
+        return False
+    if "human resources" in q or "hr policy" in q:
+        return False
+    return bool(_SOCIAL_HANDOFF_INTENT_RE.search(q)) and any(
+        k in q for k in ("speak", "talk", "connect", "agent", "support", "human")
+    )
 
 
 def send_whatsapp_text(account: TenantChannelAccount, *, to: str, text: str) -> None:
@@ -155,20 +208,57 @@ def _ask_and_reply(
     channel_type: str,
 ) -> None:
     try:
+        if _social_handoff_intent(question):
+            handoff = create_handoff_request(
+                db,
+                tenant_id=account.tenant_id,
+                user_id=_safe_user_id(channel_type, external_user_id),
+                question=question,
+                conversation_id=None,
+                reason="human_requested",
+                destination=None,
+                source_channel=channel_type,
+            )
+            handoff_msg = (
+                "I have connected you to our support team. "
+                f"Please hold while an agent takes over. Ticket ID: {handoff.id}"
+            )
+            parts = _format_for_channel(channel_type, handoff_msg) or [handoff_msg]
+            if channel_type == "whatsapp":
+                for part in parts:
+                    send_whatsapp_text(account, to=external_user_id, text=part)
+            else:
+                for part in parts:
+                    send_messenger_or_instagram_text(account, recipient_id=external_user_id, text=part)
+            now = datetime.utcnow()
+            account.last_used_at = now
+            account.last_outbound_at = now
+            account.updated_at = now
+            _clear_channel_error(account)
+            db.add(account)
+            return
+
         pseudo_user = SimpleNamespace(
             id=_safe_user_id(channel_type, external_user_id),
             tenant_id=account.tenant_id,
+            source_channel=channel_type,
+            tenant_name=account.name,
+            bot_display_name=(account.name or "").strip() or "AI Assistant",
         )
-        answer = ask_internal(
+        response = ask_internal(
             payload=AskRequest(question=question),
             db=db,
             current_user=pseudo_user,
-        ).answer
+        )
+        answer = response.answer
+        message_parts = _format_for_channel(channel_type, answer) or [answer]
 
         if channel_type == "whatsapp":
-            send_whatsapp_text(account, to=external_user_id, text=answer)
+            for part in message_parts:
+                send_whatsapp_text(account, to=external_user_id, text=part)
         else:
-            send_messenger_or_instagram_text(account, recipient_id=external_user_id, text=answer)
+            for part in message_parts:
+                send_messenger_or_instagram_text(account, recipient_id=external_user_id, text=part)
 
         now = datetime.utcnow()
         account.last_used_at = now
