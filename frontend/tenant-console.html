@@ -429,6 +429,11 @@
           <button id="btnPauseAI" class="alt">Pause AI</button>
           <button id="btnResumeAI" class="alt">Resume AI</button>
         </div>
+        <div class="row" style="margin-top:10px;">
+          <label>Internal Note (private, agent only)</label>
+          <textarea id="hfInternalNote" placeholder="Add private context for your team..."></textarea>
+        </div>
+        <button id="btnAddInternalNote" class="alt">Add Internal Note</button>
         <div id="outHandoffAgent" class="out"></div>
 
         <div class="row" style="margin-top:12px;">
@@ -876,6 +881,25 @@
 
     $("btnPauseAI").onclick = () => setAIToggle(true);
     $("btnResumeAI").onclick = () => setAIToggle(false);
+    $("btnAddInternalNote").onclick = async () => {
+      const out = $("outHandoffAgent");
+      out.textContent = "Saving internal note...";
+      try {
+        const handoffId = $("hfId").value.trim();
+        if (!handoffId) throw new Error("Provide handoff id.");
+        const note = $("hfInternalNote").value.trim();
+        if (!note) throw new Error("Write an internal note first.");
+        const data = await request(`/api/v1/admin/handoff/${encodeURIComponent(handoffId)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ internal_note_append: note }),
+        });
+        $("hfInternalNote").value = "";
+        out.textContent = pretty(data);
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
 
     $("btnLoadConversation").onclick = async () => {
       const out = $("outConversationMeta");

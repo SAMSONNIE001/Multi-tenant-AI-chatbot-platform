@@ -23,6 +23,7 @@ class HandoffRequest(Base):
     priority: Mapped[str] = mapped_column(String(16), nullable=False, default="normal")
     destination: Mapped[str | None] = mapped_column(String(255), nullable=True)
     resolution_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    internal_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     first_response_due_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     first_responded_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     resolution_due_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

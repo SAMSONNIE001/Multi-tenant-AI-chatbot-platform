@@ -15,6 +15,7 @@ class HandoffPatchRequest(BaseModel):
     assigned_to_user_id: str | None = Field(default=None, min_length=3, max_length=64)
     priority: str | None = Field(default=None, min_length=2, max_length=16)
     resolution_note: str | None = Field(default=None, min_length=1, max_length=5000)
+    internal_note_append: str | None = Field(default=None, min_length=1, max_length=2000)
 
 
 class HandoffClaimRequest(BaseModel):
@@ -43,6 +44,7 @@ class HandoffOut(BaseModel):
     priority: str
     destination: str | None
     resolution_note: str | None
+    internal_notes: str | None
     first_response_due_at: datetime | None
     first_responded_at: datetime | None
     resolution_due_at: datetime | None

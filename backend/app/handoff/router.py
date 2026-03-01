@@ -40,6 +40,7 @@ def _to_out(row: HandoffRequest) -> HandoffOut:
         priority=row.priority,
         destination=row.destination,
         resolution_note=row.resolution_note,
+        internal_notes=row.internal_notes,
         first_response_due_at=row.first_response_due_at,
         first_responded_at=row.first_responded_at,
         resolution_due_at=row.resolution_due_at,
@@ -47,7 +48,15 @@ def _to_out(row: HandoffRequest) -> HandoffOut:
         updated_at=row.updated_at,
         resolved_at=row.resolved_at,
         closed_at=row.closed_at,
-    )
+)
+
+
+def _append_internal_note(existing: str | None, note: str, author_id: str) -> str:
+    ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    line = f"[{ts}] ({author_id}) {note.strip()}"
+    if not existing:
+        return line
+    return f"{existing.rstrip()}\n{line}"
 
 
 @router.post("/request", response_model=HandoffOut)
@@ -167,6 +176,12 @@ def patch_handoff(
     row.updated_at = datetime.utcnow()
     if payload.resolution_note is not None:
         row.resolution_note = payload.resolution_note
+    if payload.internal_note_append is not None:
+        row.internal_notes = _append_internal_note(
+            row.internal_notes,
+            payload.internal_note_append,
+            current_user.id,
+        )
 
     db.add(row)
     db.commit()
