@@ -486,6 +486,25 @@
         <div id="outConversationMeta" class="out"></div>
         <div id="conversationThread" class="thread-box" style="display:none;"></div>
       </section>
+
+      <section class="card">
+        <h2>Productivity Metrics</h2>
+        <button id="btnLoadProdMetrics">Load Metrics</button>
+        <div id="outProdMetrics" class="out"></div>
+        <div id="prodMetricsGrid" class="kpi-grid" style="display:none;"></div>
+        <div id="prodAgentWrap" class="table-wrap" style="display:none;">
+          <table class="queue">
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>Assigned</th>
+                <th>Resolved</th>
+              </tr>
+            </thead>
+            <tbody id="prodAgentBody"></tbody>
+          </table>
+        </div>
+      </section>
     </div>
 
     <p class="small warn" style="margin-top:14px;">
@@ -625,6 +644,49 @@
         ["Unassigned", m.unassigned],
       ];
       box.innerHTML = cards.map(([k, v]) => `<div class="kpi"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
+    }
+
+    function renderProductivityMetrics(data) {
+      const grid = $("prodMetricsGrid");
+      const body = $("prodAgentBody");
+      const wrap = $("prodAgentWrap");
+      if (!data || !data.window_24h || !data.window_7d) {
+        grid.style.display = "none";
+        grid.innerHTML = "";
+        wrap.style.display = "none";
+        body.innerHTML = "";
+        return;
+      }
+
+      const w24 = data.window_24h;
+      const w7d = data.window_7d;
+      const cards = [
+        ["24h Tickets", w24.total_tickets],
+        ["24h Breach %", `${(w24.breach_rate * 100).toFixed(1)}%`],
+        ["24h First Resp (min)", w24.avg_first_response_min ?? "-"],
+        ["24h Resolution (min)", w24.avg_resolution_min ?? "-"],
+        ["7d Tickets", w7d.total_tickets],
+        ["7d Breach %", `${(w7d.breach_rate * 100).toFixed(1)}%`],
+        ["7d First Resp (min)", w7d.avg_first_response_min ?? "-"],
+        ["7d Resolution (min)", w7d.avg_resolution_min ?? "-"],
+      ];
+      grid.style.display = "grid";
+      grid.innerHTML = cards.map(([k, v]) => `<div class="kpi"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
+
+      const agents = Array.isArray(data.by_agent) ? data.by_agent : [];
+      if (!agents.length) {
+        wrap.style.display = "none";
+        body.innerHTML = "";
+        return;
+      }
+      wrap.style.display = "block";
+      body.innerHTML = agents.map((a) => `
+        <tr>
+          <td>${esc(a.agent_user_id || "-")}</td>
+          <td>${esc(a.assigned_count || 0)}</td>
+          <td>${esc(a.resolved_count || 0)}</td>
+        </tr>
+      `).join("");
     }
 
     function roleClass(role) {
@@ -1032,6 +1094,19 @@
       } catch (e) {
         out.textContent = String(e);
         renderConversationThread(null);
+      }
+    };
+
+    $("btnLoadProdMetrics").onclick = async () => {
+      const out = $("outProdMetrics");
+      out.textContent = "Loading metrics...";
+      try {
+        const data = await request("/api/v1/admin/handoff/metrics");
+        out.textContent = pretty({ tenant_id: data.tenant_id, as_of: data.as_of });
+        renderProductivityMetrics(data);
+      } catch (e) {
+        out.textContent = String(e);
+        renderProductivityMetrics(null);
       }
     };
 

@@ -78,3 +78,26 @@ class HandoffNotesResponse(BaseModel):
     handoff_id: str
     count: int
     items: list[HandoffNoteOut]
+
+
+class HandoffWindowMetrics(BaseModel):
+    window_hours: int
+    total_tickets: int
+    breached_tickets: int
+    breach_rate: float
+    avg_first_response_min: float | None = None
+    avg_resolution_min: float | None = None
+
+
+class HandoffAgentMetric(BaseModel):
+    agent_user_id: str
+    assigned_count: int
+    resolved_count: int
+
+
+class HandoffMetricsResponse(BaseModel):
+    tenant_id: str
+    as_of: datetime
+    window_24h: HandoffWindowMetrics
+    window_7d: HandoffWindowMetrics
+    by_agent: list[HandoffAgentMetric]

@@ -14,15 +14,18 @@ from app.chat.memory_service import append_message, touch_conversation
 from app.handoff.models import HandoffInternalNote, HandoffRequest
 from app.handoff.schemas import (
     HandoffAgentReplyRequest,
+    HandoffAgentMetric,
     HandoffAIToggleRequest,
     HandoffClaimRequest,
     HandoffCreateRequest,
     HandoffListResponse,
+    HandoffMetricsResponse,
     HandoffNoteCreateRequest,
     HandoffNoteOut,
     HandoffNotesResponse,
     HandoffOut,
     HandoffPatchRequest,
+    HandoffWindowMetrics,
 )
 from app.handoff.service import create_handoff_request
 
@@ -71,6 +74,48 @@ def _to_note_out(row: HandoffInternalNote) -> HandoffNoteOut:
         author_user_id=row.author_user_id,
         content=row.content,
         created_at=row.created_at,
+    )
+
+
+def _is_sla_breached(row: HandoffRequest, now: datetime) -> bool:
+    first_response_breach = bool(
+        row.first_response_due_at
+        and row.first_response_due_at < now
+        and row.first_responded_at is None
+        and row.status in {"new", "open"}
+    )
+    resolution_breach = bool(
+        row.resolution_due_at
+        and row.resolution_due_at < now
+        and row.status in {"open", "pending_customer"}
+    )
+    return first_response_breach or resolution_breach
+
+
+def _window_metrics(rows: list[HandoffRequest], now: datetime, hours: int) -> HandoffWindowMetrics:
+    cutoff = now.timestamp() - (hours * 3600)
+    in_window = [r for r in rows if r.created_at and r.created_at.timestamp() >= cutoff]
+    total = len(in_window)
+    breached = sum(1 for r in in_window if _is_sla_breached(r, now))
+
+    first_response_mins = []
+    resolution_mins = []
+    for r in in_window:
+        if r.first_responded_at and r.first_responded_at >= r.created_at:
+            first_response_mins.append((r.first_responded_at - r.created_at).total_seconds() / 60.0)
+        if r.resolved_at and r.resolved_at >= r.created_at:
+            resolution_mins.append((r.resolved_at - r.created_at).total_seconds() / 60.0)
+
+    avg_first = round(sum(first_response_mins) / len(first_response_mins), 2) if first_response_mins else None
+    avg_resolution = round(sum(resolution_mins) / len(resolution_mins), 2) if resolution_mins else None
+    breach_rate = round((breached / total), 4) if total else 0.0
+    return HandoffWindowMetrics(
+        window_hours=hours,
+        total_tickets=total,
+        breached_tickets=breached,
+        breach_rate=breach_rate,
+        avg_first_response_min=avg_first,
+        avg_resolution_min=avg_resolution,
     )
 
 
@@ -138,6 +183,55 @@ def list_handoffs(
         "count": len(rows),
         "items": [_to_out(r) for r in rows],
     }
+
+
+@admin_router.get("/metrics", response_model=HandoffMetricsResponse)
+def handoff_metrics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "handoff:read")
+    now = datetime.utcnow()
+
+    rows = (
+        db.execute(
+            select(HandoffRequest)
+            .where(HandoffRequest.tenant_id == current_user.tenant_id)
+            .order_by(desc(HandoffRequest.created_at))
+            .limit(5000)
+        )
+        .scalars()
+        .all()
+    )
+
+    by_agent: dict[str, dict[str, int]] = {}
+    for r in rows:
+        agent = (r.assigned_to_user_id or "").strip()
+        if not agent:
+            continue
+        if agent not in by_agent:
+            by_agent[agent] = {"assigned_count": 0, "resolved_count": 0}
+        by_agent[agent]["assigned_count"] += 1
+        if r.status in {"resolved", "closed"} or r.resolved_at is not None:
+            by_agent[agent]["resolved_count"] += 1
+
+    per_agent = [
+        HandoffAgentMetric(
+            agent_user_id=agent,
+            assigned_count=counts["assigned_count"],
+            resolved_count=counts["resolved_count"],
+        )
+        for agent, counts in by_agent.items()
+    ]
+    per_agent.sort(key=lambda x: (x.assigned_count, x.resolved_count), reverse=True)
+
+    return HandoffMetricsResponse(
+        tenant_id=current_user.tenant_id,
+        as_of=now,
+        window_24h=_window_metrics(rows, now, 24),
+        window_7d=_window_metrics(rows, now, 24 * 7),
+        by_agent=per_agent[:20],
+    )
 
 
 @admin_router.patch("/{handoff_id}", response_model=HandoffOut)
