@@ -3,19 +3,24 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.admin.rbac import require_scope
 from app.auth.deps import get_current_user
 from app.auth.models import User
-from app.channels.models import TenantChannelAccount
+from app.channels.models import CustomerChannelHandle, CustomerProfile, TenantChannelAccount
 from app.channels.schemas import (
     ChannelAccountHealthOut,
     ChannelAccountCreateRequest,
     ChannelAccountOut,
     ChannelAccountPatchRequest,
     ChannelAccountRotateTokenResponse,
+    CustomerProfilesResponse,
+    CustomerProfileMergeRequest,
+    CustomerProfileMergeResponse,
+    CustomerProfileOut,
+    CustomerChannelHandleOut,
     MetaWebhookResponse,
 )
 from app.channels.service import (
@@ -24,7 +29,9 @@ from app.channels.service import (
     process_meta_webhook_payload,
     verify_meta_signature,
 )
+from app.chat.memory_models import Conversation
 from app.db.session import get_db
+from app.handoff.models import HandoffRequest
 
 admin_router = APIRouter()
 webhook_router = APIRouter()
@@ -62,6 +69,35 @@ def _health_status(row: TenantChannelAccount) -> str:
     if row.last_webhook_at or row.last_outbound_at:
         return "healthy"
     return "configured"
+
+
+def _to_profile_out(
+    profile: CustomerProfile,
+    *,
+    handles: list[CustomerChannelHandle],
+    conversation_count: int,
+    handoff_count: int,
+) -> CustomerProfileOut:
+    return CustomerProfileOut(
+        id=profile.id,
+        tenant_id=profile.tenant_id,
+        display_name=profile.display_name,
+        created_at=profile.created_at,
+        updated_at=profile.updated_at,
+        conversation_count=int(conversation_count or 0),
+        handoff_count=int(handoff_count or 0),
+        handles=[
+            CustomerChannelHandleOut(
+                id=h.id,
+                channel_type=h.channel_type,
+                external_user_id=h.external_user_id,
+                last_seen_at=h.last_seen_at,
+                created_at=h.created_at,
+                updated_at=h.updated_at,
+            )
+            for h in handles
+        ],
+    )
 
 
 @admin_router.get("/accounts", response_model=list[ChannelAccountOut])
@@ -209,6 +245,163 @@ def get_account_health(
         last_error=row.last_error,
         last_error_at=row.last_error_at,
     )
+
+
+@admin_router.get("/profiles", response_model=CustomerProfilesResponse)
+def list_customer_profiles(
+    limit: int = Query(default=100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "channels:read")
+
+    profiles = db.execute(
+        select(CustomerProfile)
+        .where(CustomerProfile.tenant_id == current_user.tenant_id)
+        .order_by(CustomerProfile.updated_at.desc())
+        .limit(limit)
+    ).scalars().all()
+
+    profile_ids = [p.id for p in profiles]
+    if not profile_ids:
+        return {"tenant_id": current_user.tenant_id, "profiles": []}
+
+    handles_rows = db.execute(
+        select(CustomerChannelHandle).where(
+            CustomerChannelHandle.tenant_id == current_user.tenant_id,
+            CustomerChannelHandle.customer_profile_id.in_(profile_ids),
+        )
+    ).scalars().all()
+    handles_by_profile: dict[str, list[CustomerChannelHandle]] = {}
+    for h in handles_rows:
+        handles_by_profile.setdefault(h.customer_profile_id, []).append(h)
+
+    conv_counts_rows = db.execute(
+        select(Conversation.user_id, func.count(Conversation.id))
+        .where(
+            Conversation.tenant_id == current_user.tenant_id,
+            Conversation.user_id.in_(profile_ids),
+        )
+        .group_by(Conversation.user_id)
+    ).all()
+    conv_counts = {uid: int(cnt) for uid, cnt in conv_counts_rows}
+
+    handoff_counts_rows = db.execute(
+        select(HandoffRequest.user_id, func.count(HandoffRequest.id))
+        .where(
+            HandoffRequest.tenant_id == current_user.tenant_id,
+            HandoffRequest.user_id.in_(profile_ids),
+        )
+        .group_by(HandoffRequest.user_id)
+    ).all()
+    handoff_counts = {uid: int(cnt) for uid, cnt in handoff_counts_rows}
+
+    return {
+        "tenant_id": current_user.tenant_id,
+        "profiles": [
+            _to_profile_out(
+                p,
+                handles=sorted(
+                    handles_by_profile.get(p.id, []),
+                    key=lambda x: ((x.channel_type or ""), (x.external_user_id or "")),
+                ),
+                conversation_count=conv_counts.get(p.id, 0),
+                handoff_count=handoff_counts.get(p.id, 0),
+            )
+            for p in profiles
+        ],
+    }
+
+
+@admin_router.post("/profiles/merge", response_model=CustomerProfileMergeResponse)
+def merge_customer_profiles(
+    payload: CustomerProfileMergeRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "channels:write")
+
+    source = db.execute(
+        select(CustomerProfile).where(
+            CustomerProfile.id == payload.source_profile_id,
+            CustomerProfile.tenant_id == current_user.tenant_id,
+        )
+    ).scalar_one_or_none()
+    if not source:
+        raise HTTPException(status_code=404, detail="Source profile not found")
+
+    target = db.execute(
+        select(CustomerProfile).where(
+            CustomerProfile.id == payload.target_profile_id,
+            CustomerProfile.tenant_id == current_user.tenant_id,
+        )
+    ).scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=404, detail="Target profile not found")
+
+    if source.id == target.id:
+        raise HTTPException(status_code=422, detail="source_profile_id and target_profile_id must differ")
+
+    moved_handles = 0
+    deduped_handles = 0
+    now = datetime.utcnow()
+
+    source_handles = db.execute(
+        select(CustomerChannelHandle).where(
+            CustomerChannelHandle.tenant_id == current_user.tenant_id,
+            CustomerChannelHandle.customer_profile_id == source.id,
+        )
+    ).scalars().all()
+    for handle in source_handles:
+        duplicate = db.execute(
+            select(CustomerChannelHandle).where(
+                CustomerChannelHandle.tenant_id == current_user.tenant_id,
+                CustomerChannelHandle.customer_profile_id == target.id,
+                CustomerChannelHandle.channel_type == handle.channel_type,
+                CustomerChannelHandle.external_user_id == handle.external_user_id,
+            )
+        ).scalar_one_or_none()
+        if duplicate:
+            db.delete(handle)
+            deduped_handles += 1
+            continue
+        handle.customer_profile_id = target.id
+        handle.updated_at = now
+        db.add(handle)
+        moved_handles += 1
+
+    moved_conversations = db.execute(
+        update(Conversation)
+        .where(
+            Conversation.tenant_id == current_user.tenant_id,
+            Conversation.user_id == source.id,
+        )
+        .values(user_id=target.id)
+    ).rowcount or 0
+
+    moved_handoffs = db.execute(
+        update(HandoffRequest)
+        .where(
+            HandoffRequest.tenant_id == current_user.tenant_id,
+            HandoffRequest.user_id == source.id,
+        )
+        .values(user_id=target.id)
+    ).rowcount or 0
+
+    target.updated_at = now
+    db.add(target)
+    db.delete(source)
+    db.commit()
+
+    return {
+        "tenant_id": current_user.tenant_id,
+        "source_profile_id": payload.source_profile_id,
+        "target_profile_id": payload.target_profile_id,
+        "moved_handles": int(moved_handles),
+        "deduped_handles": int(deduped_handles),
+        "moved_conversations": int(moved_conversations),
+        "moved_handoffs": int(moved_handoffs),
+    }
 
 
 @webhook_router.get("/meta/webhook")

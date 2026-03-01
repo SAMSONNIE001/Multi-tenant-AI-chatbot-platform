@@ -76,3 +76,43 @@ class ChannelAccountHealthOut(BaseModel):
     last_outbound_at: datetime | None = None
     last_error: str | None = None
     last_error_at: datetime | None = None
+
+
+class CustomerChannelHandleOut(BaseModel):
+    id: str
+    channel_type: str
+    external_user_id: str
+    last_seen_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class CustomerProfileOut(BaseModel):
+    id: str
+    tenant_id: str
+    display_name: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    conversation_count: int = 0
+    handoff_count: int = 0
+    handles: list[CustomerChannelHandleOut] = Field(default_factory=list)
+
+
+class CustomerProfilesResponse(BaseModel):
+    tenant_id: str
+    profiles: list[CustomerProfileOut]
+
+
+class CustomerProfileMergeRequest(BaseModel):
+    source_profile_id: str = Field(min_length=3, max_length=64)
+    target_profile_id: str = Field(min_length=3, max_length=64)
+
+
+class CustomerProfileMergeResponse(BaseModel):
+    tenant_id: str
+    source_profile_id: str
+    target_profile_id: str
+    moved_handles: int
+    deduped_handles: int
+    moved_conversations: int
+    moved_handoffs: int
