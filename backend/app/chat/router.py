@@ -118,7 +118,28 @@ def _is_probable_name_only_reply(question: str) -> str | None:
         return None
     if len(text) > 40:
         return None
-    if re.fullmatch(r"[A-Za-z][A-Za-z '\-]{1,39}", text):
+
+    # Names should be short (1-3 words), not full sentences/questions.
+    words = text.split()
+    if not (1 <= len(words) <= 3):
+        return None
+    if any(ch in text for ch in "?!,:;./\\"):
+        return None
+
+    lowered = text.lower()
+    forbidden_tokens = {
+        # question words / common support terms that are not names
+        "how", "what", "why", "when", "where", "who", "can", "could", "would", "should",
+        "password", "login", "account", "billing", "support", "help", "reset", "change",
+        "human", "agent", "person", "service", "customer", "issue", "problem",
+        # common sentence glue that usually indicates phrase, not name
+        "my", "name", "is", "i", "am", "to", "the", "a", "an", "do", "does",
+    }
+    if any(token in forbidden_tokens for token in lowered.split()):
+        return None
+
+    # Accept letters with optional apostrophe/hyphen, e.g. O'Neil, Anne-Marie.
+    if re.fullmatch(r"[A-Za-z][A-Za-z'\- ]{1,39}", text):
         return _normalize_name(text)
     return None
 
