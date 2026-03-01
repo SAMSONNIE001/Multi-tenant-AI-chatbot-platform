@@ -1512,7 +1512,15 @@
       const out = $("outEscalationOps");
       out.textContent = "Running staging QA pack...";
       try {
-        if (isProdApiBase()) throw new Error("Switch API Base to staging/dev first.");
+        if (isProdApiBase()) {
+          const staging = $("stagingApiBase").value.trim();
+          if (!staging) {
+            alert("Set Staging API Base first, then click Run Staging QA Pack again.");
+            $("stagingApiBase").focus();
+            throw new Error("Missing staging API base.");
+          }
+          switchApiBase(staging);
+        }
         await seedProfileActivity();
         await loadProfiles();
         if (!$("escSweepReason").value.trim()) {
