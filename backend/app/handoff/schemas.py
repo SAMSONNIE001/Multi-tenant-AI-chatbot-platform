@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -78,6 +79,26 @@ class HandoffNotesResponse(BaseModel):
     handoff_id: str
     count: int
     items: list[HandoffNoteOut]
+
+
+class HandoffReplyReviewRequest(BaseModel):
+    handoff_id: str = Field(min_length=3, max_length=64)
+    draft: str = Field(min_length=1, max_length=4000)
+    rewrite_mode: Literal["none", "shorter", "friendlier", "formal"] = "none"
+
+
+class HandoffRiskFlag(BaseModel):
+    code: str
+    severity: Literal["low", "medium", "high"]
+    message: str
+
+
+class HandoffReplyReviewResponse(BaseModel):
+    handoff_id: str
+    improved_draft: str
+    confidence: float
+    requires_override: bool
+    risk_flags: list[HandoffRiskFlag]
 
 
 class HandoffWindowMetrics(BaseModel):

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import os
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -11,6 +12,7 @@ from app.auth.models import User
 from app.db.session import get_db
 from app.chat.memory_models import Conversation
 from app.chat.memory_service import append_message, touch_conversation
+from app.chat.llm import generate_answer
 from app.handoff.models import HandoffInternalNote, HandoffRequest
 from app.handoff.schemas import (
     HandoffAgentReplyRequest,
@@ -26,6 +28,9 @@ from app.handoff.schemas import (
     HandoffNotesResponse,
     HandoffOut,
     HandoffPatchRequest,
+    HandoffReplyReviewRequest,
+    HandoffReplyReviewResponse,
+    HandoffRiskFlag,
     HandoffTotalsMetric,
     HandoffWindowMetrics,
 )
@@ -141,6 +146,64 @@ def _daily_metrics(rows: list[HandoffRequest], now: datetime, days: int = 7) -> 
     return buckets
 
 
+def _review_risk_flags(text: str) -> list[HandoffRiskFlag]:
+    s = (text or "").lower()
+    flags: list[HandoffRiskFlag] = []
+    if any(k in s for k in ["guarantee", "guaranteed", "always works", "never fail"]):
+        flags.append(HandoffRiskFlag(code="overpromise", severity="high", message="Message may overpromise outcome."))
+    if any(k in s for k in ["credit card", "cvv", "social security", "ssn", "otp", "one-time password", "bank pin"]):
+        flags.append(HandoffRiskFlag(code="sensitive_data", severity="high", message="Avoid asking for highly sensitive data in chat."))
+    if "legal advice" in s or "financial advice" in s:
+        flags.append(HandoffRiskFlag(code="regulated_advice", severity="high", message="Regulated advice should be handled by specialist support."))
+    if len(s.split()) < 4:
+        flags.append(HandoffRiskFlag(code="too_short", severity="low", message="Reply may be too short to be actionable."))
+    if "sorry" not in s and ("cannot" in s or "can't" in s or "unable" in s):
+        flags.append(HandoffRiskFlag(code="tone", severity="low", message="Consider a more empathetic tone for refusal-style responses."))
+    return flags
+
+
+def _simple_rewrite(draft: str, mode: str) -> str:
+    txt = draft.strip()
+    if mode == "shorter":
+        parts = txt.split(".")
+        return parts[0].strip() + ("." if parts and parts[0].strip() else "")
+    if mode == "friendlier":
+        return f"Thanks for reaching out. {txt}"
+    if mode == "formal":
+        return f"Thank you for contacting support. {txt}"
+    return txt
+
+
+def _rewrite_with_llm(question: str, draft: str, mode: str) -> str:
+    if mode == "none":
+        return draft
+    if not os.getenv("OPENAI_API_KEY"):
+        return _simple_rewrite(draft, mode)
+    system = (
+        "You are a support quality reviewer. Rewrite the draft reply while preserving factual content. "
+        "Do not invent account data. Keep it clear, safe, and professional. "
+        "Avoid requesting sensitive data (passwords, CVV, SSN, OTP)."
+    )
+    style_hint = {
+        "shorter": "Make it shorter and concise.",
+        "friendlier": "Make it warm and empathetic while still professional.",
+        "formal": "Make it formal and polished.",
+    }.get(mode, "Keep style unchanged.")
+    user = (
+        f"Customer question:\n{question}\n\n"
+        f"Draft reply:\n{draft}\n\n"
+        f"Rewrite instruction: {style_hint}\n"
+        "Return only the rewritten reply text."
+    )
+    rewritten, _, _, _ = generate_answer(system, user)
+    rewritten = (rewritten or "").strip()
+    if not rewritten:
+        return _simple_rewrite(draft, mode)
+    if "I couldn't find that in the available support information yet" in rewritten:
+        return _simple_rewrite(draft, mode)
+    return rewritten
+
+
 @router.post("/request", response_model=HandoffOut)
 def request_handoff(
     payload: HandoffCreateRequest,
@@ -224,6 +287,39 @@ def handoff_metrics(
         )
         .scalars()
         .all()
+    )
+
+
+@admin_router.post("/reply-review", response_model=HandoffReplyReviewResponse)
+def review_agent_reply(
+    payload: HandoffReplyReviewRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "handoff:write")
+
+    row = db.execute(
+        select(HandoffRequest).where(
+            HandoffRequest.id == payload.handoff_id,
+            HandoffRequest.tenant_id == current_user.tenant_id,
+        )
+    ).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Handoff not found")
+
+    improved = _rewrite_with_llm(row.question, payload.draft, payload.rewrite_mode)
+    flags = _review_risk_flags(improved)
+    requires_override = any(f.severity == "high" for f in flags)
+    base_conf = 0.92
+    penalty = sum(0.35 if f.severity == "high" else 0.12 if f.severity == "medium" else 0.04 for f in flags)
+    confidence = max(0.05, round(base_conf - penalty, 2))
+
+    return HandoffReplyReviewResponse(
+        handoff_id=row.id,
+        improved_draft=improved,
+        confidence=confidence,
+        requires_override=requires_override,
+        risk_flags=flags,
     )
 
     by_agent: dict[str, dict[str, int]] = {}

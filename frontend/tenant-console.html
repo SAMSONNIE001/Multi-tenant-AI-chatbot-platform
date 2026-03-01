@@ -473,6 +473,16 @@
           <textarea id="hfAgentReply" placeholder="Write reply as agent..."></textarea>
         </div>
         <div class="inline">
+          <button id="btnReviewReply" class="alt">Review</button>
+          <button id="btnRewriteShorter" class="alt">Shorter</button>
+          <button id="btnRewriteFriendlier" class="alt">Friendlier</button>
+          <button id="btnRewriteFormal" class="alt">Formal</button>
+        </div>
+        <div class="row">
+          <label><input id="hfSendOverride" type="checkbox" style="width:auto; margin-right:6px;" />Send anyway if high-risk flagged</label>
+        </div>
+        <div id="outReplyReview" class="out"></div>
+        <div class="inline">
           <div class="row">
             <label>Mark after reply</label>
             <select id="hfMarkPending">
@@ -557,6 +567,7 @@
   <script>
     const $ = (id) => document.getElementById(id);
     let queueTimer = null;
+    let lastReplyReview = null;
 
     function pretty(v) {
       try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
@@ -869,6 +880,43 @@
       return data;
     }
 
+    function renderReplyReview(data) {
+      const out = $("outReplyReview");
+      if (!data) {
+        out.textContent = "";
+        return;
+      }
+      out.textContent = pretty({
+        handoff_id: data.handoff_id,
+        confidence: data.confidence,
+        requires_override: data.requires_override,
+        risk_flags: data.risk_flags || [],
+      });
+    }
+
+    async function fetchReplyReview(mode = "none") {
+      const handoffId = $("hfId").value.trim();
+      if (!handoffId) throw new Error("Provide handoff id.");
+      const draft = $("hfAgentReply").value.trim();
+      if (!draft) throw new Error("Write an agent reply first.");
+      const data = await request(`/api/v1/admin/handoff/reply-review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          handoff_id: handoffId,
+          draft,
+          rewrite_mode: mode,
+        }),
+      });
+      lastReplyReview = {
+        handoff_id: handoffId,
+        draft_before_send: draft,
+        requires_override: !!data.requires_override,
+        confidence: data.confidence,
+      };
+      return data;
+    }
+
     function priorityRank(priority) {
       const p = String(priority || "").toLowerCase();
       if (p === "urgent") return 4;
@@ -1132,6 +1180,11 @@
       try {
         const handoffId = $("hfId").value.trim();
         if (!handoffId) throw new Error("Provide handoff id.");
+        const review = await fetchReplyReview("none");
+        renderReplyReview(review);
+        if (review.requires_override && !$("hfSendOverride").checked) {
+          throw new Error("High-risk flag detected. Tick 'Send anyway if high-risk flagged' to proceed.");
+        }
         const message = $("hfAgentReply").value.trim();
         if (!message) throw new Error("Write an agent reply message.");
         const markPendingCustomer = $("hfMarkPending").value === "true";
@@ -1146,9 +1199,55 @@
         });
         out.textContent = pretty(data);
         $("hfAgentReply").value = "";
+        $("hfSendOverride").checked = false;
+        lastReplyReview = null;
         if ($("convId").value.trim()) {
           $("btnLoadConversation").click();
         }
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+
+    $("btnReviewReply").onclick = async () => {
+      const out = $("outReplyReview");
+      out.textContent = "Reviewing...";
+      try {
+        const data = await fetchReplyReview("none");
+        renderReplyReview(data);
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+    $("btnRewriteShorter").onclick = async () => {
+      const out = $("outReplyReview");
+      out.textContent = "Rewriting (shorter)...";
+      try {
+        const data = await fetchReplyReview("shorter");
+        $("hfAgentReply").value = data.improved_draft || $("hfAgentReply").value;
+        renderReplyReview(data);
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+    $("btnRewriteFriendlier").onclick = async () => {
+      const out = $("outReplyReview");
+      out.textContent = "Rewriting (friendlier)...";
+      try {
+        const data = await fetchReplyReview("friendlier");
+        $("hfAgentReply").value = data.improved_draft || $("hfAgentReply").value;
+        renderReplyReview(data);
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+    $("btnRewriteFormal").onclick = async () => {
+      const out = $("outReplyReview");
+      out.textContent = "Rewriting (formal)...";
+      try {
+        const data = await fetchReplyReview("formal");
+        $("hfAgentReply").value = data.improved_draft || $("hfAgentReply").value;
+        renderReplyReview(data);
       } catch (e) {
         out.textContent = String(e);
       }
