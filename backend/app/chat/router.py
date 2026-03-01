@@ -72,6 +72,14 @@ _HUMAN_FALSE_POSITIVES = (
 _GREETING_RE = re.compile(r"^\s*(hi|hello|hey|good morning|good afternoon|good evening)\b", re.IGNORECASE)
 _THANKS_RE = re.compile(r"\b(thanks|thank you|thx|ty)\b", re.IGNORECASE)
 _BYE_RE = re.compile(r"\b(bye|goodbye|see you|talk later)\b", re.IGNORECASE)
+_NAME_DIRECT_PATTERNS = (
+    re.compile(r"\bmy name is\s+([A-Za-z][A-Za-z '\-]{1,40})\b", re.IGNORECASE),
+    re.compile(r"\bi am\s+([A-Za-z][A-Za-z '\-]{1,40})\b", re.IGNORECASE),
+    re.compile(r"\bi'm\s+([A-Za-z][A-Za-z '\-]{1,40})\b", re.IGNORECASE),
+    re.compile(r"\bcall me\s+([A-Za-z][A-Za-z '\-]{1,40})\b", re.IGNORECASE),
+    re.compile(r"\bit's\s+([A-Za-z][A-Za-z '\-]{1,40})\b", re.IGNORECASE),
+    re.compile(r"\bthis is\s+([A-Za-z][A-Za-z '\-]{1,40})\b", re.IGNORECASE),
+)
 
 
 def _is_human_handoff_intent(question: str) -> bool:
@@ -85,13 +93,44 @@ def _is_human_handoff_intent(question: str) -> bool:
     return any(k in q for k in _HUMAN_INTENT_KEYWORDS)
 
 
+def _normalize_name(name: str) -> str | None:
+    cleaned = re.sub(r"\s+", " ", (name or "").strip())
+    if not (2 <= len(cleaned) <= 40):
+        return None
+    return cleaned
+
+
+def _extract_name_from_text(question: str) -> str | None:
+    text = (question or "").strip()
+    if not text:
+        return None
+    for pat in _NAME_DIRECT_PATTERNS:
+        hit = pat.search(text)
+        if hit:
+            return _normalize_name(hit.group(1))
+    return None
+
+
+def _is_probable_name_only_reply(question: str) -> str | None:
+    text = (question or "").strip()
+    if not text:
+        return None
+    if len(text) > 40:
+        return None
+    if re.fullmatch(r"[A-Za-z][A-Za-z '\-]{1,39}", text):
+        return _normalize_name(text)
+    return None
+
+
 def _small_talk_response(question: str, preferred_name: str | None) -> str | None:
     q = (question or "").strip()
     if not q:
         return None
     name_part = f" {preferred_name}" if preferred_name else ""
     if _GREETING_RE.search(q):
-        return f"Hello{name_part}. I can help with account, billing, and support questions. What do you need help with?"
+        if preferred_name:
+            return f"Hi{name_part}. I can help with anything. What can I do for you today?"
+        return "Hi. I can help with anything. Before we start, what name should I call you?"
     if _THANKS_RE.search(q):
         return f"You are welcome{name_part}. If you need anything else, I am here to help."
     if _BYE_RE.search(q):
@@ -127,6 +166,9 @@ def ask(
         limit=payload.memory_turns,
     )
     preferred_name = extract_preferred_name(history_messages)
+    direct_name = _extract_name_from_text(payload.question)
+    if direct_name:
+        preferred_name = direct_name
 
     def _respond_and_log(
         *,
@@ -239,6 +281,45 @@ def ask(
             sources=[],
             total_tokens=0,
         )
+
+    # If name is provided explicitly, acknowledge and continue naturally.
+    if direct_name:
+        return _respond_and_log(
+            answer=f"Great to meet you, {direct_name}. I can help with anything. What do you need help with today?",
+            refused=False,
+            policy_reason="conversation:name_captured",
+            retrieved_chunks=[],
+            citations_json=[],
+            retrieval_doc_count=0,
+            retrieval_chunk_count=0,
+            coverage=Coverage(doc_count=0, chunk_count=0),
+            citations=[],
+            sources=[],
+            total_tokens=0,
+        )
+
+    # If we just asked for name, accept short name-only replies.
+    last_assistant = next((m for m in reversed(history_messages) if m.role == "assistant"), None)
+    asked_for_name = bool(
+        last_assistant
+        and "what name should i call you" in (last_assistant.content or "").lower()
+    )
+    if not preferred_name and asked_for_name:
+        maybe_name = _is_probable_name_only_reply(payload.question)
+        if maybe_name:
+            return _respond_and_log(
+                answer=f"Nice to meet you, {maybe_name}. How can I help you today?",
+                refused=False,
+                policy_reason="conversation:name_reply_captured",
+                retrieved_chunks=[],
+                citations_json=[],
+                retrieval_doc_count=0,
+                retrieval_chunk_count=0,
+                coverage=Coverage(doc_count=0, chunk_count=0),
+                citations=[],
+                sources=[],
+                total_tokens=0,
+            )
 
     # Conversational small-talk that does not require document grounding.
     small_talk = _small_talk_response(payload.question, preferred_name)
