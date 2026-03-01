@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -9,6 +9,7 @@ from app.auth.deps import get_current_user
 from app.auth.models import User
 from app.chat.router import ask as ask_internal
 from app.chat.schemas import AskRequest, AskResponse
+from app.chat.memory_models import Conversation, Message
 from app.db.session import get_db
 from app.embed.models import TenantBotCredential
 from app.embed.schemas import (
@@ -19,6 +20,9 @@ from app.embed.schemas import (
     PublicAskRequest,
     PublicHandoffRequest,
     PublicHandoffResponse,
+    PublicConversationMessage,
+    PublicConversationUpdatesRequest,
+    PublicConversationUpdatesResponse,
     WidgetTokenRequest,
     WidgetTokenResponse,
 )
@@ -283,6 +287,80 @@ def ask_public(
         memory_turns=payload.memory_turns,
     )
     return ask_internal(payload=ask_payload, db=db, current_user=pseudo_user)
+
+
+@public_router.post("/conversation/updates", response_model=PublicConversationUpdatesResponse)
+def conversation_updates_public(
+    payload: PublicConversationUpdatesRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    try:
+        claims = decode_widget_token(payload.widget_token)
+    except WidgetTokenValidationError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    bot = db.execute(
+        select(TenantBotCredential).where(
+            TenantBotCredential.id == claims["bot_id"],
+            TenantBotCredential.tenant_id == claims["tenant_id"],
+            TenantBotCredential.is_active.is_(True),
+        )
+    ).scalar_one_or_none()
+    if not bot:
+        raise HTTPException(status_code=401, detail="Bot credential inactive")
+
+    request_origin = (request.headers.get("origin") or "").strip().rstrip("/").lower()
+    token_origin = str(claims["origin"]).strip().rstrip("/").lower()
+    if request_origin and request_origin != token_origin:
+        raise HTTPException(status_code=403, detail="Origin mismatch")
+
+    allowed = _normalize_origins(bot.allowed_origins or [])
+    if allowed and token_origin not in allowed:
+        raise HTTPException(status_code=403, detail="Origin not allowed")
+
+    widget_user_id = f"w_{claims['bot_id']}_{claims['session_id']}"[:64]
+    conv = db.execute(
+        select(Conversation).where(
+            Conversation.id == payload.conversation_id,
+            Conversation.tenant_id == claims["tenant_id"],
+            Conversation.user_id == widget_user_id,
+        )
+    ).scalar_one_or_none()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    stmt = (
+        select(Message)
+        .where(
+            Message.conversation_id == conv.id,
+            Message.role == "agent",
+        )
+        .order_by(Message.created_at.asc())
+        .limit(100)
+    )
+    if payload.since_iso:
+        try:
+            since_dt = datetime.fromisoformat(payload.since_iso.replace("Z", "+00:00"))
+            if since_dt.tzinfo is not None:
+                since_dt = since_dt.astimezone(timezone.utc).replace(tzinfo=None)
+            stmt = stmt.where(Message.created_at > since_dt)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid since_iso format")
+
+    rows = db.execute(stmt).scalars().all()
+    return PublicConversationUpdatesResponse(
+        conversation_id=conv.id,
+        items=[
+            PublicConversationMessage(
+                id=m.id,
+                role=m.role,
+                content=m.content,
+                created_at=m.created_at,
+            )
+            for m in rows
+        ],
+    )
 
 
 @public_router.post("/handoff", response_model=PublicHandoffResponse)

@@ -128,6 +128,7 @@
     var sessionId = config.sessionId || ("sess_" + Math.random().toString(36).slice(2));
     var convStoreKey = "mtw_conv_" + botId + "_" + btoa(origin).replace(/=+$/g, "");
     var conversationId = config.conversationId || null;
+    var updatesCursorIso = null;
     try {
       if (!conversationId && window.localStorage) {
         conversationId = window.localStorage.getItem(convStoreKey);
@@ -177,7 +178,34 @@
       return data;
     }
 
-    return { ask: ask, getWidgetToken: getWidgetToken };
+    async function getUpdates() {
+      if (!conversationId) return { conversation_id: null, items: [] };
+      if (!widgetToken) await getWidgetToken();
+
+      var payload = {
+        widget_token: widgetToken,
+        conversation_id: conversationId,
+      };
+      if (updatesCursorIso) payload.since_iso = updatesCursorIso;
+
+      var res = await fetch(base + "/api/v1/public/embed/conversation/updates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.status === 401) widgetToken = null;
+      if (!res.ok) throw new Error("conversation-updates failed (" + res.status + ")");
+
+      var data = await res.json();
+      var items = (data && data.items) || [];
+      if (items.length > 0) {
+        updatesCursorIso = items[items.length - 1].created_at || updatesCursorIso;
+      }
+      return data;
+    }
+
+    return { ask: ask, getWidgetToken: getWidgetToken, getUpdates: getUpdates };
   }
 
   function init(userConfig) {
@@ -201,6 +229,8 @@
     createStyles();
     var ui = createUI(config);
     var client = createClient(config);
+    var seenAgentMessageIds = {};
+    var pollHandle = null;
     var pending = false;
     function setPending(v) {
       pending = v;
@@ -230,12 +260,34 @@
       }
     }
 
+    async function pollAgentUpdates() {
+      try {
+        var data = await client.getUpdates();
+        var items = (data && data.items) || [];
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          if (!item || item.role !== "agent") continue;
+          if (item.id && seenAgentMessageIds[item.id]) continue;
+          if (item.id) seenAgentMessageIds[item.id] = 1;
+          addMessage(ui.log, cleanAssistantText(item.content || ""), "bot", {
+            avatarUrl: config.avatarUrl || "",
+          });
+        }
+      } catch (_) {
+        // Silent: polling should not interrupt chat flow.
+      }
+    }
+
     ui.send.addEventListener("click", sendMessage);
     ui.input.addEventListener("keydown", function (e) {
       if (e.key === "Enter") sendMessage();
+    });
+
+    pollHandle = window.setInterval(pollAgentUpdates, 3000);
+    ui.shell.addEventListener("remove", function () {
+      if (pollHandle) window.clearInterval(pollHandle);
     });
   }
 
   window.MTChatWidget = { init: init };
 })();
-

@@ -263,6 +263,25 @@ def ask(
             sources=sources,
         )
 
+    # If an agent has taken over this conversation, pause AI replies.
+    if bool(getattr(conversation, "ai_paused", False)):
+        return _respond_and_log(
+            answer=(
+                "A support agent is currently handling this conversation. "
+                "Please hold while we connect you."
+            ),
+            refused=False,
+            policy_reason="handoff:ai_paused",
+            retrieved_chunks=[],
+            citations_json=[],
+            retrieval_doc_count=0,
+            retrieval_chunk_count=0,
+            coverage=Coverage(doc_count=0, chunk_count=0),
+            citations=[],
+            sources=[],
+            total_tokens=0,
+        )
+
     allowed, rate_reason = check_rate_limit(
         tenant_id=current_user.tenant_id,
         user_id=current_user.id,
