@@ -8,5 +8,5 @@ from app.embed.models import TenantBotCredential  # noqa: F401
 from app.system.usage_models import TenantUsageEvent, TenantUsageLimit  # noqa: F401
 from app.handoff.models import HandoffInternalNote, HandoffRequest  # noqa: F401
 
-from app.channels.models import TenantChannelAccount  # noqa: F401
+from app.channels.models import CustomerChannelHandle, CustomerProfile, TenantChannelAccount  # noqa: F401
 

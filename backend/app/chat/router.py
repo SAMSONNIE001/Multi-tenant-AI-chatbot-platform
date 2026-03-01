@@ -211,6 +211,7 @@ def ask(
         ).strip()
     )
     bot_name = str(getattr(current_user, "bot_display_name", "") or "").strip() or "AI Assistant"
+    source_channel = str(getattr(current_user, "source_channel", "") or "").strip().lower() or "api"
 
     def _respond_and_log(
         *,
@@ -642,4 +643,3 @@ def ask(
         completion_tokens=completion_tokens,
         total_tokens=total_tokens,
     )
-    source_channel = str(getattr(current_user, "source_channel", "") or "").strip().lower() or "api"

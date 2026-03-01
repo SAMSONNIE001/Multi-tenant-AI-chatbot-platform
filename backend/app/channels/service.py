@@ -11,7 +11,7 @@ from urllib import request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.channels.models import TenantChannelAccount
+from app.channels.models import CustomerChannelHandle, CustomerProfile, TenantChannelAccount
 from app.chat.router import ask as ask_internal
 from app.chat.schemas import AskRequest
 from app.handoff.service import create_handoff_request
@@ -40,6 +40,84 @@ def normalize_channel_type(channel_type: str) -> str:
 def _safe_user_id(prefix: str, external_user_id: str) -> str:
     digest = hashlib.sha256(f"{prefix}:{external_user_id}".encode("utf-8")).hexdigest()[:40]
     return f"c_{prefix}_{digest}"[:64]
+
+
+def _normalize_external_user_id(external_user_id: str) -> str:
+    return (external_user_id or "").strip()
+
+
+def resolve_customer_user_id(
+    db: Session,
+    *,
+    tenant_id: str,
+    channel_type: str,
+    external_user_id: str,
+) -> str:
+    """
+    Resolve channel sender -> canonical tenant customer profile ID.
+    Falls back to deterministic synthetic ID only if sender id is empty.
+    """
+    external = _normalize_external_user_id(external_user_id)
+    if not external:
+        return _safe_user_id(channel_type, external_user_id)
+
+    handle = db.execute(
+        select(CustomerChannelHandle).where(
+            CustomerChannelHandle.tenant_id == tenant_id,
+            CustomerChannelHandle.channel_type == channel_type,
+            CustomerChannelHandle.external_user_id == external,
+        )
+    ).scalar_one_or_none()
+
+    now = datetime.utcnow()
+    if handle:
+        handle.last_seen_at = now
+        handle.updated_at = now
+        db.add(handle)
+        return handle.customer_profile_id
+
+    # Cross-channel linking fallback: if the same external identifier
+    # is already known for this tenant on another channel, reuse that profile.
+    linked = db.execute(
+        select(CustomerChannelHandle).where(
+            CustomerChannelHandle.tenant_id == tenant_id,
+            CustomerChannelHandle.external_user_id == external,
+        )
+    ).scalar_one_or_none()
+    if linked:
+        new_handle = CustomerChannelHandle(
+            id=f"cch_{secrets.token_hex(10)}",
+            tenant_id=tenant_id,
+            customer_profile_id=linked.customer_profile_id,
+            channel_type=channel_type,
+            external_user_id=external,
+            created_at=now,
+            updated_at=now,
+            last_seen_at=now,
+        )
+        db.add(new_handle)
+        return linked.customer_profile_id
+
+    profile = CustomerProfile(
+        id=f"cst_{secrets.token_hex(10)}",
+        tenant_id=tenant_id,
+        display_name=None,
+        created_at=now,
+        updated_at=now,
+    )
+    handle = CustomerChannelHandle(
+        id=f"cch_{secrets.token_hex(10)}",
+        tenant_id=tenant_id,
+        customer_profile_id=profile.id,
+        channel_type=channel_type,
+        external_user_id=external,
+        created_at=now,
+        updated_at=now,
+        last_seen_at=now,
+    )
+    db.add(profile)
+    db.add(handle)
+    return profile.id
 
 
 def _graph_post(path: str, access_token: str, payload: dict) -> None:
@@ -207,12 +285,18 @@ def _ask_and_reply(
     question: str,
     channel_type: str,
 ) -> None:
+    customer_user_id = resolve_customer_user_id(
+        db,
+        tenant_id=account.tenant_id,
+        channel_type=channel_type,
+        external_user_id=external_user_id,
+    )
     try:
         if _social_handoff_intent(question):
             handoff = create_handoff_request(
                 db,
                 tenant_id=account.tenant_id,
-                user_id=_safe_user_id(channel_type, external_user_id),
+                user_id=customer_user_id,
                 question=question,
                 conversation_id=None,
                 reason="human_requested",
@@ -239,7 +323,7 @@ def _ask_and_reply(
             return
 
         pseudo_user = SimpleNamespace(
-            id=_safe_user_id(channel_type, external_user_id),
+            id=customer_user_id,
             tenant_id=account.tenant_id,
             source_channel=channel_type,
             tenant_name=account.name,
