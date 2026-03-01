@@ -31,6 +31,7 @@ from app.tenant.schemas import (
     TenantKnowledgeUploadResponse,
     TenantOnboardRequest,
     TenantOnboardResponse,
+    TenantProfilePatchRequest,
 )
 from app.tenants.models import Tenant
 
@@ -100,6 +101,7 @@ def tenant_onboard(
     tenant = Tenant(
         id=tenant_id,
         name=payload.tenant_name,
+        avatar_url=(payload.company_avatar_url.strip() if payload.company_avatar_url else None),
         compliance_level=payload.compliance_level,
     )
     admin = User(
@@ -115,6 +117,7 @@ def tenant_onboard(
         id=f"bot_{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}",
         tenant_id=tenant_id,
         name=payload.bot_name,
+        avatar_url=(payload.company_avatar_url.strip() if payload.company_avatar_url else None),
         key_hash=hash_bot_key(raw_key),
         allowed_origins=_normalize_origins(payload.allowed_origins),
         is_active=True,
@@ -147,6 +150,7 @@ def tenant_onboard(
         tenant={
             "id": tenant.id,
             "name": tenant.name,
+            "avatar_url": tenant.avatar_url,
             "compliance_level": tenant.compliance_level,
         },
         admin={
@@ -189,11 +193,15 @@ def tenant_create_bot(
         raise HTTPException(status_code=422, detail="allowed_origins must be a list")
 
     raw_key = generate_bot_key()
+    tenant = db.get(Tenant, current_user.tenant_id)
     bot = TenantBotCredential(
         id=f"bot_{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}",
         tenant_id=current_user.tenant_id,
         name=name,
-        avatar_url=(str(payload.get("avatar_url", "")).strip() or None),
+        avatar_url=(
+            str(payload.get("avatar_url", "")).strip()
+            or (tenant.avatar_url if tenant else None)
+        ),
         key_hash=hash_bot_key(raw_key),
         allowed_origins=_normalize_origins(allowed_origins),
         is_active=True,
@@ -402,9 +410,11 @@ def tenant_embed_snippet(
 
     api_base = _https_base(str(request.base_url).rstrip("/"))
     widget_script_base = _resolve_widget_script_base(bot)
+    tenant = db.get(Tenant, current_user.tenant_id)
     bot_title = (bot.name or "").strip() or "AI Assistant"
+    effective_avatar_url = (bot.avatar_url or (tenant.avatar_url if tenant else None) or "").strip()
     avatar_cfg = (
-        f',\n  avatarUrl: "{_js_escape(bot.avatar_url)}"' if bot.avatar_url else ""
+        f',\n  avatarUrl: "{_js_escape(effective_avatar_url)}"' if effective_avatar_url else ""
     )
     snippet = (
         f'<script src="{widget_script_base}/chat-widget.js"></script>\n'
@@ -425,3 +435,29 @@ def tenant_embed_snippet(
         api_base=api_base,
         snippet_html=snippet,
     )
+
+
+@router.patch("/profile")
+def tenant_patch_profile(
+    payload: TenantProfilePatchRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("admin", "owner")),
+):
+    tenant = db.get(Tenant, current_user.tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    if payload.company_name is not None:
+        tenant.name = payload.company_name.strip()
+    if payload.company_avatar_url is not None:
+        tenant.avatar_url = payload.company_avatar_url.strip() or None
+
+    db.add(tenant)
+    db.commit()
+    db.refresh(tenant)
+    return {
+        "id": tenant.id,
+        "name": tenant.name,
+        "avatar_url": tenant.avatar_url,
+        "compliance_level": tenant.compliance_level,
+    }

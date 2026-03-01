@@ -6,6 +6,7 @@ from pydantic import BaseModel, EmailStr, Field
 class TenantOnboardRequest(BaseModel):
     tenant_id: str | None = Field(default=None, min_length=3, max_length=64)
     tenant_name: str = Field(min_length=2, max_length=255)
+    company_avatar_url: str | None = Field(default=None, min_length=3, max_length=1024)
     compliance_level: str = Field(default="standard", min_length=2, max_length=32)
     admin_id: str | None = Field(default=None, min_length=3, max_length=64)
     admin_email: EmailStr
@@ -24,7 +25,13 @@ class TenantAdminOut(BaseModel):
 class TenantOut(BaseModel):
     id: str
     name: str
+    avatar_url: str | None = None
     compliance_level: str
+
+
+class TenantProfilePatchRequest(BaseModel):
+    company_name: str | None = Field(default=None, min_length=2, max_length=255)
+    company_avatar_url: str | None = Field(default=None, min_length=3, max_length=1024)
 
 
 class TenantOnboardResponse(BaseModel):

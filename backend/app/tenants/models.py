@@ -8,4 +8,5 @@ class Tenant(Base):
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    avatar_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     compliance_level: Mapped[str] = mapped_column(String(32), nullable=False, default="standard")
