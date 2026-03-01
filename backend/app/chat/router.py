@@ -18,7 +18,7 @@ from app.chat.memory_service import (
     get_or_create_conversation,
     touch_conversation,
 )
-from app.chat.prompting import SYSTEM_PROMPT, build_user_prompt
+from app.chat.prompting import SYSTEM_PROMPT, build_user_prompt, extract_preferred_name
 from app.chat.citations import validate_citations, REFUSAL_SENTENCE, is_refusal
 
 from app.rag.service import search_chunks
@@ -36,9 +36,67 @@ from app.handoff.service import create_handoff_request
 router = APIRouter()
 
 _HUMAN_INTENT_RE = re.compile(
-    r"\b(human|agent|representative|live agent|support team|talk to .*human|speak to .*human)\b",
+    r"("  # broad handoff intent phrases
+    r"\b(speak|talk|chat|connect|transfer|escalate)\b.{0,32}\b"
+    r"(human|person|someone|agent|representative|support|customer service|help desk)\b"
+    r"|"
+    r"\b(customer service|support team|help desk|live agent|real person|human agent)\b"
+    r"|"
+    r"\b(can i|i want to|i need to|let me|please)\b.{0,32}\b"
+    r"(speak|talk|chat|connect|transfer|escalate)\b.{0,32}\b"
+    r"(to|with)?\b.{0,12}\b(human|person|someone|agent|representative)\b"
+    r")",
     re.IGNORECASE,
 )
+
+_HUMAN_INTENT_KEYWORDS = (
+    "customer service",
+    "human support",
+    "live support",
+    "live chat agent",
+    "talk to support",
+    "speak to support",
+    "connect me to support",
+    "transfer me",
+    "escalate this",
+    "real person",
+    "someone from your team",
+)
+
+_HUMAN_FALSE_POSITIVES = (
+    "human resources",
+    "hr policy",
+    "human rights",
+)
+
+_GREETING_RE = re.compile(r"^\s*(hi|hello|hey|good morning|good afternoon|good evening)\b", re.IGNORECASE)
+_THANKS_RE = re.compile(r"\b(thanks|thank you|thx|ty)\b", re.IGNORECASE)
+_BYE_RE = re.compile(r"\b(bye|goodbye|see you|talk later)\b", re.IGNORECASE)
+
+
+def _is_human_handoff_intent(question: str) -> bool:
+    q = (question or "").strip().lower()
+    if not q:
+        return False
+    if any(fp in q for fp in _HUMAN_FALSE_POSITIVES):
+        return False
+    if _HUMAN_INTENT_RE.search(q):
+        return True
+    return any(k in q for k in _HUMAN_INTENT_KEYWORDS)
+
+
+def _small_talk_response(question: str, preferred_name: str | None) -> str | None:
+    q = (question or "").strip()
+    if not q:
+        return None
+    name_part = f" {preferred_name}" if preferred_name else ""
+    if _GREETING_RE.search(q):
+        return f"Hello{name_part}. I can help with account, billing, and support questions. What do you need help with?"
+    if _THANKS_RE.search(q):
+        return f"You are welcome{name_part}. If you need anything else, I am here to help."
+    if _BYE_RE.search(q):
+        return f"Got it{name_part}. If you need help again, just send a message."
+    return None
 
 
 def _compact_grounded_text(text: str, max_len: int = 260) -> str:
@@ -68,6 +126,7 @@ def ask(
         conversation_id=conversation.id,
         limit=payload.memory_turns,
     )
+    preferred_name = extract_preferred_name(history_messages)
 
     def _respond_and_log(
         *,
@@ -181,8 +240,25 @@ def ask(
             total_tokens=0,
         )
 
+    # Conversational small-talk that does not require document grounding.
+    small_talk = _small_talk_response(payload.question, preferred_name)
+    if small_talk:
+        return _respond_and_log(
+            answer=small_talk,
+            refused=False,
+            policy_reason="conversation:small_talk",
+            retrieved_chunks=[],
+            citations_json=[],
+            retrieval_doc_count=0,
+            retrieval_chunk_count=0,
+            coverage=Coverage(doc_count=0, chunk_count=0),
+            citations=[],
+            sources=[],
+            total_tokens=0,
+        )
+
     # Auto-handoff: detect human-agent intent from normal user messages.
-    if _HUMAN_INTENT_RE.search(payload.question or ""):
+    if _is_human_handoff_intent(payload.question):
         handoff = create_handoff_request(
             db,
             tenant_id=current_user.tenant_id,

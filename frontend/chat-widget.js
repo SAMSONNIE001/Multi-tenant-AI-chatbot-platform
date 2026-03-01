@@ -79,6 +79,14 @@
     return node;
   }
 
+  function cleanAssistantText(text) {
+    var s = String(text || "");
+    // Hide technical citation tags from end users, while backend still keeps citations.
+    s = s.replace(/\s*\[[^\]]+:[^\]]+\]\s*/g, " ").trim();
+    s = s.replace(/\s{2,}/g, " ");
+    return s;
+  }
+
   function createClient(config) {
     var base = String(config.apiBase || "").replace(/\/+$/, "");
     var botId = config.botId;
@@ -174,7 +182,7 @@
       setPending(true);
       try {
         var res = await client.ask(q, config.topK, config.memoryTurns);
-        addMessage(ui.log, res.answer || "No answer", "bot");
+        addMessage(ui.log, cleanAssistantText(res.answer || "No answer"), "bot");
       } catch (err) {
         addMessage(ui.log, "Error: " + (err && err.message ? err.message : "Unknown"), "bot");
       } finally {
