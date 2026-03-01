@@ -69,3 +69,21 @@ class PublicHandoffResponse(BaseModel):
     tenant_id: str
     status: str
     conversation_id: str | None
+
+
+class PublicConversationUpdatesRequest(BaseModel):
+    widget_token: str = Field(min_length=20)
+    conversation_id: str = Field(min_length=3, max_length=64)
+    since_iso: str | None = None
+
+
+class PublicConversationMessage(BaseModel):
+    id: str
+    role: str
+    content: str
+    created_at: datetime
+
+
+class PublicConversationUpdatesResponse(BaseModel):
+    conversation_id: str
+    items: list[PublicConversationMessage]

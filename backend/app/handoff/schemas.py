@@ -17,6 +17,19 @@ class HandoffPatchRequest(BaseModel):
     resolution_note: str | None = Field(default=None, min_length=1, max_length=5000)
 
 
+class HandoffClaimRequest(BaseModel):
+    assigned_to_user_id: str | None = Field(default=None, min_length=3, max_length=64)
+
+
+class HandoffAgentReplyRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
+    mark_pending_customer: bool = True
+
+
+class HandoffAIToggleRequest(BaseModel):
+    ai_paused: bool
+
+
 class HandoffOut(BaseModel):
     id: str
     tenant_id: str

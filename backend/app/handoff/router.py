@@ -8,8 +8,13 @@ from app.admin.rbac import require_scope
 from app.auth.deps import get_current_user
 from app.auth.models import User
 from app.db.session import get_db
+from app.chat.memory_models import Conversation
+from app.chat.memory_service import append_message, touch_conversation
 from app.handoff.models import HandoffRequest
 from app.handoff.schemas import (
+    HandoffAgentReplyRequest,
+    HandoffAIToggleRequest,
+    HandoffClaimRequest,
     HandoffCreateRequest,
     HandoffListResponse,
     HandoffOut,
@@ -163,6 +168,142 @@ def patch_handoff(
     if payload.resolution_note is not None:
         row.resolution_note = payload.resolution_note
 
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _to_out(row)
+
+
+@admin_router.post("/{handoff_id}/claim", response_model=HandoffOut)
+def claim_handoff(
+    handoff_id: str,
+    payload: HandoffClaimRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "handoff:write")
+
+    row = db.execute(
+        select(HandoffRequest).where(
+            HandoffRequest.id == handoff_id,
+            HandoffRequest.tenant_id == current_user.tenant_id,
+        )
+    ).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Handoff not found")
+
+    now = datetime.utcnow()
+    row.assigned_to_user_id = payload.assigned_to_user_id or current_user.id
+    if row.status == "new":
+        row.status = "open"
+    if row.first_responded_at is None:
+        row.first_responded_at = now
+    row.updated_at = now
+
+    if row.conversation_id:
+        conv = db.execute(
+            select(Conversation).where(
+                Conversation.id == row.conversation_id,
+                Conversation.tenant_id == current_user.tenant_id,
+            )
+        ).scalar_one_or_none()
+        if conv:
+            conv.ai_paused = True
+            conv.ai_paused_at = now
+            conv.ai_paused_by_user_id = current_user.id
+            db.add(conv)
+
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _to_out(row)
+
+
+@admin_router.post("/{handoff_id}/reply", response_model=HandoffOut)
+def handoff_agent_reply(
+    handoff_id: str,
+    payload: HandoffAgentReplyRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "handoff:write")
+
+    row = db.execute(
+        select(HandoffRequest).where(
+            HandoffRequest.id == handoff_id,
+            HandoffRequest.tenant_id == current_user.tenant_id,
+        )
+    ).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Handoff not found")
+    if not row.conversation_id:
+        raise HTTPException(status_code=422, detail="Handoff has no conversation_id")
+
+    conv = db.execute(
+        select(Conversation).where(
+            Conversation.id == row.conversation_id,
+            Conversation.tenant_id == current_user.tenant_id,
+        )
+    ).scalar_one_or_none()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    now = datetime.utcnow()
+    append_message(
+        db,
+        conversation_id=conv.id,
+        role="agent",
+        content=payload.message.strip(),
+    )
+    touch_conversation(db, conversation=conv)
+
+    row.assigned_to_user_id = row.assigned_to_user_id or current_user.id
+    row.status = "pending_customer" if payload.mark_pending_customer else "open"
+    row.first_responded_at = row.first_responded_at or now
+    row.updated_at = now
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _to_out(row)
+
+
+@admin_router.post("/{handoff_id}/ai-toggle", response_model=HandoffOut)
+def handoff_ai_toggle(
+    handoff_id: str,
+    payload: HandoffAIToggleRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "handoff:write")
+
+    row = db.execute(
+        select(HandoffRequest).where(
+            HandoffRequest.id == handoff_id,
+            HandoffRequest.tenant_id == current_user.tenant_id,
+        )
+    ).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Handoff not found")
+    if not row.conversation_id:
+        raise HTTPException(status_code=422, detail="Handoff has no conversation_id")
+
+    conv = db.execute(
+        select(Conversation).where(
+            Conversation.id == row.conversation_id,
+            Conversation.tenant_id == current_user.tenant_id,
+        )
+    ).scalar_one_or_none()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    now = datetime.utcnow()
+    conv.ai_paused = bool(payload.ai_paused)
+    conv.ai_paused_at = now if conv.ai_paused else None
+    conv.ai_paused_by_user_id = current_user.id if conv.ai_paused else None
+    db.add(conv)
+
+    row.status = "open" if conv.ai_paused else "pending_customer"
+    row.updated_at = now
     db.add(row)
     db.commit()
     db.refresh(row)

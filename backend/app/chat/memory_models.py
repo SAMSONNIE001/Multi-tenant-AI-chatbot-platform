@@ -15,6 +15,9 @@ class Conversation(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
     last_activity_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    ai_paused: Mapped[bool] = mapped_column(default=False, nullable=False)
+    ai_paused_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    ai_paused_by_user_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class Message(Base):
