@@ -51,3 +51,18 @@ class PublicAskRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20)
     conversation_id: str | None = None
     memory_turns: int = Field(default=8, ge=0, le=40)
+
+
+class PublicHandoffRequest(BaseModel):
+    widget_token: str = Field(min_length=20)
+    question: str = Field(min_length=1, max_length=2000)
+    conversation_id: str | None = None
+    reason: str | None = Field(default=None, min_length=1, max_length=128)
+    destination: str | None = Field(default=None, min_length=1, max_length=255)
+
+
+class PublicHandoffResponse(BaseModel):
+    handoff_id: str
+    tenant_id: str
+    status: str
+    conversation_id: str | None

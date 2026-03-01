@@ -17,6 +17,8 @@ from app.embed.schemas import (
     BotCredentialPatchRequest,
     BotCredentialRotateResponse,
     PublicAskRequest,
+    PublicHandoffRequest,
+    PublicHandoffResponse,
     WidgetTokenRequest,
     WidgetTokenResponse,
 )
@@ -27,6 +29,7 @@ from app.embed.security import (
     generate_bot_key,
     hash_bot_key,
 )
+from app.handoff.service import create_handoff_request
 
 admin_router = APIRouter()
 public_router = APIRouter()
@@ -263,3 +266,52 @@ def ask_public(
         memory_turns=payload.memory_turns,
     )
     return ask_internal(payload=ask_payload, db=db, current_user=pseudo_user)
+
+
+@public_router.post("/handoff", response_model=PublicHandoffResponse)
+def request_handoff_public(
+    payload: PublicHandoffRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    try:
+        claims = decode_widget_token(payload.widget_token)
+    except WidgetTokenValidationError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    bot = db.execute(
+        select(TenantBotCredential).where(
+            TenantBotCredential.id == claims["bot_id"],
+            TenantBotCredential.tenant_id == claims["tenant_id"],
+            TenantBotCredential.is_active.is_(True),
+        )
+    ).scalar_one_or_none()
+    if not bot:
+        raise HTTPException(status_code=401, detail="Bot credential inactive")
+
+    request_origin = (request.headers.get("origin") or "").strip().rstrip("/").lower()
+    token_origin = str(claims["origin"]).strip().rstrip("/").lower()
+    if request_origin and request_origin != token_origin:
+        raise HTTPException(status_code=403, detail="Origin mismatch")
+
+    allowed = _normalize_origins(bot.allowed_origins or [])
+    if allowed and token_origin not in allowed:
+        raise HTTPException(status_code=403, detail="Origin not allowed")
+
+    widget_user_id = f"w_{claims['bot_id']}_{claims['session_id']}"[:64]
+    row = create_handoff_request(
+        db,
+        tenant_id=claims["tenant_id"],
+        user_id=widget_user_id,
+        question=payload.question,
+        conversation_id=payload.conversation_id,
+        reason=payload.reason or "human_handoff",
+        destination=payload.destination,
+        source_channel="embed",
+    )
+    return PublicHandoffResponse(
+        handoff_id=row.id,
+        tenant_id=row.tenant_id,
+        status=row.status,
+        conversation_id=row.conversation_id,
+    )
