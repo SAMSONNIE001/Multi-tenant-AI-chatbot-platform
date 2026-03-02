@@ -379,10 +379,19 @@
         <button id="tabDaily" class="tab-btn active" data-tab="daily">Daily Ops</button>
         <button id="tabQa" class="tab-btn" data-tab="qa">Staging QA</button>
       </div>
-      <label class="toggle">
-        <input id="toggleAdvanced" type="checkbox" />
-        Show Advanced Actions
-      </label>
+      <div class="inline" style="align-items:center;">
+        <div class="row" style="margin:0; min-width:140px;">
+          <label for="roleMode">Role Mode</label>
+          <select id="roleMode">
+            <option value="operator">Operator</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <label class="toggle">
+          <input id="toggleAdvanced" type="checkbox" />
+          Show Advanced Actions
+        </label>
+      </div>
     </div>
 
     <div class="grid">

@@ -399,6 +399,13 @@
       localStorage.setItem("tenant_console_advanced", $("toggleAdvanced").checked ? "1" : "0");
       applyConsoleMode();
     };
+    const roleModeEl = $("roleMode");
+    if (roleModeEl) {
+      roleModeEl.onchange = () => {
+        localStorage.setItem("tenant_console_role_mode", roleModeEl.value || "operator");
+        applyConsoleMode();
+      };
+    }
 
     (function bootstrap() {
       const savedToken = localStorage.getItem("tenant_console_token");
@@ -406,9 +413,13 @@
       const savedStaging = localStorage.getItem("tenant_console_staging_api_base");
       const savedPane = localStorage.getItem("tenant_console_active_pane");
       const savedAdvanced = localStorage.getItem("tenant_console_advanced");
+      const savedRoleMode = localStorage.getItem("tenant_console_role_mode");
       if (savedToken) setToken(savedToken);
       if (savedBase) $("apiBase").value = savedBase;
       if (savedStaging) $("stagingApiBase").value = savedStaging;
+      if (savedRoleMode && roleModeEl && ["operator", "admin"].includes(savedRoleMode)) {
+        roleModeEl.value = savedRoleMode;
+      }
       if (savedAdvanced === "1") $("toggleAdvanced").checked = true;
       $("hfStatus").value = "new_open";
       $("hfSort").value = "urgent_escalated";

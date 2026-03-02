@@ -9,6 +9,7 @@
     let lastAuditRefreshAt = null;
     let lastQaPack = null;
     let activePane = "daily";
+    let roleMode = "operator";
 
     function pretty(v) {
       try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
@@ -67,7 +68,16 @@
         section.style.display = panes.includes(activePane) ? "block" : "none";
       });
 
-      const showAdvanced = !!$("toggleAdvanced").checked;
+      const roleSelect = $("roleMode");
+      roleMode = roleSelect ? String(roleSelect.value || "operator").toLowerCase() : "operator";
+      const toggle = $("toggleAdvanced");
+      if (toggle) {
+        if (roleMode !== "admin") {
+          toggle.checked = false;
+        }
+        toggle.disabled = roleMode !== "admin";
+      }
+      const showAdvanced = roleMode === "admin" && !!(toggle && toggle.checked);
       const advancedBlocks = document.querySelectorAll(".advanced-only");
       advancedBlocks.forEach((el) => {
         el.style.display = showAdvanced ? "block" : "none";
@@ -347,6 +357,7 @@
       lastAuditRefreshAt: { get: () => lastAuditRefreshAt, set: (v) => { lastAuditRefreshAt = v; }, enumerable: true },
       lastQaPack: { get: () => lastQaPack, set: (v) => { lastQaPack = v; }, enumerable: true },
       activePane: { get: () => activePane, set: (v) => { activePane = v; }, enumerable: true },
+      roleMode: { get: () => roleMode, set: (v) => { roleMode = v; }, enumerable: true },
     });
 
     Object.assign(tc, {
