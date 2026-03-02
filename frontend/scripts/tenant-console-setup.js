@@ -382,10 +382,13 @@
       localStorage.setItem("tenant_console_active_pane", "qa");
       setActivePane("qa");
     };
-    $("tabSetup").onclick = () => {
-      localStorage.setItem("tenant_console_active_pane", "setup");
-      setActivePane("setup");
-    };
+    const tabSetup = $("tabSetup");
+    if (tabSetup) {
+      tabSetup.onclick = () => {
+        localStorage.setItem("tenant_console_active_pane", "setup");
+        setActivePane("setup");
+      };
+    }
     $("toggleAdvanced").onchange = () => {
       localStorage.setItem("tenant_console_advanced", $("toggleAdvanced").checked ? "1" : "0");
       applyConsoleMode();
@@ -406,7 +409,10 @@
       $("hfEscalatedOnly").value = "false";
       if (!$("escSweepReason").value.trim()) $("escSweepReason").value = "scheduled SLA triage sweep";
       if (!$("cpMergeReason").value.trim()) $("cpMergeReason").value = "dedupe duplicate customer identities";
-      setActivePane(savedPane && ["daily", "qa", "setup"].includes(savedPane) ? savedPane : "daily");
+      const allowedPanes = tabSetup ? ["daily", "qa", "setup"] : ["daily", "qa"];
+      const onSetupPage = (window.location.pathname || "").toLowerCase().includes("tenant-setup");
+      const defaultPane = onSetupPage && tabSetup ? "setup" : "daily";
+      setActivePane(savedPane && allowedPanes.includes(savedPane) ? savedPane : defaultPane);
       applyQaAvailability();
       loadOpsAudit();
       runPreflightChecks(true).catch(() => {});

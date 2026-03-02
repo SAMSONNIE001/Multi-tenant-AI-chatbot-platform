@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>StaunchBot Tenant Console</title>
+  <title>StaunchBot Setup Console</title>
   <style>
     body {
       margin: 0;
@@ -368,16 +368,17 @@
 <body>
   <div class="wrap">
     <div class="header">
-      <h1>StaunchBot Tenant Console</h1>
-      <p>Self-serve onboarding and tenant operations without Swagger.</p>
+      <h1>StaunchBot Setup Console</h1>
+      <p>Setup/Admin workflows. For daily operations use tenant-console.</p>
       <p class="small">Build: customer-profiles + escalation-ops (2026-03-01)</p>
-      <p class="small"><a href="./tenant-setup.html">Open Setup/Admin Console</a></p>
+      <p class="small"><a href="./tenant-console.html">Open Daily Ops Console</a></p>
     </div>
 
     <div class="console-toolbar">
       <div class="tabbar">
         <button id="tabDaily" class="tab-btn active" data-tab="daily">Daily Ops</button>
         <button id="tabQa" class="tab-btn" data-tab="qa">Staging QA</button>
+        <button id="tabSetup" class="tab-btn" data-tab="setup">Setup/Admin</button>
       </div>
       <label class="toggle">
         <input id="toggleAdvanced" type="checkbox" />
@@ -386,7 +387,7 @@
     </div>
 
     <div class="grid">
-      <section class="card" data-pane="daily qa">
+      <section class="card" data-pane="setup qa">
         <h2>API + Session</h2>
         <div class="row">
           <label for="apiBase">API Base</label>
