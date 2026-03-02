@@ -243,6 +243,13 @@
       $("accessToken").value = token || "";
     }
 
+    function clearConsoleSession() {
+      localStorage.removeItem("tenant_console_token");
+      setToken("");
+      currentUser = null;
+      renderCurrentUserBadge();
+    }
+
     async function request(path, options = {}) {
       const headers = Object.assign({}, options.headers || {});
       const token = getToken();
@@ -429,6 +436,7 @@
       ensurePreflightForDestructive,
       getToken,
       setToken,
+      clearConsoleSession,
       request,
       runPreflightChecks,
       parseOrigins,

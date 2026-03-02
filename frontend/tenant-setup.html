@@ -360,6 +360,53 @@
       border-color: #fecaca;
       color: #991b1b;
     }
+    .topnav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border: 1px solid #dbe3ee;
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+    .topnav .links {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .topnav .links a {
+      text-decoration: none;
+      color: #0f172a;
+      border: 1px solid #dbe3ee;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #fff;
+    }
+    .topnav .links a.active {
+      border-color: #99f6e4;
+      background: #ecfeff;
+      color: #115e59;
+    }
+    .topnav .meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .user-badge {
+      display: inline-block;
+      border-radius: 999px;
+      border: 1px solid #dbe3ee;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 12px;
+      padding: 4px 10px;
+      font-weight: 600;
+    }
     .advanced-only {
       display: none;
     }
@@ -367,6 +414,17 @@
 </head>
 <body>
   <div class="wrap">
+    <div class="topnav">
+      <div class="links">
+        <a id="navDashboard" href="./dashboard.html">Dashboard</a>
+        <a id="navOps" href="./tenant-console.html">Daily Ops</a>
+        <a id="navSetup" href="./tenant-setup.html">Setup</a>
+      </div>
+      <div class="meta">
+        <span id="currentUserBadge" class="user-badge">Current User: not authenticated</span>
+        <button id="btnNavSignOut" class="alt" type="button">Sign out</button>
+      </div>
+    </div>
     <div class="header">
       <h1>StaunchBot Setup Console</h1>
       <p>Setup/Admin workflows. For daily operations use tenant-console.</p>

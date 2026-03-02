@@ -37,11 +37,15 @@ function setApiBase(url) {
 
 function renderWhoamiLine(me) {
   const line = $("whoamiLine");
+  const nav = $("navUserBadge");
   if (!me) {
     line.textContent = "Current User: not authenticated";
+    if (nav) nav.textContent = "Current User: not authenticated";
     return;
   }
-  line.textContent = `Current User: ${me.email || "-"} | role=${me.role || "-"} | tenant=${me.tenant_id || "-"}`;
+  const txt = `Current User: ${me.email || "-"} | role=${me.role || "-"} | tenant=${me.tenant_id || "-"}`;
+  line.textContent = txt;
+  if (nav) nav.textContent = txt;
 }
 
 async function refreshSnapshot() {
@@ -133,6 +137,24 @@ $("clearToken").onclick = () => {
   $("kpiGrid").style.display = "none";
   $("kpiGrid").innerHTML = "";
 };
+const navDashboard = $("navDashboard");
+const navOps = $("navOps");
+const navSetup = $("navSetup");
+if (navDashboard) navDashboard.classList.add("active");
+if (navOps) navOps.classList.remove("active");
+if (navSetup) navSetup.classList.remove("active");
+const btnNavSignOut = $("btnNavSignOut");
+if (btnNavSignOut) {
+  btnNavSignOut.onclick = () => {
+    localStorage.removeItem("dashboard_token");
+    setToken("");
+    renderWhoamiLine(null);
+    $("outLogin").textContent = "Signed out.";
+    $("outSnapshot").textContent = "Signed out. Login to load tenant snapshot.";
+    $("kpiGrid").style.display = "none";
+    $("kpiGrid").innerHTML = "";
+  };
+}
 
 (function bootstrap() {
   const savedToken = localStorage.getItem("dashboard_token");

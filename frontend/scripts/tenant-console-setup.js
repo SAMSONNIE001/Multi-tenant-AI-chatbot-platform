@@ -2,6 +2,7 @@
     const {
       $,
       setToken,
+      clearConsoleSession,
       request,
       parseOrigins,
       pretty,
@@ -398,6 +399,23 @@
       tabSetup.onclick = () => {
         localStorage.setItem("tenant_console_active_pane", "setup");
         setActivePane("setup");
+      };
+    }
+    const navDashboard = $("navDashboard");
+    const navOps = $("navOps");
+    const navSetup = $("navSetup");
+    const path = (window.location.pathname || "").toLowerCase();
+    if (path.includes("tenant-setup")) {
+      if (navSetup) navSetup.classList.add("active");
+    } else {
+      if (navOps) navOps.classList.add("active");
+    }
+    if (navDashboard && !path.includes("dashboard")) navDashboard.classList.remove("active");
+    const btnNavSignOut = $("btnNavSignOut");
+    if (btnNavSignOut) {
+      btnNavSignOut.onclick = () => {
+        clearConsoleSession();
+        $("outLogin").textContent = "Signed out.";
       };
     }
     $("toggleAdvanced").onchange = () => {
