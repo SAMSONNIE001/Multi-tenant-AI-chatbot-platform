@@ -30,6 +30,8 @@
       applyQaAvailability,
       setActivePane,
       applyConsoleMode,
+      syncCurrentUser,
+      renderCurrentUserBadge,
     } = tc;
     const state = tc.state;
 
@@ -89,7 +91,10 @@
         $("lgTenantIdRow").style.display = "none";
         $("lgTenantId").value = "";
         out.textContent = pretty(data);
-        if (data && data.access_token) setToken(data.access_token);
+        if (data && data.access_token) {
+          setToken(data.access_token);
+          await syncCurrentUser();
+        }
       } catch (e) {
         const msg = String(e);
         if (msg.includes("409") && msg.includes("Provide tenant_id")) {
@@ -431,6 +436,8 @@
       const defaultPane = onSetupPage && tabSetup ? "setup" : "daily";
       setActivePane(savedPane && allowedPanes.includes(savedPane) ? savedPane : defaultPane);
       applyQaAvailability();
+      renderCurrentUserBadge();
+      syncCurrentUser().catch(() => {});
       loadOpsAudit();
       runPreflightChecks(true).catch(() => {});
       renderReleaseSnapshot();

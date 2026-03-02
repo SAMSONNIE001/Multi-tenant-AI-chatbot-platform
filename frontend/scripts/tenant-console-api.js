@@ -10,6 +10,7 @@
     let lastQaPack = null;
     let activePane = "daily";
     let roleMode = "operator";
+    let currentUser = null;
 
     function pretty(v) {
       try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
@@ -141,6 +142,21 @@
       return claims.sub || claims.email || "unknown_actor";
     }
 
+    function isBackendAdminLike() {
+      const role = String((currentUser && currentUser.role) || "").toLowerCase();
+      return role === "admin" || role === "owner";
+    }
+
+    function renderCurrentUserBadge() {
+      const el = $("currentUserBadge");
+      if (!el) return;
+      if (!currentUser) {
+        el.textContent = "Current User: not authenticated";
+        return;
+      }
+      el.textContent = `Current User: ${currentUser.email || "-"} | role=${currentUser.role || "-"} | tenant=${currentUser.tenant_id || "-"}`;
+    }
+
     function appendOpsAuditLocal(entry) {
       try {
         const raw = localStorage.getItem("tenant_console_ops_audit");
@@ -235,8 +251,38 @@
       const text = await res.text();
       let data = text;
       try { data = JSON.parse(text); } catch (_) {}
-      if (!res.ok) throw new Error(`${res.status} ${pretty(data)}`);
+      if (!res.ok) {
+        const suffix = res.status === 403 ? " | Your role cannot run this action." : "";
+        throw new Error(`${res.status} ${pretty(data)}${suffix}`);
+      }
       return data;
+    }
+
+    async function syncCurrentUser() {
+      const token = getToken();
+      if (!token) {
+        currentUser = null;
+        renderCurrentUserBadge();
+        return null;
+      }
+      try {
+        const me = await request("/api/v1/auth/me");
+        currentUser = me;
+        const roleEl = $("roleMode");
+        if (roleEl) {
+          if (!isBackendAdminLike()) {
+            roleEl.value = "operator";
+            localStorage.setItem("tenant_console_role_mode", "operator");
+          }
+        }
+        renderCurrentUserBadge();
+        applyConsoleMode();
+        return me;
+      } catch (_) {
+        currentUser = null;
+        renderCurrentUserBadge();
+        return null;
+      }
     }
 
     async function runPreflightChecks(silent = false) {
@@ -358,6 +404,7 @@
       lastQaPack: { get: () => lastQaPack, set: (v) => { lastQaPack = v; }, enumerable: true },
       activePane: { get: () => activePane, set: (v) => { activePane = v; }, enumerable: true },
       roleMode: { get: () => roleMode, set: (v) => { roleMode = v; }, enumerable: true },
+      currentUser: { get: () => currentUser, set: (v) => { currentUser = v; }, enumerable: true },
     });
 
     Object.assign(tc, {
@@ -388,6 +435,9 @@
       esc,
       shortDate,
       state,
+      isBackendAdminLike,
+      renderCurrentUserBadge,
+      syncCurrentUser,
     });
     window.TenantConsole = tc;
 
