@@ -1,9 +1,9 @@
-$ErrorActionPreference = "Stop"
-
 param(
   [Parameter(Mandatory = $false)]
   [string]$ApiBase = "http://localhost:8000"
 )
+
+$ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $pythonExe = Join-Path $repoRoot ".venv\Scripts\python.exe"
