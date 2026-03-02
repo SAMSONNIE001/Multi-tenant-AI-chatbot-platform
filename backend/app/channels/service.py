@@ -4,7 +4,7 @@ import json
 import logging
 import re
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from urllib import request
 
@@ -69,7 +69,7 @@ def resolve_customer_user_id(
         )
     ).scalar_one_or_none()
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if handle:
         handle.last_seen_at = now
         handle.updated_at = now
@@ -227,8 +227,8 @@ def send_messenger_or_instagram_text(
 
 def _set_channel_error(account: TenantChannelAccount, message: str) -> None:
     account.last_error = message[:1000]
-    account.last_error_at = datetime.utcnow()
-    account.updated_at = datetime.utcnow()
+    account.last_error_at = datetime.now(timezone.utc)
+    account.updated_at = datetime.now(timezone.utc)
 
 
 def _clear_channel_error(account: TenantChannelAccount) -> None:
@@ -317,7 +317,7 @@ def _ask_and_reply(
             else:
                 for part in parts:
                     send_messenger_or_instagram_text(account, recipient_id=external_user_id, text=part)
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             account.last_used_at = now
             account.last_outbound_at = now
             account.updated_at = now
@@ -347,7 +347,7 @@ def _ask_and_reply(
             for part in message_parts:
                 send_messenger_or_instagram_text(account, recipient_id=external_user_id, text=part)
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         account.last_used_at = now
         account.last_outbound_at = now
         account.updated_at = now
@@ -383,8 +383,8 @@ def process_meta_webhook_payload(db: Session, payload: dict) -> tuple[int, int]:
                 if not account:
                     ignored += 1
                     continue
-                account.last_webhook_at = datetime.utcnow()
-                account.updated_at = datetime.utcnow()
+                account.last_webhook_at = datetime.now(timezone.utc)
+                account.updated_at = datetime.now(timezone.utc)
                 db.add(account)
 
                 for msg in value.get("messages", []):
@@ -440,8 +440,8 @@ def process_meta_webhook_payload(db: Session, payload: dict) -> tuple[int, int]:
                 if not account:
                     ignored += 1
                     continue
-                account.last_webhook_at = datetime.utcnow()
-                account.updated_at = datetime.utcnow()
+                account.last_webhook_at = datetime.now(timezone.utc)
+                account.updated_at = datetime.now(timezone.utc)
                 db.add(account)
 
                 _ask_and_reply(
@@ -458,3 +458,5 @@ def process_meta_webhook_payload(db: Session, payload: dict) -> tuple[int, int]:
 
     db.commit()
     return processed, ignored
+
+

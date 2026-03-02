@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -11,12 +11,12 @@ DEFAULT_MONTHLY_TOKEN_LIMIT = 1_000_000
 
 
 def _window_start_day(now: datetime | None = None) -> datetime:
-    current = now or datetime.utcnow()
+    current = now or datetime.now(timezone.utc)
     return datetime(current.year, current.month, current.day)
 
 
 def _window_start_month(now: datetime | None = None) -> datetime:
-    current = now or datetime.utcnow()
+    current = now or datetime.now(timezone.utc)
     return datetime(current.year, current.month, 1)
 
 
@@ -29,7 +29,7 @@ def get_or_create_tenant_limit(db: Session, tenant_id: str) -> TenantUsageLimit:
         tenant_id=tenant_id,
         daily_request_limit=DEFAULT_DAILY_REQUEST_LIMIT,
         monthly_token_limit=DEFAULT_MONTHLY_TOKEN_LIMIT,
-        updated_at=datetime.utcnow(),
+        updated_at=datetime.now(timezone.utc),
     )
     db.add(row)
     db.commit()
@@ -38,7 +38,7 @@ def get_or_create_tenant_limit(db: Session, tenant_id: str) -> TenantUsageLimit:
 
 
 def check_tenant_quota(db: Session, tenant_id: str) -> tuple[bool, str | None, dict[str, int]]:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     limits = get_or_create_tenant_limit(db, tenant_id)
 
     day_start = _window_start_day(now)
@@ -92,14 +92,14 @@ def write_usage_event(
         refused=bool(refused),
         total_tokens=max(0, int(total_tokens or 0)),
         latency_ms=latency_ms,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     db.add(row)
     db.commit()
 
 
 def usage_summary(db: Session, *, tenant_id: str, since_days: int) -> dict:
-    since = datetime.utcnow() - timedelta(days=max(1, int(since_days)))
+    since = datetime.now(timezone.utc) - timedelta(days=max(1, int(since_days)))
 
     totals = db.execute(
         select(
@@ -137,3 +137,4 @@ def usage_summary(db: Session, *, tenant_id: str, since_days: int) -> dict:
         "refused_requests": int(refused_count or 0),
         "by_channel": [{"channel": c, "count": int(n)} for c, n in channel_rows],
     }
+

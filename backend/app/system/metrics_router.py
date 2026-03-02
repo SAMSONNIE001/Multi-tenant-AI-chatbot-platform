@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.db.session import get_db
 from app.auth.deps import get_current_user
@@ -18,7 +18,7 @@ def metrics(
     if (current_user.role or "").lower() != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
 
-    since = datetime.utcnow() - timedelta(hours=24)
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
 
     total = db.execute(
         select(func.count()).select_from(ChatAuditLog).where(ChatAuditLog.created_at >= since)
@@ -41,3 +41,4 @@ def metrics(
         "refusal_rate": (float(refused) / float(total)) if total else 0.0,
         "avg_latency_ms": float(avg_latency) if avg_latency is not None else None,
     }
+

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -108,7 +108,7 @@ def test_admin_handoff_claim_patch_sweep_metrics_and_ops_audit():
         assert patched["resolution_note"] == "Waiting on customer response."
         assert "Manual ops coverage note." in (patched["internal_notes"] or "")
 
-        past = datetime.utcnow() - timedelta(hours=4)
+        past = datetime.now(timezone.utc) - timedelta(hours=4)
         with SessionLocal() as db:
             db.add(
                 HandoffRequest(
@@ -305,7 +305,7 @@ def test_handoff_notes_reply_review_agent_reply_and_ai_toggle():
         headers = _headers(token)
 
         conv_id = f"conv_{uuid4().hex[:16]}"
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         with SessionLocal() as db:
             db.add(
                 Conversation(
@@ -503,3 +503,4 @@ def test_support_role_blocked_from_advanced_admin_actions():
             "Admin role required" in merge_resp.json()["detail"]
             or "Missing required scope: channels:write" in merge_resp.json()["detail"]
         )
+

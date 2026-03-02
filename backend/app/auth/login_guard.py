@@ -1,5 +1,5 @@
 from collections import defaultdict, deque
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 MAX_FAILURES = 5
 WINDOW_SECONDS = 15 * 60
@@ -17,7 +17,7 @@ def _prune(key: str, now: datetime) -> None:
 
 
 def is_locked(key: str) -> datetime | None:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     locked_until = _locked_until.get(key)
     if not locked_until:
         return None
@@ -28,7 +28,7 @@ def is_locked(key: str) -> datetime | None:
 
 
 def register_failure(key: str) -> datetime | None:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     _prune(key, now)
 
     q = _failures[key]
@@ -46,3 +46,4 @@ def register_failure(key: str) -> datetime | None:
 def clear_failures(key: str) -> None:
     _failures.pop(key, None)
     _locked_until.pop(key, None)
+

@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from typing import Any
 
@@ -25,7 +25,7 @@ def generate_bot_key() -> str:
 
 def create_widget_token(*, tenant_id: str, bot_id: str, session_id: str, origin: str) -> tuple[str, int]:
     exp_minutes = max(1, int(WIDGET_EXP_MINUTES))
-    expires_at = datetime.utcnow() + timedelta(minutes=exp_minutes)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=exp_minutes)
     payload = {
         "typ": "widget",
         "tenant_id": tenant_id,
@@ -52,3 +52,4 @@ def decode_widget_token(token: str) -> dict[str, Any]:
             raise WidgetTokenValidationError("Invalid widget token payload")
 
     return payload
+

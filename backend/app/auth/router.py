@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -32,7 +32,7 @@ MAX_ACTIVE_REFRESH_TOKENS = 5
 
 
 def _enforce_refresh_token_limit(db: Session, *, user_id: str, tenant_id: str) -> None:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     active_tokens = (
         db.query(RefreshToken)
         .filter(
@@ -196,7 +196,7 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Refresh token not recognized")
     if row.revoked_at is not None:
         raise HTTPException(status_code=401, detail="Refresh token revoked")
-    if row.expires_at <= datetime.utcnow():
+    if row.expires_at <= datetime.now(timezone.utc):
         raise HTTPException(status_code=401, detail="Refresh token expired")
 
     user = db.get(User, user_id)
@@ -204,7 +204,7 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="User not found")
 
     # Rotate refresh token on every refresh.
-    row.revoked_at = datetime.utcnow()
+    row.revoked_at = datetime.now(timezone.utc)
     db.add(row)
 
     access_token = create_access_token(
@@ -249,7 +249,7 @@ def logout(payload: LogoutRequest, db: Session = Depends(get_db)):
         .first()
     )
     if row and row.revoked_at is None:
-        row.revoked_at = datetime.utcnow()
+        row.revoked_at = datetime.now(timezone.utc)
         db.add(row)
         db.commit()
 
@@ -264,3 +264,5 @@ def me(current_user: User = Depends(get_current_user)):
         email=current_user.email,
         role=current_user.role,
     )
+
+

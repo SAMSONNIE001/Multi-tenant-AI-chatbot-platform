@@ -1,24 +1,22 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DocumentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     tenant_id: str
     filename: str
     content_type: str
 
-    class Config:
-        from_attributes = True
-
 
 class ChunkOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     document_id: str
     chunk_index: int
     text: str
-
-    class Config:
-        from_attributes = True
 
 
 class QueryRequest(BaseModel):

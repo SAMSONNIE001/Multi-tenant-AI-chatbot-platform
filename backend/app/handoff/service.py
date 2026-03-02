@@ -1,6 +1,6 @@
 import json
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib import request
 
 from sqlalchemy.orm import Session
@@ -39,7 +39,7 @@ def create_handoff_request(
     destination: str | None,
     source_channel: str = "api",
 ) -> HandoffRequest:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     row = HandoffRequest(
         id=f"ho_{secrets.token_hex(12)}",
         tenant_id=tenant_id,
@@ -76,3 +76,4 @@ def create_handoff_request(
     )
 
     return row
+

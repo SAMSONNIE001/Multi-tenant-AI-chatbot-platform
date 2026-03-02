@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse
@@ -135,7 +135,7 @@ def create_account(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     row = TenantChannelAccount(
-        id=f"ch_{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}",
+        id=f"ch_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}",
         tenant_id=current_user.tenant_id,
         channel_type=channel_type,
         name=payload.name,
@@ -147,8 +147,8 @@ def create_account(
         instagram_account_id=payload.instagram_account_id,
         metadata_json=payload.metadata_json,
         is_active=True,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     db.add(row)
     db.commit()
@@ -191,7 +191,7 @@ def patch_account(
     if payload.is_active is not None:
         row.is_active = payload.is_active
 
-    row.updated_at = datetime.utcnow()
+    row.updated_at = datetime.now(timezone.utc)
     db.add(row)
     db.commit()
     db.refresh(row)
@@ -216,7 +216,7 @@ def rotate_verify_token(
         raise HTTPException(status_code=404, detail="Channel account not found")
 
     row.verify_token = generate_verify_token()
-    row.updated_at = datetime.utcnow()
+    row.updated_at = datetime.now(timezone.utc)
     db.add(row)
     db.commit()
     db.refresh(row)
@@ -351,7 +351,7 @@ def merge_customer_profiles(
 
     moved_handles = 0
     deduped_handles = 0
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     source_handles = db.execute(
         select(CustomerChannelHandle).where(
@@ -460,3 +460,5 @@ async def handle_meta_webhook(
 
     processed, ignored = process_meta_webhook_payload(db, payload)
     return MetaWebhookResponse(received=True, processed_messages=processed, ignored_events=ignored)
+
+

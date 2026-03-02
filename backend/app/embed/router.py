@@ -86,7 +86,7 @@ def create_bot(
 ):
     raw_key = generate_bot_key()
     bot = TenantBotCredential(
-        id=f"bot_{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}",
+        id=f"bot_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}",
         tenant_id=current_user.tenant_id,
         name=payload.name,
         avatar_url=(payload.avatar_url.strip() if payload.avatar_url else None),
@@ -137,7 +137,7 @@ def rotate_bot_key(
     bot = _require_bot_for_tenant(db, tenant_id=current_user.tenant_id, bot_id=bot_id)
     raw_key = generate_bot_key()
     bot.key_hash = hash_bot_key(raw_key)
-    bot.rotated_at = datetime.utcnow()
+    bot.rotated_at = datetime.now(timezone.utc)
     db.add(bot)
     db.commit()
     db.refresh(bot)
@@ -179,7 +179,7 @@ def issue_widget_token(
         origin=origin,
     )
 
-    bot.last_used_at = datetime.utcnow()
+    bot.last_used_at = datetime.now(timezone.utc)
     db.add(bot)
     db.commit()
 
@@ -218,7 +218,7 @@ def issue_widget_token_by_bot(
         origin=origin,
     )
 
-    bot.last_used_at = datetime.utcnow()
+    bot.last_used_at = datetime.now(timezone.utc)
     db.add(bot)
     db.commit()
 
@@ -276,7 +276,7 @@ def ask_public(
         bot_avatar_url=bot.avatar_url,
     )
 
-    bot.last_used_at = datetime.utcnow()
+    bot.last_used_at = datetime.now(timezone.utc)
     db.add(bot)
     db.commit()
 
@@ -410,3 +410,4 @@ def request_handoff_public(
         status=row.status,
         conversation_id=row.conversation_id,
     )
+

@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -46,8 +46,8 @@ def get_or_create_conversation(
         id=f"conv_{secrets.token_hex(10)}",
         tenant_id=tenant_id,
         user_id=user_id,
-        created_at=datetime.utcnow(),
-        last_activity_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        last_activity_at=datetime.now(timezone.utc),
     )
     db.add(conv)
     db.commit()
@@ -77,13 +77,15 @@ def append_message(db: Session, *, conversation_id: str, role: str, content: str
         conversation_id=conversation_id,
         role=role,
         content=content,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     db.add(msg)
     db.commit()
 
 
 def touch_conversation(db: Session, *, conversation: Conversation) -> None:
-    conversation.last_activity_at = datetime.utcnow()
+    conversation.last_activity_at = datetime.now(timezone.utc)
     db.add(conversation)
     db.commit()
+
+

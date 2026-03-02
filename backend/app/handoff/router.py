@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 from uuid import uuid4
 
@@ -69,7 +69,7 @@ def _to_out(row: HandoffRequest) -> HandoffOut:
 
 
 def _append_internal_note(existing: str | None, note: str, author_id: str) -> str:
-    ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     line = f"[{ts}] ({author_id}) {note.strip()}"
     if not existing:
         return line
@@ -106,16 +106,29 @@ def _assert_handoff_operator(row: HandoffRequest, current_user: User) -> None:
         raise HTTPException(status_code=409, detail=f"Handoff is assigned to {assigned}")
 
 
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 def _is_sla_breached(row: HandoffRequest, now: datetime) -> bool:
+    now_utc = _as_utc(now)
+    first_due = _as_utc(row.first_response_due_at)
+    resolution_due = _as_utc(row.resolution_due_at)
     first_response_breach = bool(
-        row.first_response_due_at
-        and row.first_response_due_at < now
+        first_due
+        and now_utc
+        and first_due < now_utc
         and row.first_responded_at is None
         and row.status in {"new", "open"}
     )
     resolution_breach = bool(
-        row.resolution_due_at
-        and row.resolution_due_at < now
+        resolution_due
+        and now_utc
+        and resolution_due < now_utc
         and row.status in {"open", "pending_customer"}
     )
     return first_response_breach or resolution_breach
@@ -158,8 +171,9 @@ def _escalate_if_breached(row: HandoffRequest, now: datetime) -> tuple[bool, str
 
 
 def _window_metrics(rows: list[HandoffRequest], now: datetime, hours: int) -> HandoffWindowMetrics:
-    cutoff = now.timestamp() - (hours * 3600)
-    in_window = [r for r in rows if r.created_at and r.created_at.timestamp() >= cutoff]
+    now_utc = _as_utc(now)
+    cutoff = (now_utc.timestamp() if now_utc else 0.0) - (hours * 3600)
+    in_window = [r for r in rows if r.created_at and _as_utc(r.created_at).timestamp() >= cutoff]
     total = len(in_window)
     breached = sum(1 for r in in_window if _is_sla_breached(r, now))
     escalated = sum(1 for r in in_window if bool(getattr(r, "escalation_flag", False)))
@@ -167,10 +181,13 @@ def _window_metrics(rows: list[HandoffRequest], now: datetime, hours: int) -> Ha
     first_response_mins = []
     resolution_mins = []
     for r in in_window:
-        if r.first_responded_at and r.first_responded_at >= r.created_at:
-            first_response_mins.append((r.first_responded_at - r.created_at).total_seconds() / 60.0)
-        if r.resolved_at and r.resolved_at >= r.created_at:
-            resolution_mins.append((r.resolved_at - r.created_at).total_seconds() / 60.0)
+        created_at = _as_utc(r.created_at)
+        first_responded_at = _as_utc(r.first_responded_at)
+        resolved_at = _as_utc(r.resolved_at)
+        if created_at and first_responded_at and first_responded_at >= created_at:
+            first_response_mins.append((first_responded_at - created_at).total_seconds() / 60.0)
+        if created_at and resolved_at and resolved_at >= created_at:
+            resolution_mins.append((resolved_at - created_at).total_seconds() / 60.0)
 
     avg_first = round(sum(first_response_mins) / len(first_response_mins), 2) if first_response_mins else None
     avg_resolution = round(sum(resolution_mins) / len(resolution_mins), 2) if resolution_mins else None
@@ -307,7 +324,7 @@ def list_handoffs(
     if priority:
         stmt = stmt.where(HandoffRequest.priority == priority)
     if breached_only:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         first_response_breach = and_(
             HandoffRequest.first_response_due_at.is_not(None),
             HandoffRequest.first_response_due_at < now,
@@ -338,7 +355,7 @@ def handoff_metrics(
     current_user: User = Depends(get_current_user),
 ):
     require_scope(current_user, "handoff:read")
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     rows = (
         db.execute(
@@ -403,7 +420,7 @@ def run_escalation_sweep(
     require_scope(current_user, "handoff:write")
     _require_admin_or_owner(current_user)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     rows = (
         db.execute(
             select(HandoffRequest).where(
@@ -501,7 +518,7 @@ def patch_handoff(
 
     _assert_handoff_operator(row, current_user)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     allowed_status = {"new", "open", "pending_customer", "resolved", "closed"}
     allowed_priority = {"low", "normal", "high", "urgent"}
 
@@ -534,7 +551,7 @@ def patch_handoff(
             raise HTTPException(status_code=422, detail=f"Invalid priority. Allowed: {sorted(allowed_priority)}")
         row.priority = priority
 
-    row.updated_at = datetime.utcnow()
+    row.updated_at = datetime.now(timezone.utc)
     if payload.resolution_note is not None:
         row.resolution_note = payload.resolution_note
     if payload.internal_note_append is not None:
@@ -629,7 +646,7 @@ def add_handoff_note(
         content=text,
     )
     row.internal_notes = _append_internal_note(row.internal_notes, text, current_user.id)
-    row.updated_at = datetime.utcnow()
+    row.updated_at = datetime.now(timezone.utc)
     db.add(row)
     db.add(note)
     db.commit()
@@ -662,7 +679,7 @@ def claim_handoff(
     if requested_assignee and requested_assignee != current_user.id and not _is_admin(current_user):
         raise HTTPException(status_code=403, detail="Only admin can assign handoff to another user")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     row.assigned_to_user_id = requested_assignee or current_user.id
     if row.status == "new":
         row.status = "open"
@@ -719,7 +736,7 @@ def handoff_agent_reply(
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     append_message(
         db,
         conversation_id=conv.id,
@@ -769,7 +786,7 @@ def handoff_ai_toggle(
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     conv.ai_paused = bool(payload.ai_paused)
     conv.ai_paused_at = now if conv.ai_paused else None
     conv.ai_paused_by_user_id = current_user.id if conv.ai_paused else None
@@ -781,3 +798,4 @@ def handoff_ai_toggle(
     db.commit()
     db.refresh(row)
     return _to_out(row)
+

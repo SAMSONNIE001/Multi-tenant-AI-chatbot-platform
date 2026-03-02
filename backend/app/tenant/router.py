@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from sqlalchemy import desc, func, select
@@ -114,7 +114,7 @@ def tenant_onboard(
 
     raw_key = generate_bot_key()
     bot = TenantBotCredential(
-        id=f"bot_{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}",
+        id=f"bot_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}",
         tenant_id=tenant_id,
         name=payload.bot_name,
         avatar_url=(payload.company_avatar_url.strip() if payload.company_avatar_url else None),
@@ -195,7 +195,7 @@ def tenant_create_bot(
     raw_key = generate_bot_key()
     tenant = db.get(Tenant, current_user.tenant_id)
     bot = TenantBotCredential(
-        id=f"bot_{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}",
+        id=f"bot_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}",
         tenant_id=current_user.tenant_id,
         name=name,
         avatar_url=(
@@ -271,7 +271,7 @@ def tenant_rotate_bot_key(
 
     raw_key = generate_bot_key()
     bot.key_hash = hash_bot_key(raw_key)
-    bot.rotated_at = datetime.utcnow()
+    bot.rotated_at = datetime.now(timezone.utc)
     db.add(bot)
     db.commit()
     db.refresh(bot)
@@ -470,3 +470,5 @@ def tenant_patch_profile(
         "avatar_url": tenant.avatar_url,
         "compliance_level": tenant.compliance_level,
     }
+
+

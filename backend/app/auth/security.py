@@ -1,6 +1,6 @@
 import secrets
 from hashlib import sha256
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
 from jose import JWTError, jwt
@@ -40,12 +40,12 @@ def verify_password(password: str, password_hash: str) -> bool:
 def create_access_token(payload: Dict[str, Any]) -> str:
     to_encode = dict(payload)
     to_encode["typ"] = "access"
-    to_encode["exp"] = datetime.utcnow() + timedelta(minutes=JWT_ACCESS_EXP_MINUTES)
+    to_encode["exp"] = datetime.now(timezone.utc) + timedelta(minutes=JWT_ACCESS_EXP_MINUTES)
     return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALG)
 
 
 def create_refresh_token(payload: Dict[str, Any]) -> tuple[str, datetime]:
-    expires_at = datetime.utcnow() + timedelta(days=JWT_REFRESH_EXP_DAYS)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=JWT_REFRESH_EXP_DAYS)
     to_encode = dict(payload)
     to_encode["typ"] = "refresh"
     to_encode["jti"] = secrets.token_urlsafe(24)
@@ -71,3 +71,4 @@ __all__ = [
     "hash_token",
     "verify_password",
 ]
+

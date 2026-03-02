@@ -1,7 +1,7 @@
 import csv
 import io
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -335,8 +335,8 @@ def purge_retention(
     audit_days = int(retention.get("audit_days", 90))
     messages_days = int(retention.get("messages_days", 30))
 
-    audit_cutoff = datetime.utcnow() - timedelta(days=audit_days)
-    msg_cutoff = datetime.utcnow() - timedelta(days=messages_days)
+    audit_cutoff = datetime.now(timezone.utc) - timedelta(days=audit_days)
+    msg_cutoff = datetime.now(timezone.utc) - timedelta(days=messages_days)
 
     audit_deleted = db.execute(
         delete(ChatAuditLog).where(
@@ -475,7 +475,7 @@ def create_ops_audit_log(
         action_type=payload.action_type.strip().lower(),
         reason=payload.reason.strip(),
         metadata_json=payload.metadata_json or {},
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     db.add(row)
     db.commit()
@@ -494,7 +494,7 @@ def list_ops_audit_logs(
 ):
     require_scope(current_user, "audit:read")
 
-    since = datetime.utcnow() - timedelta(hours=since_hours)
+    since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
     stmt = select(OpsAuditLog).where(
         OpsAuditLog.tenant_id == current_user.tenant_id,
         OpsAuditLog.created_at >= since,
@@ -524,7 +524,7 @@ def list_audit_logs(
 ):
     require_scope(current_user, "audit:read")
 
-    since = datetime.utcnow() - timedelta(hours=since_hours)
+    since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
 
     base_filter = [
         ChatAuditLog.tenant_id == current_user.tenant_id,
@@ -618,7 +618,7 @@ def export_audit_csv(
 ):
     require_scope(current_user, "audit:read")
 
-    since = datetime.utcnow() - timedelta(hours=since_hours)
+    since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
 
     base_filter = [
         ChatAuditLog.tenant_id == current_user.tenant_id,
@@ -715,7 +715,7 @@ def put_usage_limits(
     limits = get_or_create_tenant_limit(db, current_user.tenant_id)
     limits.daily_request_limit = int(payload.daily_request_limit)
     limits.monthly_token_limit = int(payload.monthly_token_limit)
-    limits.updated_at = datetime.utcnow()
+    limits.updated_at = datetime.now(timezone.utc)
     db.add(limits)
     db.commit()
     db.refresh(limits)
@@ -744,3 +744,4 @@ def get_usage_summary(
         "tenant_id": current_user.tenant_id,
         "summary": summary,
     }
+
