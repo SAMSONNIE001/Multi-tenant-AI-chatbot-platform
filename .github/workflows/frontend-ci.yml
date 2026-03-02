@@ -1,0 +1,41 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: HTML sanity + guardrails
+        run: |
+          python frontend/scripts/check_frontend.py
+
+      - name: JS syntax check
+        run: |
+          node --check frontend/chat-widget.js
