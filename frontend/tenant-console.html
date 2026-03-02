@@ -321,10 +321,20 @@
         </div>
         <button id="saveToken" class="alt">Save Token</button>
         <button id="clearToken" class="alt">Clear Token</button>
+        <button id="btnRunPreflight" class="alt">Run Preflight Checks</button>
         <button id="btnRunStagingQaPack" class="alt">Run Staging QA Pack</button>
+        <div id="outPreflight" class="out"></div>
         <div class="small" style="margin-top:8px;">
           Token is stored in browser localStorage for this page only.
         </div>
+      </section>
+
+      <section class="card">
+        <h2>Release Snapshot</h2>
+        <div class="small">Current release posture for this API base and operator session.</div>
+        <button id="btnRefreshSnapshot" class="alt" style="margin-top:10px;">Refresh Snapshot</button>
+        <div id="snapshotGrid" class="kpi-grid" style="display:none;"></div>
+        <div id="outSnapshot" class="out"></div>
       </section>
 
       <section class="card">
@@ -703,6 +713,9 @@
     let lastQueueItems = [];
     let lastProfiles = [];
     let lastSweepRun = null;
+    let lastMergeRun = null;
+    let lastPreflight = null;
+    let lastAuditRefreshAt = null;
 
     function pretty(v) {
       try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
@@ -719,6 +732,42 @@
 
     function nowIso() {
       return new Date().toISOString();
+    }
+
+    function preflightAgeMin() {
+      if (!lastPreflight || !lastPreflight.at) return null;
+      const ms = Date.now() - new Date(lastPreflight.at).getTime();
+      if (!Number.isFinite(ms)) return null;
+      return Math.floor(ms / 60000);
+    }
+
+    function renderReleaseSnapshot() {
+      const grid = $("snapshotGrid");
+      const out = $("outSnapshot");
+      const mode = isProdApiBase() ? "production" : "staging_or_local";
+      const pfAge = preflightAgeMin();
+      const cards = [
+        ["Mode", mode],
+        ["API Base", getApiBase()],
+        ["Preflight", lastPreflight ? (lastPreflight.critical_pass ? "pass" : "fail") : "not run"],
+        ["Preflight Age (min)", pfAge == null ? "-" : pfAge],
+        ["Last Sweep", lastSweepRun ? shortDate(lastSweepRun.at) : "never"],
+        ["Last Merge", lastMergeRun ? shortDate(lastMergeRun.at) : "never"],
+        ["Ops Audit Refresh", lastAuditRefreshAt ? shortDate(lastAuditRefreshAt) : "never"],
+        ["Build", "customer-profiles + escalation-ops (2026-03-01)"],
+      ];
+      grid.style.display = "grid";
+      grid.innerHTML = cards
+        .map(([k, v]) => `<div class="kpi"><div class="k">${esc(k)}</div><div class="v" style="font-size:13px;">${esc(v)}</div></div>`)
+        .join("");
+      out.textContent = pretty({
+        mode,
+        api_base: getApiBase(),
+        last_preflight: lastPreflight,
+        last_sweep: lastSweepRun || null,
+        last_merge: lastMergeRun || null,
+        last_ops_audit_refresh: lastAuditRefreshAt,
+      });
     }
 
     function safeJwtField(index) {
@@ -771,7 +820,9 @@
       const out = $("outOpsAudit");
       try {
         const data = await request("/api/v1/admin/ops/audit?limit=50&offset=0");
+        lastAuditRefreshAt = nowIso();
         out.textContent = pretty({ source: "backend", count: data.count, items: data.entries || [] });
+        renderReleaseSnapshot();
         return;
       } catch (_) {
         // Fallback to local cache.
@@ -780,7 +831,9 @@
         const raw = localStorage.getItem("tenant_console_ops_audit");
         const parsed = JSON.parse(raw || "[]");
         const list = Array.isArray(parsed) ? parsed : [];
+        lastAuditRefreshAt = nowIso();
         out.textContent = pretty({ source: "local_fallback", count: list.length, items: list.slice(0, 25) });
+        renderReleaseSnapshot();
       } catch (e) {
         out.textContent = String(e);
       }
@@ -804,6 +857,15 @@
       return reason;
     }
 
+    function ensurePreflightForDestructive(actionLabel) {
+      const age = preflightAgeMin();
+      const fresh = age != null && age <= 30;
+      const sameBase = !!(lastPreflight && lastPreflight.api_base === getApiBase());
+      if (!lastPreflight || !sameBase || !fresh || !lastPreflight.critical_pass) {
+        throw new Error(`Run Preflight Checks successfully (same API base, <=30min old) before: ${actionLabel}.`);
+      }
+    }
+
     function getToken() {
       return $("accessToken").value.trim();
     }
@@ -822,6 +884,90 @@
       try { data = JSON.parse(text); } catch (_) {}
       if (!res.ok) throw new Error(`${res.status} ${pretty(data)}`);
       return data;
+    }
+
+    async function runPreflightChecks(silent = false) {
+      const out = $("outPreflight");
+      if (!silent) out.textContent = "Running preflight checks...";
+      const checks = [];
+      const apiBase = getApiBase();
+      const mode = isProdApiBase() ? "production" : "staging_or_local";
+
+      const tokenPresent = !!getToken().trim();
+      checks.push({
+        name: "token_present",
+        critical: true,
+        ok: tokenPresent,
+        detail: tokenPresent ? "access token set" : "missing access token",
+      });
+
+      try {
+        const res = await fetch(`${apiBase}/health`);
+        checks.push({
+          name: "health",
+          critical: true,
+          ok: res.ok,
+          detail: `${res.status}`,
+        });
+      } catch (e) {
+        checks.push({
+          name: "health",
+          critical: true,
+          ok: false,
+          detail: String(e),
+        });
+      }
+
+      try {
+        await request("/api/v1/admin/handoff/metrics");
+        checks.push({ name: "handoff_metrics", critical: true, ok: true, detail: "ok" });
+      } catch (e) {
+        checks.push({ name: "handoff_metrics", critical: true, ok: false, detail: String(e) });
+      }
+
+      try {
+        await request("/api/v1/admin/channels/profiles?limit=5");
+        checks.push({ name: "profiles_endpoint", critical: true, ok: true, detail: "ok" });
+      } catch (e) {
+        checks.push({ name: "profiles_endpoint", critical: true, ok: false, detail: String(e) });
+      }
+
+      try {
+        await request("/api/v1/admin/ops/audit?limit=1&offset=0");
+        checks.push({ name: "ops_audit_endpoint", critical: true, ok: true, detail: "ok" });
+      } catch (e) {
+        checks.push({ name: "ops_audit_endpoint", critical: true, ok: false, detail: String(e) });
+      }
+
+      try {
+        const accounts = await request("/api/v1/admin/channels/accounts");
+        const hasSeedAccount = (Array.isArray(accounts) ? accounts : []).some((a) =>
+          ["messenger", "facebook", "instagram"].includes(String(a.channel_type || "").toLowerCase()) &&
+          (a.page_id || a.instagram_account_id)
+        );
+        checks.push({
+          name: "seed_channel_account",
+          critical: false,
+          ok: hasSeedAccount,
+          detail: hasSeedAccount ? "found page/instagram account" : "missing social channel account for seed flow",
+        });
+      } catch (e) {
+        checks.push({ name: "seed_channel_account", critical: false, ok: false, detail: String(e) });
+      }
+
+      const criticalPass = checks.filter((c) => c.critical).every((c) => c.ok);
+      const pass = checks.every((c) => c.ok);
+      lastPreflight = {
+        at: nowIso(),
+        api_base: apiBase,
+        mode,
+        critical_pass: criticalPass,
+        pass,
+        checks,
+      };
+      if (!silent) out.textContent = pretty(lastPreflight);
+      renderReleaseSnapshot();
+      return lastPreflight;
     }
 
     function parseOrigins(s) {
@@ -1029,6 +1175,7 @@
         if (el) el.disabled = isProd;
       }
       $("qaEnvBanner").style.display = isProd ? "block" : "none";
+      renderReleaseSnapshot();
     }
 
     function renderProductivityMetrics(data) {
@@ -1364,6 +1511,7 @@
       const out = $("outProfilesMerge");
       out.textContent = "Merging profiles...";
       try {
+        ensurePreflightForDestructive("Merge customer profiles");
         const source = $("cpSourceId").value.trim();
         const target = $("cpTargetId").value.trim();
         if (!source || !target) throw new Error("Provide both source and target profile IDs.");
@@ -1383,8 +1531,10 @@
           result: data,
         });
         out.textContent = pretty(data);
+        lastMergeRun = { at: nowIso(), result: data };
         await loadProfiles();
         await loadOpsAudit();
+        renderReleaseSnapshot();
         return data;
       } catch (e) {
         out.textContent = String(e);
@@ -1411,6 +1561,7 @@
       const out = $("outEscalationOps");
       out.textContent = "Running escalation sweep...";
       try {
+        ensurePreflightForDestructive("Run escalation sweep");
         const reason = requireReasonAndConfirm($("escSweepReason").value, "Run escalation sweep");
         const data = await request("/api/v1/admin/handoff/escalation/sweep", { method: "POST" });
         lastSweepRun = {
@@ -1429,6 +1580,7 @@
         const metrics = await loadEscalationMetrics();
         renderOpsMonitorGrid(metrics, lastQueueItems);
         await loadOpsAudit();
+        renderReleaseSnapshot();
         return data;
       } catch (e) {
         out.textContent = String(e);
@@ -1520,6 +1672,10 @@
             throw new Error("Missing staging API base.");
           }
           switchApiBase(staging);
+        }
+        const pf = await runPreflightChecks(true);
+        if (!pf.critical_pass) {
+          throw new Error("Preflight critical checks failed. Run Preflight Checks and resolve failing items.");
         }
         await seedProfileActivity();
         await loadProfiles();
@@ -2024,6 +2180,8 @@
     $("btnQaSweepFlow").onclick = () => runQaSweepFlow();
     $("btnLoadOpsMonitor").onclick = () => loadOpsMonitor();
     $("btnLoadOpsAudit").onclick = () => loadOpsAudit();
+    $("btnRunPreflight").onclick = () => runPreflightChecks(false);
+    $("btnRefreshSnapshot").onclick = () => renderReleaseSnapshot();
     $("btnEnvProd").onclick = () => switchApiBase("https://api.staunchbot.com");
     $("btnEnvStaging").onclick = () => switchApiBase($("stagingApiBase").value.trim());
     $("btnEnvLocal").onclick = () => switchApiBase("http://localhost:8000");
@@ -2044,6 +2202,8 @@
       if (!$("cpMergeReason").value.trim()) $("cpMergeReason").value = "dedupe duplicate customer identities";
       applyQaAvailability();
       loadOpsAudit();
+      runPreflightChecks(true).catch(() => {});
+      renderReleaseSnapshot();
       setQueueAutoRefresh();
     })();
   </script>
