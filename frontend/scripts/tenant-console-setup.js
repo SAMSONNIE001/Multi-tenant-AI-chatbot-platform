@@ -170,28 +170,6 @@
     $("hfSort").onchange = () => {
       if ($("queueTableWrap").style.display !== "none") loadHandoffQueue(true);
     };
-    $("btnQuickOpenNew").onclick = () => {
-      $("hfStatus").value = "new_open";
-      $("hfEscalatedOnly").value = "false";
-      $("hfBreachedOnly").value = "false";
-      $("hfSort").value = "urgent_escalated";
-      loadHandoffQueue(false);
-    };
-    $("btnQuickEscalated").onclick = () => {
-      $("hfEscalatedOnly").value = "true";
-      $("hfStatus").value = "new_open";
-      $("hfSort").value = "urgent_escalated";
-      loadHandoffQueue(false);
-    };
-    $("btnQuickResetQueue").onclick = () => {
-      $("hfStatus").value = "";
-      $("hfAssignedTo").value = "";
-      $("hfPriorityFilter").value = "";
-      $("hfBreachedOnly").value = "false";
-      $("hfEscalatedOnly").value = "false";
-      $("hfSort").value = "urgent_escalated";
-      loadHandoffQueue(false);
-    };
 
     $("btnHandoffPatch").onclick = async () => {
       const out = $("outHandoffPatch");
@@ -281,39 +259,6 @@
       out.textContent = "Reviewing...";
       try {
         const data = await fetchReplyReview("none");
-        renderReplyReview(data);
-      } catch (e) {
-        out.textContent = String(e);
-      }
-    };
-    $("btnRewriteShorter").onclick = async () => {
-      const out = $("outReplyReview");
-      out.textContent = "Rewriting (shorter)...";
-      try {
-        const data = await fetchReplyReview("shorter");
-        $("hfAgentReply").value = data.improved_draft || $("hfAgentReply").value;
-        renderReplyReview(data);
-      } catch (e) {
-        out.textContent = String(e);
-      }
-    };
-    $("btnRewriteFriendlier").onclick = async () => {
-      const out = $("outReplyReview");
-      out.textContent = "Rewriting (friendlier)...";
-      try {
-        const data = await fetchReplyReview("friendlier");
-        $("hfAgentReply").value = data.improved_draft || $("hfAgentReply").value;
-        renderReplyReview(data);
-      } catch (e) {
-        out.textContent = String(e);
-      }
-    };
-    $("btnRewriteFormal").onclick = async () => {
-      const out = $("outReplyReview");
-      out.textContent = "Rewriting (formal)...";
-      try {
-        const data = await fetchReplyReview("formal");
-        $("hfAgentReply").value = data.improved_draft || $("hfAgentReply").value;
         renderReplyReview(data);
       } catch (e) {
         out.textContent = String(e);
@@ -413,10 +358,8 @@
       try { await runEscalationSweep(); } catch (_) {}
     };
     $("btnQaSweepFlow").onclick = () => runQaSweepFlow();
-    $("btnLoadOpsMonitor").onclick = () => loadOpsMonitor();
     $("btnLoadOpsAudit").onclick = () => loadOpsAudit();
     $("btnRunPreflight").onclick = () => runPreflightChecks(false);
-    $("btnRefreshSnapshot").onclick = () => renderReleaseSnapshot();
     $("btnEnvProd").onclick = () => switchApiBase("https://api.staunchbot.com");
     $("btnEnvStaging").onclick = () => switchApiBase($("stagingApiBase").value.trim());
     $("btnEnvLocal").onclick = () => switchApiBase("http://localhost:8000");

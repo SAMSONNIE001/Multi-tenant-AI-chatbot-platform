@@ -418,7 +418,6 @@
       <section class="card" data-pane="qa">
         <h2>Release Snapshot</h2>
         <div class="small">Current release posture for this API base and operator session.</div>
-        <button id="btnRefreshSnapshot" class="alt" style="margin-top:10px;">Refresh Snapshot</button>
         <div id="snapshotGrid" class="kpi-grid" style="display:none;"></div>
         <div id="outSnapshot" class="out"></div>
       </section>
@@ -500,11 +499,6 @@
             <option value="resolved">resolved</option>
             <option value="closed">closed</option>
           </select>
-        </div>
-        <div class="inline">
-          <button id="btnQuickOpenNew" class="alt">Quick: Open/New</button>
-          <button id="btnQuickEscalated" class="alt">Quick: Escalated</button>
-          <button id="btnQuickResetQueue" class="alt">Quick: Reset</button>
         </div>
         <div class="row">
           <label>Assigned To Filter (user id)</label>
@@ -628,9 +622,6 @@
         </div>
         <div class="inline">
           <button id="btnReviewReply" class="alt">Review</button>
-          <button id="btnRewriteShorter" class="alt">Shorter</button>
-          <button id="btnRewriteFriendlier" class="alt">Friendlier</button>
-          <button id="btnRewriteFormal" class="alt">Formal</button>
         </div>
         <div class="row">
           <label><input id="hfSendOverride" type="checkbox" style="width:auto; margin-right:6px;" />Send anyway if high-risk flagged</label>
@@ -759,7 +750,7 @@
           <div class="row" style="margin-top:10px;">
             <label>Ops Monitoring</label>
             <div class="inline">
-              <button id="btnLoadOpsMonitor" class="alt">Load Ops Monitor</button>
+              <div class="small">Ops monitor refreshes automatically after sweep/metrics actions.</div>
             </div>
           </div>
           <div id="opsMonitorGrid" class="kpi-grid" style="display:none;"></div>
