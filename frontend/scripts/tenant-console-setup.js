@@ -45,7 +45,8 @@
       setToken("");
     };
 
-    $("btnOnboard").onclick = async () => {
+    const btnOnboard = $("btnOnboard");
+    if (btnOnboard) btnOnboard.onclick = async () => {
       const out = $("outOnboard");
       out.textContent = "Running...";
       try {
@@ -99,7 +100,8 @@
       }
     };
 
-    $("btnBots").onclick = async () => {
+    const btnBots = $("btnBots");
+    if (btnBots) btnBots.onclick = async () => {
       const out = $("outBots");
       out.textContent = "Loading...";
       try {
@@ -113,7 +115,8 @@
       }
     };
 
-    $("btnSnippet").onclick = async () => {
+    const btnSnippet = $("btnSnippet");
+    if (btnSnippet) btnSnippet.onclick = async () => {
       const out = $("outSnippet");
       out.textContent = "Loading...";
       try {
@@ -126,7 +129,8 @@
       }
     };
 
-    $("btnUpload").onclick = async () => {
+    const btnUpload = $("btnUpload");
+    if (btnUpload) btnUpload.onclick = async () => {
       const out = $("outUpload");
       out.textContent = "Uploading...";
       try {
@@ -145,7 +149,8 @@
       }
     };
 
-    $("btnStatus").onclick = async () => {
+    const btnStatus = $("btnStatus");
+    if (btnStatus) btnStatus.onclick = async () => {
       const out = $("outStatus");
       out.textContent = "Checking...";
       try {
@@ -156,7 +161,8 @@
       }
     };
 
-    $("btnReindex").onclick = async () => {
+    const btnReindex = $("btnReindex");
+    if (btnReindex) btnReindex.onclick = async () => {
       const out = $("outStatus");
       out.textContent = "Reindexing...";
       try {

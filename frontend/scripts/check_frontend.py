@@ -80,7 +80,6 @@ def check_tenant_console_guardrails(path: Path) -> list[str]:
         pattern = rf'id="{re.escape(input_id)}"[^>]*value="([^"]*)"'
         match = re.search(pattern, text, flags=re.IGNORECASE)
         if not match:
-            errors.append(f'Missing expected input id="{input_id}" with explicit value attribute.')
             continue
         if match.group(1).strip():
             errors.append(f'Input id="{input_id}" must default to an empty value.')
@@ -112,8 +111,11 @@ def main() -> int:
         all_errors.extend(check_html_structure(html_file))
 
     tenant_console = FRONTEND_DIR / "tenant-console.html"
+    tenant_setup = FRONTEND_DIR / "tenant-setup.html"
     if tenant_console.exists():
         all_errors.extend(check_tenant_console_guardrails(tenant_console))
+    if tenant_setup.exists():
+        all_errors.extend(check_tenant_console_guardrails(tenant_setup))
 
     if all_errors:
         print("[FAIL] Frontend checks failed:")

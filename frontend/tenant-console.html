@@ -437,17 +437,6 @@
         </ol>
       </section>
 
-      <section class="card" data-pane="setup">
-        <h2>Tenant Onboard</h2>
-        <div class="row"><label>Tenant Name</label><input id="obTenantName" value="Demo Tenant Console" /></div>
-        <div class="row"><label>Admin Email</label><input id="obAdminEmail" value="admin-console@demo.com" /></div>
-        <div class="row"><label>Admin Password</label><input id="obAdminPassword" value="" placeholder="Enter a strong admin password" /></div>
-        <div class="row"><label>Bot Name</label><input id="obBotName" value="Main Website Bot" /></div>
-        <div class="row"><label>Allowed Origins (comma-separated)</label><input id="obAllowedOrigins" value="https://www.staunchbot.com,https://staunchbot.com" /></div>
-        <button id="btnOnboard">Run Onboard</button>
-        <div id="outOnboard" class="out"></div>
-      </section>
-
       <section class="card" data-pane="setup daily qa">
         <h2>Tenant Login</h2>
         <div class="row"><label>Email</label><input id="lgEmail" value="" placeholder="admin@example.com" /></div>
@@ -458,35 +447,6 @@
         </div>
         <button id="btnLogin">Login</button>
         <div id="outLogin" class="out"></div>
-      </section>
-
-      <section class="card" data-pane="setup">
-        <h2>Bots</h2>
-        <button id="btnBots">Load Bots</button>
-        <div id="outBots" class="out"></div>
-        <div class="row" style="margin-top:10px;">
-          <label>Bot ID for snippet</label>
-          <input id="botId" placeholder="bot_..." />
-        </div>
-        <button id="btnSnippet" class="alt">Get Embed Snippet</button>
-        <div id="outSnippet" class="out"></div>
-      </section>
-
-      <section class="card" data-pane="setup">
-        <h2>Knowledge Upload + Reindex</h2>
-        <div class="row">
-          <label>Upload file (.txt, .md, .json, .pdf, .docx)</label>
-          <input id="kgFile" type="file" />
-        </div>
-        <button id="btnUpload">Upload</button>
-        <button id="btnStatus" class="alt">Check Status</button>
-        <div id="outUpload" class="out"></div>
-        <div class="row" style="margin-top:10px;">
-          <label>Document ID to reindex</label>
-          <input id="kgDocId" placeholder="d_..." />
-        </div>
-        <button id="btnReindex" class="alt">Reindex</button>
-        <div id="outStatus" class="out"></div>
       </section>
 
       <section class="card" data-pane="daily">
