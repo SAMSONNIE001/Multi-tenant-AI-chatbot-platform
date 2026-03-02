@@ -6,8 +6,8 @@
 - Keep HSTS at the edge (`Strict-Transport-Security`).
 
 ## App Server
-- Docker image runs Gunicorn + Uvicorn workers by default.
-- Control workers via `GUNICORN_WORKERS`.
+- Docker image currently runs Uvicorn directly after `alembic upgrade head`.
+- If you switch to Gunicorn later, then `GUNICORN_WORKERS` applies.
 
 ## Health Probes
 - Liveness: `GET /health`

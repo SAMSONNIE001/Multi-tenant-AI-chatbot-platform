@@ -304,7 +304,7 @@
         <h2>API + Session</h2>
         <div class="row">
           <label for="apiBase">API Base</label>
-          <input id="apiBase" value="https://api.staunchbot.com" />
+          <input id="apiBase" value="http://localhost:8000" />
         </div>
         <div class="inline">
           <button id="btnEnvProd" class="alt">Use Prod</button>
@@ -341,7 +341,7 @@
         <h2>Tenant Onboard</h2>
         <div class="row"><label>Tenant Name</label><input id="obTenantName" value="Demo Tenant Console" /></div>
         <div class="row"><label>Admin Email</label><input id="obAdminEmail" value="admin-console@demo.com" /></div>
-        <div class="row"><label>Admin Password</label><input id="obAdminPassword" value="StrongPass123!" /></div>
+        <div class="row"><label>Admin Password</label><input id="obAdminPassword" value="" placeholder="Enter a strong admin password" /></div>
         <div class="row"><label>Bot Name</label><input id="obBotName" value="Main Website Bot" /></div>
         <div class="row"><label>Allowed Origins (comma-separated)</label><input id="obAllowedOrigins" value="https://www.staunchbot.com,https://staunchbot.com" /></div>
         <button id="btnOnboard">Run Onboard</button>
@@ -351,8 +351,8 @@
       <section class="card">
         <h2>Tenant Login</h2>
         <div class="row"><label>Tenant ID</label><input id="lgTenantId" value="t_demo_3" /></div>
-        <div class="row"><label>Email</label><input id="lgEmail" value="admin3@demo.com" /></div>
-        <div class="row"><label>Password</label><input id="lgPassword" value="Abc12345!" /></div>
+        <div class="row"><label>Email</label><input id="lgEmail" value="" placeholder="admin@example.com" /></div>
+        <div class="row"><label>Password</label><input id="lgPassword" value="" placeholder="Enter password" /></div>
         <button id="btnLogin">Login</button>
         <div id="outLogin" class="out"></div>
       </section>
