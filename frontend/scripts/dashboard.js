@@ -32,7 +32,7 @@ function setApiBase(url) {
   const v = String(url || "").trim();
   if (!v) return;
   $("apiBase").value = v;
-  localStorage.setItem("dashboard_api_base", v);
+  localStorage.setItem("tenant_console_api_base", v);
 }
 
 function renderWhoamiLine(me) {
@@ -125,12 +125,12 @@ $("btnEnvProd").onclick = () => setApiBase("https://api.staunchbot.com");
 $("btnEnvStaging").onclick = () => setApiBase($("stagingApiBase").value.trim());
 $("btnEnvLocal").onclick = () => setApiBase("http://localhost:8000");
 $("saveToken").onclick = () => {
-  localStorage.setItem("dashboard_token", $("accessToken").value);
-  localStorage.setItem("dashboard_api_base", $("apiBase").value);
-  localStorage.setItem("dashboard_staging_api_base", $("stagingApiBase").value);
+  localStorage.setItem("tenant_console_token", $("accessToken").value);
+  localStorage.setItem("tenant_console_api_base", $("apiBase").value);
+  localStorage.setItem("tenant_console_staging_api_base", $("stagingApiBase").value);
 };
 $("clearToken").onclick = () => {
-  localStorage.removeItem("dashboard_token");
+  localStorage.removeItem("tenant_console_token");
   setToken("");
   renderWhoamiLine(null);
   $("outSnapshot").textContent = "Signed out. Login to load tenant snapshot.";
@@ -146,7 +146,7 @@ if (navSetup) navSetup.classList.remove("active");
 const btnNavSignOut = $("btnNavSignOut");
 if (btnNavSignOut) {
   btnNavSignOut.onclick = () => {
-    localStorage.removeItem("dashboard_token");
+    localStorage.removeItem("tenant_console_token");
     setToken("");
     renderWhoamiLine(null);
     $("outLogin").textContent = "Signed out.";
@@ -157,9 +157,9 @@ if (btnNavSignOut) {
 }
 
 (function bootstrap() {
-  const savedToken = localStorage.getItem("dashboard_token");
-  const savedBase = localStorage.getItem("dashboard_api_base");
-  const savedStaging = localStorage.getItem("dashboard_staging_api_base");
+  const savedToken = localStorage.getItem("tenant_console_token");
+  const savedBase = localStorage.getItem("tenant_console_api_base");
+  const savedStaging = localStorage.getItem("tenant_console_staging_api_base");
   if (savedToken) setToken(savedToken);
   if (savedBase) $("apiBase").value = savedBase;
   if (savedStaging) $("stagingApiBase").value = savedStaging;
