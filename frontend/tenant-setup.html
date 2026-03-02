@@ -427,11 +427,11 @@
       </div>
     </div>
     <div class="header">
-      <h1>StaunchBot Setup Console</h1>
-      <p>Setup/Admin workflows. For daily operations use tenant-console.</p>
+      <h1>Setup And Administration Console</h1>
+      <p>Configure tenant access, bot settings, and knowledge controls.</p>
       <p class="small">Build: customer-profiles + escalation-ops (2026-03-01)</p>
       <p class="small"><a href="./tenant-console.html">Open Daily Ops Console</a></p>
-      <p class="small" id="currentUserBadge">Current User: not authenticated</p>
+      <p class="small">Use Daily Ops for queue handling and Release for promotion checks.</p>
     </div>
 
     <div class="console-toolbar">
@@ -442,7 +442,7 @@
       </div>
       <div class="inline" style="align-items:center;">
         <div class="row" style="margin:0; min-width:140px;">
-          <label for="roleMode">Role Mode</label>
+          <label for="roleMode">View Mode</label>
           <select id="roleMode">
             <option value="operator">Operator</option>
             <option value="admin">Admin</option>
@@ -457,7 +457,7 @@
 
     <div class="grid">
       <section class="card" data-pane="setup qa">
-        <h2>API + Session</h2>
+        <h2>Connection + Session</h2>
         <div class="row">
           <label for="apiBase">API Base</label>
           <input id="apiBase" value="http://localhost:8000" />
@@ -486,15 +486,15 @@
       </section>
 
       <section class="card" data-pane="qa">
-        <h2>Release Snapshot</h2>
-        <div class="small">Current release posture for this API base and operator session.</div>
+        <h2>Release Status</h2>
+        <div class="small">Current release posture for this API base and active session.</div>
         <div id="snapshotGrid" class="kpi-grid" style="display:none;"></div>
         <div id="outSnapshot" class="out"></div>
       </section>
 
       <section class="card workflow-card" data-pane="qa">
         <h2>Staging QA Checklist</h2>
-        <div class="small">Run in order and verify pass badges before promoting.</div>
+        <div class="small">Run in order and verify pass badges before promotion.</div>
         <div class="inline" style="margin-top:10px;">
           <button id="btnRunUatPack" class="alt">Run UAT Pack</button>
         </div>
@@ -508,7 +508,7 @@
       </section>
 
       <section class="card" data-pane="setup">
-        <h2>Tenant Onboard</h2>
+        <h2>Tenant Onboarding</h2>
         <div class="row"><label>Tenant Name</label><input id="obTenantName" value="Demo Tenant Console" /></div>
         <div class="row"><label>Admin Email</label><input id="obAdminEmail" value="admin-console@demo.com" /></div>
         <div class="row"><label>Admin Password</label><input id="obAdminPassword" value="" placeholder="Enter a strong admin password" /></div>
@@ -531,7 +531,7 @@
       </section>
 
       <section class="card" data-pane="setup">
-        <h2>Bots</h2>
+        <h2>Bot Configuration</h2>
         <button id="btnBots">Load Bots</button>
         <div id="outBots" class="out"></div>
         <div class="row" style="margin-top:10px;">
@@ -560,7 +560,7 @@
       </section>
 
       <section class="card" data-pane="daily">
-        <h2>Inbox Queue (Handoff)</h2>
+        <h2>Inbox Queue</h2>
         <div class="row">
           <label>Status Filter</label>
           <select id="hfStatus">
@@ -742,7 +742,7 @@
 
       <section class="card" data-pane="daily qa">
         <h2>Customer Profiles</h2>
-        <div class="small">View linked customer identities across channels and merge duplicates.</div>
+        <div class="small">View linked identities across channels and resolve duplicates.</div>
         <div class="inline" style="margin-top:10px;">
           <div class="row">
             <label>Limit</label>
@@ -804,9 +804,9 @@
       </section>
 
       <section class="card" data-pane="daily qa">
-        <h2>Escalation Ops</h2>
-        <div class="small">Run SLA escalation sweep and inspect escalation KPIs.</div>
-        <div id="qaEnvBanner" class="small warn" style="display:none;margin-top:6px;">QA flow buttons are disabled on production API base.</div>
+        <h2>Escalation Management</h2>
+        <div class="small">Run SLA sweeps and review escalation KPIs.</div>
+        <div id="qaEnvBanner" class="small warn" style="display:none;margin-top:6px;">QA flow actions are disabled on production API base.</div>
         <div class="inline" style="margin-top:10px;">
           <button id="btnEscMetrics">Load Escalation Metrics</button>
         </div>
@@ -837,7 +837,7 @@
       </section>
 
       <section class="card" data-pane="daily">
-        <h2>Productivity Metrics</h2>
+        <h2>Team Productivity Metrics</h2>
         <button id="btnLoadProdMetrics">Load Metrics</button>
         <div id="outProdMetrics" class="out"></div>
         <div id="prodMetricsGrid" class="kpi-grid" style="display:none;"></div>
@@ -875,7 +875,7 @@
     </div>
 
     <p class="small warn" style="margin-top:14px;">
-      Use this console for development/admin flows. For production tenant UX, add proper auth UI, validation, and rate limiting.
+      Advanced actions are admin-gated and should be used only with clear operational intent.
     </p>
   </div>
 
