@@ -289,6 +289,80 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 11px;
     }
+    .console-toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 12px 0 14px;
+    }
+    .tabbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      background: #e2e8f0;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .tab-btn.active {
+      background: #0f766e;
+      border-color: #0f766e;
+      color: #ffffff;
+    }
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #334155;
+      font-weight: 600;
+      background: #fff;
+      border: 1px solid #dbe3ee;
+      padding: 8px 10px;
+      border-radius: 999px;
+    }
+    .toggle input {
+      width: auto;
+      margin: 0;
+    }
+    .workflow-card {
+      border-left: 4px solid #0f766e;
+    }
+    .step-list {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      font-size: 13px;
+      color: #334155;
+    }
+    .badge {
+      display: inline-block;
+      border-radius: 999px;
+      border: 1px solid #dbe3ee;
+      background: #f8fafc;
+      color: #475569;
+      font-size: 11px;
+      padding: 2px 7px;
+      margin-left: 6px;
+    }
+    .badge.pass {
+      background: #ecfdf5;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+    .badge.fail {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+    .advanced-only {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -299,8 +373,20 @@
       <p class="small">Build: customer-profiles + escalation-ops (2026-03-01)</p>
     </div>
 
+    <div class="console-toolbar">
+      <div class="tabbar">
+        <button id="tabDaily" class="tab-btn active" data-tab="daily">Daily Ops</button>
+        <button id="tabQa" class="tab-btn" data-tab="qa">Staging QA</button>
+        <button id="tabSetup" class="tab-btn" data-tab="setup">Setup/Admin</button>
+      </div>
+      <label class="toggle">
+        <input id="toggleAdvanced" type="checkbox" />
+        Show Advanced Actions
+      </label>
+    </div>
+
     <div class="grid">
-      <section class="card">
+      <section class="card" data-pane="setup qa">
         <h2>API + Session</h2>
         <div class="row">
           <label for="apiBase">API Base</label>
@@ -329,7 +415,7 @@
         </div>
       </section>
 
-      <section class="card">
+      <section class="card" data-pane="qa">
         <h2>Release Snapshot</h2>
         <div class="small">Current release posture for this API base and operator session.</div>
         <button id="btnRefreshSnapshot" class="alt" style="margin-top:10px;">Refresh Snapshot</button>
@@ -337,7 +423,18 @@
         <div id="outSnapshot" class="out"></div>
       </section>
 
-      <section class="card">
+      <section class="card workflow-card" data-pane="qa">
+        <h2>Staging QA Checklist</h2>
+        <div class="small">Run in order and verify pass badges before promoting.</div>
+        <ol class="step-list">
+          <li>Run Preflight <span id="qaStepPreflight" class="badge">not run</span></li>
+          <li>Run Staging QA Pack <span id="qaStepPack" class="badge">not run</span></li>
+          <li>Escalation sweep + metrics <span id="qaStepSweep" class="badge">pending</span></li>
+          <li>Profile merge flow <span id="qaStepMerge" class="badge">pending</span></li>
+        </ol>
+      </section>
+
+      <section class="card" data-pane="setup">
         <h2>Tenant Onboard</h2>
         <div class="row"><label>Tenant Name</label><input id="obTenantName" value="Demo Tenant Console" /></div>
         <div class="row"><label>Admin Email</label><input id="obAdminEmail" value="admin-console@demo.com" /></div>
@@ -348,7 +445,7 @@
         <div id="outOnboard" class="out"></div>
       </section>
 
-      <section class="card">
+      <section class="card" data-pane="setup daily qa">
         <h2>Tenant Login</h2>
         <div class="row"><label>Tenant ID</label><input id="lgTenantId" value="t_demo_3" /></div>
         <div class="row"><label>Email</label><input id="lgEmail" value="" placeholder="admin@example.com" /></div>
@@ -357,7 +454,7 @@
         <div id="outLogin" class="out"></div>
       </section>
 
-      <section class="card">
+      <section class="card" data-pane="setup">
         <h2>Bots</h2>
         <button id="btnBots">Load Bots</button>
         <div id="outBots" class="out"></div>
@@ -369,7 +466,7 @@
         <div id="outSnippet" class="out"></div>
       </section>
 
-      <section class="card">
+      <section class="card" data-pane="setup">
         <h2>Knowledge Upload + Reindex</h2>
         <div class="row">
           <label>Upload file (.txt, .md, .json, .pdf, .docx)</label>
@@ -386,7 +483,7 @@
         <div id="outStatus" class="out"></div>
       </section>
 
-      <section class="card">
+      <section class="card" data-pane="daily">
         <h2>Inbox Queue (Handoff)</h2>
         <div class="row">
           <label>Status Filter</label>
@@ -475,6 +572,7 @@
           </table>
         </div>
 
+        <div class="advanced-only">
         <div class="row" style="margin-top:10px;">
           <label>Handoff ID</label>
           <input id="hfId" placeholder="ho_..." />
@@ -571,9 +669,10 @@
         </div>
         <div id="outConversationMeta" class="out"></div>
         <div id="conversationThread" class="thread-box" style="display:none;"></div>
+        </div>
       </section>
 
-      <section class="card">
+      <section class="card" data-pane="daily qa">
         <h2>Customer Profiles</h2>
         <div class="small">View linked customer identities across channels and merge duplicates.</div>
         <div class="inline" style="margin-top:10px;">
@@ -602,6 +701,7 @@
             <tbody id="profilesTableBody"></tbody>
           </table>
         </div>
+        <div class="advanced-only">
         <div class="inline" style="margin-top:10px;">
           <div class="row">
             <label>Source Profile ID</label>
@@ -632,38 +732,43 @@
           <button id="btnSeedProfileData" class="alt">Seed Profile Activity</button>
         </div>
         <div id="outProfileSeed" class="out"></div>
+        </div>
       </section>
 
-      <section class="card">
+      <section class="card" data-pane="daily qa">
         <h2>Escalation Ops</h2>
         <div class="small">Run SLA escalation sweep and inspect escalation KPIs.</div>
         <div id="qaEnvBanner" class="small warn" style="display:none;margin-top:6px;">QA flow buttons are disabled on production API base.</div>
         <div class="inline" style="margin-top:10px;">
           <button id="btnEscMetrics">Load Escalation Metrics</button>
+        </div>
+        <div class="advanced-only">
+          <div class="inline" style="margin-top:8px;">
           <button id="btnEscSweep" class="alt">Run Escalation Sweep</button>
           <button id="btnQaSweepFlow" class="alt">QA Sweep Flow</button>
-        </div>
-        <div class="row" style="margin-top:10px;">
-          <label>Sweep Reason (required)</label>
-          <input id="escSweepReason" placeholder="scheduled SLA breach triage" />
-        </div>
-        <div id="outEscalationOps" class="out"></div>
-        <div id="escMetricsGrid" class="kpi-grid" style="display:none;"></div>
-        <div class="row" style="margin-top:10px;">
-          <label>Ops Monitoring</label>
-          <div class="inline">
-            <button id="btnLoadOpsMonitor" class="alt">Load Ops Monitor</button>
           </div>
+          <div class="row" style="margin-top:10px;">
+            <label>Sweep Reason (required)</label>
+            <input id="escSweepReason" placeholder="scheduled SLA breach triage" />
+          </div>
+          <div id="outEscalationOps" class="out"></div>
+          <div class="row" style="margin-top:10px;">
+            <label>Ops Monitoring</label>
+            <div class="inline">
+              <button id="btnLoadOpsMonitor" class="alt">Load Ops Monitor</button>
+            </div>
+          </div>
+          <div id="opsMonitorGrid" class="kpi-grid" style="display:none;"></div>
+          <div class="row" style="margin-top:10px;">
+            <label>Ops Audit Trail (local)</label>
+            <button id="btnLoadOpsAudit" class="alt">Refresh Audit Trail</button>
+          </div>
+          <div id="outOpsAudit" class="out"></div>
         </div>
-        <div id="opsMonitorGrid" class="kpi-grid" style="display:none;"></div>
-        <div class="row" style="margin-top:10px;">
-          <label>Ops Audit Trail (local)</label>
-          <button id="btnLoadOpsAudit" class="alt">Refresh Audit Trail</button>
-        </div>
-        <div id="outOpsAudit" class="out"></div>
+        <div id="escMetricsGrid" class="kpi-grid" style="display:none;"></div>
       </section>
 
-      <section class="card">
+      <section class="card" data-pane="daily">
         <h2>Productivity Metrics</h2>
         <button id="btnLoadProdMetrics">Load Metrics</button>
         <div id="outProdMetrics" class="out"></div>
@@ -716,6 +821,8 @@
     let lastMergeRun = null;
     let lastPreflight = null;
     let lastAuditRefreshAt = null;
+    let lastQaPack = null;
+    let activePane = "daily";
 
     function pretty(v) {
       try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
@@ -739,6 +846,56 @@
       const ms = Date.now() - new Date(lastPreflight.at).getTime();
       if (!Number.isFinite(ms)) return null;
       return Math.floor(ms / 60000);
+    }
+
+    function setChecklistBadge(id, state) {
+      const el = $(id);
+      if (!el) return;
+      const next = String(state || "").toLowerCase();
+      el.className = "badge";
+      if (next === "pass") el.classList.add("pass");
+      if (next === "fail") el.classList.add("fail");
+      el.textContent = next || "pending";
+    }
+
+    function updateQaChecklist() {
+      if (!lastPreflight) setChecklistBadge("qaStepPreflight", "not run");
+      else setChecklistBadge("qaStepPreflight", lastPreflight.critical_pass ? "pass" : "fail");
+
+      if (!lastQaPack) setChecklistBadge("qaStepPack", "not run");
+      else setChecklistBadge("qaStepPack", lastQaPack.ok ? "pass" : "fail");
+
+      if (!lastSweepRun) setChecklistBadge("qaStepSweep", "pending");
+      else setChecklistBadge("qaStepSweep", "pass");
+
+      if (!lastMergeRun) setChecklistBadge("qaStepMerge", "pending");
+      else setChecklistBadge("qaStepMerge", "pass");
+    }
+
+    function applyConsoleMode() {
+      const sections = document.querySelectorAll("section.card[data-pane]");
+      sections.forEach((section) => {
+        const panes = String(section.getAttribute("data-pane") || "")
+          .split(/\s+/)
+          .filter(Boolean);
+        section.style.display = panes.includes(activePane) ? "block" : "none";
+      });
+
+      const showAdvanced = !!$("toggleAdvanced").checked;
+      const advancedBlocks = document.querySelectorAll(".advanced-only");
+      advancedBlocks.forEach((el) => {
+        el.style.display = showAdvanced ? "block" : "none";
+      });
+      updateQaChecklist();
+    }
+
+    function setActivePane(pane) {
+      activePane = pane;
+      const tabs = document.querySelectorAll(".tab-btn");
+      tabs.forEach((btn) => btn.classList.remove("active"));
+      const btn = document.querySelector(`.tab-btn[data-tab="${pane}"]`);
+      if (btn) btn.classList.add("active");
+      applyConsoleMode();
     }
 
     function renderReleaseSnapshot() {
@@ -966,6 +1123,7 @@
         checks,
       };
       if (!silent) out.textContent = pretty(lastPreflight);
+      updateQaChecklist();
       renderReleaseSnapshot();
       return lastPreflight;
     }
@@ -1534,6 +1692,7 @@
         lastMergeRun = { at: nowIso(), result: data };
         await loadProfiles();
         await loadOpsAudit();
+        updateQaChecklist();
         renderReleaseSnapshot();
         return data;
       } catch (e) {
@@ -1580,6 +1739,7 @@
         const metrics = await loadEscalationMetrics();
         renderOpsMonitorGrid(metrics, lastQueueItems);
         await loadOpsAudit();
+        updateQaChecklist();
         renderReleaseSnapshot();
         return data;
       } catch (e) {
@@ -1696,8 +1856,12 @@
           sweep_test: "completed",
           merge_test: lastProfiles.length >= 2 ? "completed" : "skipped_not_enough_profiles",
         });
+        lastQaPack = { at: nowIso(), ok: true };
       } catch (e) {
         out.textContent = String(e);
+        lastQaPack = { at: nowIso(), ok: false, error: String(e) };
+      } finally {
+        updateQaChecklist();
       }
     }
 
@@ -2187,19 +2351,39 @@
     $("btnEnvLocal").onclick = () => switchApiBase("http://localhost:8000");
     $("btnRunStagingQaPack").onclick = () => runStagingQaPack();
     $("apiBase").onchange = () => applyQaAvailability();
+    $("tabDaily").onclick = () => {
+      localStorage.setItem("tenant_console_active_pane", "daily");
+      setActivePane("daily");
+    };
+    $("tabQa").onclick = () => {
+      localStorage.setItem("tenant_console_active_pane", "qa");
+      setActivePane("qa");
+    };
+    $("tabSetup").onclick = () => {
+      localStorage.setItem("tenant_console_active_pane", "setup");
+      setActivePane("setup");
+    };
+    $("toggleAdvanced").onchange = () => {
+      localStorage.setItem("tenant_console_advanced", $("toggleAdvanced").checked ? "1" : "0");
+      applyConsoleMode();
+    };
 
     (function bootstrap() {
       const savedToken = localStorage.getItem("tenant_console_token");
       const savedBase = localStorage.getItem("tenant_console_api_base");
       const savedStaging = localStorage.getItem("tenant_console_staging_api_base");
+      const savedPane = localStorage.getItem("tenant_console_active_pane");
+      const savedAdvanced = localStorage.getItem("tenant_console_advanced");
       if (savedToken) setToken(savedToken);
       if (savedBase) $("apiBase").value = savedBase;
       if (savedStaging) $("stagingApiBase").value = savedStaging;
+      if (savedAdvanced === "1") $("toggleAdvanced").checked = true;
       $("hfStatus").value = "new_open";
       $("hfSort").value = "urgent_escalated";
       $("hfEscalatedOnly").value = "false";
       if (!$("escSweepReason").value.trim()) $("escSweepReason").value = "scheduled SLA triage sweep";
       if (!$("cpMergeReason").value.trim()) $("cpMergeReason").value = "dedupe duplicate customer identities";
+      setActivePane(savedPane && ["daily", "qa", "setup"].includes(savedPane) ? savedPane : "daily");
       applyQaAvailability();
       loadOpsAudit();
       runPreflightChecks(true).catch(() => {});
