@@ -105,6 +105,10 @@ def resolve_customer_user_id(
         created_at=now,
         updated_at=now,
     )
+    db.add(profile)
+    # Ensure parent row exists before inserting the handle FK row.
+    db.flush()
+
     handle = CustomerChannelHandle(
         id=f"cch_{secrets.token_hex(10)}",
         tenant_id=tenant_id,
@@ -115,7 +119,6 @@ def resolve_customer_user_id(
         updated_at=now,
         last_seen_at=now,
     )
-    db.add(profile)
     db.add(handle)
     return profile.id
 
@@ -285,13 +288,13 @@ def _ask_and_reply(
     question: str,
     channel_type: str,
 ) -> None:
-    customer_user_id = resolve_customer_user_id(
-        db,
-        tenant_id=account.tenant_id,
-        channel_type=channel_type,
-        external_user_id=external_user_id,
-    )
     try:
+        customer_user_id = resolve_customer_user_id(
+            db,
+            tenant_id=account.tenant_id,
+            channel_type=channel_type,
+            external_user_id=external_user_id,
+        )
         if _social_handoff_intent(question):
             handoff = create_handoff_request(
                 db,
