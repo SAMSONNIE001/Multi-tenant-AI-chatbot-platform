@@ -169,3 +169,21 @@ class OpsAuditListResponse(BaseModel):
     tenant_id: str
     count: int
     entries: list[OpsAuditLogEntryOut]
+
+
+class AuthSecurityEventOut(BaseModel):
+    id: str
+    tenant_id: str | None = None
+    user_id: str | None = None
+    email: str
+    event_type: str
+    outcome: str
+    ip_address: str | None = None
+    metadata_json: dict[str, Any]
+    created_at: datetime
+
+
+class AuthSecurityEventListResponse(BaseModel):
+    tenant_id: str
+    count: int
+    entries: list[AuthSecurityEventOut]

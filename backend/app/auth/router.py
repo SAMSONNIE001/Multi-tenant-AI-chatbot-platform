@@ -12,7 +12,7 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.tenants.models import Tenant
 from app.auth.login_guard import clear_failures, is_locked, register_failure
-from app.auth.models import PasswordResetToken, RefreshToken, User
+from app.auth.models import AuthSecurityEvent, PasswordResetToken, RefreshToken, User
 from app.auth.schemas import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
@@ -120,6 +120,31 @@ def _is_rate_limited(store: dict[str, deque[datetime]], key: str, now: datetime,
 
 def _register_attempt(store: dict[str, deque[datetime]], key: str, now: datetime) -> None:
     store[key].append(now)
+
+
+def _log_auth_security_event(
+    db: Session,
+    *,
+    tenant_id: str | None,
+    user_id: str | None,
+    email: str,
+    event_type: str,
+    outcome: str,
+    ip_address: str | None,
+    metadata_json: dict[str, object] | None = None,
+) -> None:
+    db.add(
+        AuthSecurityEvent(
+            id=f"ase_{secrets.token_hex(10)}",
+            tenant_id=tenant_id,
+            user_id=user_id,
+            email=str(email or "").lower(),
+            event_type=event_type.strip().lower(),
+            outcome=outcome.strip().lower(),
+            ip_address=ip_address,
+            metadata_json=metadata_json or {},
+        )
+    )
 
 
 def _enforce_refresh_token_limit(db: Session, *, user_id: str, tenant_id: str) -> None:
@@ -366,6 +391,17 @@ def forgot_password(payload: ForgotPasswordRequest, request: Request, db: Sessio
     now = datetime.now(timezone.utc)
     limit_key = f"{tenant_hint}:{email}:{client_ip}"
     if _is_rate_limited(_forgot_attempts, limit_key, now, FORGOT_WINDOW_SECONDS, FORGOT_MAX_PER_WINDOW):
+        _log_auth_security_event(
+            db,
+            tenant_id=payload.tenant_id.strip() if payload.tenant_id else None,
+            user_id=None,
+            email=email,
+            event_type="password_forgot",
+            outcome="rate_limited",
+            ip_address=client_ip,
+            metadata_json={"tenant_hint": tenant_hint},
+        )
+        db.commit()
         return ForgotPasswordResponse(message=_password_reset_public_message())
     _register_attempt(_forgot_attempts, limit_key, now)
 
@@ -391,15 +427,46 @@ def forgot_password(payload: ForgotPasswordRequest, request: Request, db: Sessio
         )
         db.add(row)
         try:
-            _send_password_reset_email(
+            sent = _send_password_reset_email(
                 to_email=user.email,
                 tenant_id=user.tenant_id,
                 reset_token=raw_token,
                 code=raw_code,
                 expires_minutes=exp_minutes,
             )
+            _log_auth_security_event(
+                db,
+                tenant_id=user.tenant_id,
+                user_id=user.id,
+                email=user.email,
+                event_type="password_forgot",
+                outcome="success" if sent else "queued",
+                ip_address=client_ip,
+                metadata_json={"expires_minutes": exp_minutes},
+            )
         except Exception:
             logger.exception("Failed to dispatch password reset email for tenant=%s", user.tenant_id)
+            _log_auth_security_event(
+                db,
+                tenant_id=user.tenant_id,
+                user_id=user.id,
+                email=user.email,
+                event_type="password_forgot",
+                outcome="email_error",
+                ip_address=client_ip,
+                metadata_json={"expires_minutes": exp_minutes},
+            )
+    if not users:
+        _log_auth_security_event(
+            db,
+            tenant_id=payload.tenant_id.strip() if payload.tenant_id else None,
+            user_id=None,
+            email=email,
+            event_type="password_forgot",
+            outcome="not_found",
+            ip_address=client_ip,
+            metadata_json={"tenant_hint": tenant_hint},
+        )
     db.commit()
     return ForgotPasswordResponse(message=_password_reset_public_message())
 
@@ -411,6 +478,16 @@ def reset_password(payload: ResetPasswordRequest, request: Request, db: Session 
     client_ip = request.client.host if request.client else "unknown"
     limit_key = f"{token_hash_value}:{client_ip}"
     if _is_rate_limited(_reset_fail_attempts, limit_key, now, RESET_FAIL_WINDOW_SECONDS, RESET_FAIL_MAX):
+        _log_auth_security_event(
+            db,
+            tenant_id=None,
+            user_id=None,
+            email="unknown",
+            event_type="password_reset",
+            outcome="rate_limited",
+            ip_address=client_ip,
+        )
+        db.commit()
         raise HTTPException(status_code=429, detail="Too many failed reset attempts. Request a new reset email.")
 
     row = (
@@ -425,9 +502,29 @@ def reset_password(payload: ResetPasswordRequest, request: Request, db: Session 
     )
     if not row:
         _register_attempt(_reset_fail_attempts, limit_key, now)
+        _log_auth_security_event(
+            db,
+            tenant_id=None,
+            user_id=None,
+            email="unknown",
+            event_type="password_reset",
+            outcome="invalid_token",
+            ip_address=client_ip,
+        )
+        db.commit()
         raise HTTPException(status_code=400, detail="Invalid or expired reset token")
     if row.code_hash != hash_token(payload.code.strip()):
         _register_attempt(_reset_fail_attempts, limit_key, now)
+        _log_auth_security_event(
+            db,
+            tenant_id=row.tenant_id,
+            user_id=row.user_id,
+            email=row.email,
+            event_type="password_reset",
+            outcome="invalid_code",
+            ip_address=client_ip,
+        )
+        db.commit()
         raise HTTPException(status_code=400, detail="Invalid reset code")
 
     user = db.get(User, row.user_id)
@@ -458,6 +555,16 @@ def reset_password(payload: ResetPasswordRequest, request: Request, db: Session 
 
     db.commit()
     _reset_fail_attempts.pop(limit_key, None)
+    _log_auth_security_event(
+        db,
+        tenant_id=row.tenant_id,
+        user_id=row.user_id,
+        email=row.email,
+        event_type="password_reset",
+        outcome="success",
+        ip_address=client_ip,
+    )
+    db.commit()
     return ResetPasswordResponse(message="Password reset successful. Please log in with the new password.")
 
 

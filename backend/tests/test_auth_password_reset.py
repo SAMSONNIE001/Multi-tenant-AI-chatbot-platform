@@ -34,6 +34,8 @@ def test_password_reset_flow(monkeypatch):
         )
         assert onboard_resp.status_code == 200
         tenant_id = onboard_resp.json()["tenant"]["id"]
+        admin_token = onboard_resp.json()["access_token"]
+        admin_headers = {"Authorization": f"Bearer {admin_token}"}
 
         forgot_resp = client.post(
             "/api/v1/auth/password/forgot",
@@ -69,6 +71,17 @@ def test_password_reset_flow(monkeypatch):
         )
         assert new_login.status_code == 200
         assert new_login.json()["access_token"]
+
+        events_resp = client.get(
+            "/api/v1/admin/auth/security-events?limit=50&since_hours=24",
+            headers=admin_headers,
+        )
+        assert events_resp.status_code == 200
+        events = events_resp.json()["entries"]
+        forgot_events = [e for e in events if e["event_type"] == "password_forgot" and e["email"] == email]
+        reset_events = [e for e in events if e["event_type"] == "password_reset" and e["email"] == email]
+        assert any(e["outcome"] in {"success", "queued"} for e in forgot_events)
+        assert any(e["outcome"] == "success" for e in reset_events)
 
 
 def test_password_reset_rejects_invalid_code(monkeypatch):

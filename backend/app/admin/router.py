@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.admin.rbac import require_scope
 from app.admin.schemas import (
+    AuthSecurityEventListResponse,
     AuditListResponse,
     ConversationMessagesResponse,
     ConversationsListResponse,
@@ -31,6 +32,7 @@ from app.admin.schemas import (
 )
 from app.auth.deps import get_current_user
 from app.auth.models import User
+from app.auth.models import AuthSecurityEvent
 from app.audit.models import ChatAuditLog
 from app.audit.models import OpsAuditLog
 from app.chat.memory_models import Conversation, Message
@@ -50,6 +52,20 @@ def _to_ops_audit_out(row: OpsAuditLog) -> dict:
         "actor_user_id": row.actor_user_id,
         "action_type": row.action_type,
         "reason": row.reason,
+        "metadata_json": row.metadata_json or {},
+        "created_at": row.created_at,
+    }
+
+
+def _to_auth_security_out(row: AuthSecurityEvent) -> dict:
+    return {
+        "id": row.id,
+        "tenant_id": row.tenant_id,
+        "user_id": row.user_id,
+        "email": row.email,
+        "event_type": row.event_type,
+        "outcome": row.outcome,
+        "ip_address": row.ip_address,
         "metadata_json": row.metadata_json or {},
         "created_at": row.created_at,
     }
@@ -509,6 +525,38 @@ def list_ops_audit_logs(
         "tenant_id": current_user.tenant_id,
         "count": len(rows),
         "entries": [_to_ops_audit_out(r) for r in rows],
+    }
+
+
+@router.get("/auth/security-events", response_model=AuthSecurityEventListResponse)
+def list_auth_security_events(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0, le=100_000),
+    since_hours: int = Query(default=24, ge=1, le=24 * 30),
+    event_type: str | None = Query(default=None, min_length=3, max_length=64),
+    outcome: str | None = Query(default=None, min_length=3, max_length=32),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "audit:read")
+
+    since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
+    stmt = select(AuthSecurityEvent).where(
+        AuthSecurityEvent.tenant_id == current_user.tenant_id,
+        AuthSecurityEvent.created_at >= since,
+    )
+    if event_type:
+        stmt = stmt.where(AuthSecurityEvent.event_type == event_type.strip().lower())
+    if outcome:
+        stmt = stmt.where(AuthSecurityEvent.outcome == outcome.strip().lower())
+    rows = db.execute(
+        stmt.order_by(desc(AuthSecurityEvent.created_at)).limit(limit).offset(offset)
+    ).scalars().all()
+
+    return {
+        "tenant_id": current_user.tenant_id,
+        "count": len(rows),
+        "entries": [_to_auth_security_out(r) for r in rows],
     }
 
 
