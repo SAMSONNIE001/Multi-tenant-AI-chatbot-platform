@@ -75,7 +75,6 @@
       out.textContent = "Running...";
       try {
         const body = {
-          tenant_id: $("lgTenantId").value.trim(),
           email: $("lgEmail").value.trim(),
           password: $("lgPassword").value,
         };

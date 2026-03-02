@@ -93,7 +93,9 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
-    login_key = f"{payload.tenant_id}:{str(payload.email).lower()}:{client_ip}"
+    tenant_hint = (payload.tenant_id or "").strip() or None
+    email = str(payload.email).lower()
+    login_key = f"{tenant_hint or '*'}:{email}:{client_ip}"
     locked_until = is_locked(login_key)
     if locked_until:
         raise HTTPException(
@@ -101,14 +103,31 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
             detail=f"Too many failed attempts. Retry after {locked_until.isoformat()}",
         )
 
-    user = (
-        db.query(User)
-        .filter(
-            User.tenant_id == payload.tenant_id,
-            User.email == str(payload.email).lower(),
+    user = None
+    if tenant_hint:
+        user = (
+            db.query(User)
+            .filter(
+                User.tenant_id == tenant_hint,
+                User.email == email,
+            )
+            .first()
         )
-        .first()
-    )
+    else:
+        candidates = (
+            db.query(User)
+            .filter(User.email == email)
+            .limit(2)
+            .all()
+        )
+        if len(candidates) > 1:
+            raise HTTPException(
+                status_code=409,
+                detail="Multiple tenants found for this email. Provide tenant_id.",
+            )
+        if len(candidates) == 1:
+            user = candidates[0]
+
     password_ok = False
     if user:
         try:

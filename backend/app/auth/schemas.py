@@ -14,7 +14,7 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    tenant_id: str
+    tenant_id: str | None = Field(default=None, min_length=3, max_length=64)
     email: EmailStr
     # prevent bcrypt crash on long input
     password: str = Field(min_length=1, max_length=72)

@@ -57,6 +57,19 @@ def test_tenant_smoke_onboard_login_bots_and_knowledge(monkeypatch):
         assert login["access_token"]
         assert login["refresh_token"]
 
+        # Tenant ID is optional when email maps to a single tenant.
+        login_email_only_resp = client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": admin_email,
+                "password": password,
+            },
+        )
+        assert login_email_only_resp.status_code == 200
+        login_email_only = login_email_only_resp.json()
+        assert login_email_only["access_token"]
+        assert login_email_only["refresh_token"]
+
         headers = {"Authorization": f"Bearer {access_token}"}
 
         list_resp = client.get("/api/v1/tenant/bots", headers=headers)
@@ -114,3 +127,35 @@ def test_tenant_smoke_onboard_login_bots_and_knowledge(monkeypatch):
         assert status["document_count"] >= 1
         assert status["chunk_count"] >= 1
         assert status["latest_document_id"] == upload["document_id"]
+
+
+def test_login_email_only_requires_tenant_hint_when_email_is_ambiguous():
+    shared_email = f"{_unique('shared')}@example.com"
+    password = "StrongPass123!"
+
+    with TestClient(app) as client:
+        for idx in (1, 2):
+            onboard_resp = client.post(
+                "/api/v1/tenant/onboard",
+                json={
+                    "tenant_id": f"t_amb_{idx}_{uuid4().hex[:8]}",
+                    "tenant_name": f"Ambiguous Tenant {idx}",
+                    "admin_id": f"u_amb_{idx}_{uuid4().hex[:8]}",
+                    "admin_email": shared_email,
+                    "admin_password": password,
+                    "compliance_level": "standard",
+                    "bot_name": f"Bot {idx}",
+                    "allowed_origins": ["https://example.com"],
+                },
+            )
+            assert onboard_resp.status_code == 200
+
+        login_resp = client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": shared_email,
+                "password": password,
+            },
+        )
+        assert login_resp.status_code == 409
+        assert "Provide tenant_id" in login_resp.json()["detail"]
