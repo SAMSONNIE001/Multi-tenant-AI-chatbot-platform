@@ -559,6 +559,29 @@
         <div id="outStatus" class="out"></div>
       </section>
 
+      <section class="card" data-pane="setup">
+        <h2>Auth Security Events</h2>
+        <div class="small">Review recent forgot/reset security events for this tenant.</div>
+        <div class="inline" style="margin-top:10px;">
+          <div class="row">
+            <label>Since (hours)</label>
+            <input id="aseSinceHours" value="24" />
+          </div>
+          <div class="row">
+            <label>Event Type (optional)</label>
+            <input id="aseEventType" placeholder="password_forgot or password_reset" />
+          </div>
+          <div class="row">
+            <label>Outcome (optional)</label>
+            <input id="aseOutcome" placeholder="success / invalid_code / rate_limited" />
+          </div>
+          <div class="row" style="align-self:end;">
+            <button id="btnAuthSecurityEvents" class="alt">Load Events</button>
+          </div>
+        </div>
+        <div id="outAuthSecurityEvents" class="out"></div>
+      </section>
+
       <section class="card" data-pane="daily">
         <h2>Inbox Queue</h2>
         <div class="row">

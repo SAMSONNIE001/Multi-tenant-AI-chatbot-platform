@@ -191,6 +191,28 @@
       }
     };
 
+    const btnAuthSecurityEvents = $("btnAuthSecurityEvents");
+    if (btnAuthSecurityEvents) btnAuthSecurityEvents.onclick = async () => {
+      const out = $("outAuthSecurityEvents");
+      out.textContent = "Loading auth security events...";
+      try {
+        const sinceHours = Number($("aseSinceHours").value || 24);
+        const qs = new URLSearchParams({
+          limit: "50",
+          offset: "0",
+          since_hours: String(Number.isFinite(sinceHours) && sinceHours > 0 ? sinceHours : 24),
+        });
+        const eventType = $("aseEventType").value.trim();
+        const outcome = $("aseOutcome").value.trim();
+        if (eventType) qs.set("event_type", eventType);
+        if (outcome) qs.set("outcome", outcome);
+        const data = await request(`/api/v1/admin/auth/security-events?${qs.toString()}`);
+        out.textContent = pretty(data);
+      } catch (e) {
+        out.textContent = String(e);
+      }
+    };
+
     $("btnHandoffList").onclick = () => loadHandoffQueue(false);
     $("hfAutoRefresh").onchange = () => setQueueAutoRefresh();
     $("hfSort").onchange = () => {
