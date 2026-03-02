@@ -149,6 +149,14 @@
       font-size: 17px;
     }
     .muted { color: var(--muted); font-size: 13px; }
+    .list {
+      margin: 0;
+      padding-left: 18px;
+      color: #334155;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .list li { margin-bottom: 8px; }
     .row {
       display: grid;
       gap: 6px;
@@ -252,8 +260,8 @@
       </div>
     </div>
     <section class="hero">
-      <h1>Dashboard</h1>
-      <p>A simple, professional view of your tenant health and support load.</p>
+      <h1>Operations Dashboard</h1>
+      <p>Daily control center for tenant health, service load, and release readiness.</p>
       <div class="meta-row">
         <span class="chip" id="whoamiLine">Current User: not authenticated</span>
       </div>
@@ -267,9 +275,10 @@
     <div class="grid">
       <section class="card">
         <h2>Business Snapshot</h2>
-        <p class="muted">Use this as your daily control view. Refresh to pull latest status.</p>
+        <p class="muted">Refresh to view current service health and handoff pressure.</p>
         <div class="inline">
           <button id="btnRefreshAll">Refresh Snapshot</button>
+          <a href="./release-checklist.html" style="text-decoration:none;"><button type="button" class="alt">Open Release Checklist</button></a>
         </div>
         <div id="kpiGrid" class="kpi-grid" style="display:none;"></div>
         <div id="outSnapshot" class="out"></div>
@@ -277,7 +286,7 @@
 
       <section class="card">
         <h2>Sign In</h2>
-        <p class="muted">Sign in to load tenant data. Existing token can be reused.</p>
+        <p class="muted">Sign in with email and password to load tenant data.</p>
         <div class="row"><label>Email</label><input id="lgEmail" value="" placeholder="admin@example.com" /></div>
         <div class="row"><label>Password</label><input id="lgPassword" value="" placeholder="Enter password" /></div>
         <div class="row" id="lgTenantIdRow" style="display:none;">
@@ -290,7 +299,7 @@
         <div id="outLogin" class="out"></div>
 
         <details>
-          <summary>Connection Settings</summary>
+          <summary>Advanced Connection Settings</summary>
           <div class="row" style="margin-top:10px;">
             <label for="apiBase">API Base</label>
             <input id="apiBase" value="http://localhost:8000" />
@@ -313,6 +322,20 @@
             <button id="clearToken" class="alt">Clear Token</button>
           </div>
         </details>
+      </section>
+
+      <section class="card">
+        <h2>Today Workflow</h2>
+        <p class="muted">Keep daily execution predictable with this sequence.</p>
+        <ol class="list">
+          <li>Sign in and refresh snapshot.</li>
+          <li>Handle live queue and QA checks in Daily Ops.</li>
+          <li>Confirm release gates in Release Checklist before production actions.</li>
+        </ol>
+        <div class="inline">
+          <a href="./tenant-console.html" style="text-decoration:none;"><button type="button">Go To Daily Ops</button></a>
+          <a href="./release-checklist.html" style="text-decoration:none;"><button type="button" class="alt">Go To Release</button></a>
+        </div>
       </section>
     </div>
   </div>

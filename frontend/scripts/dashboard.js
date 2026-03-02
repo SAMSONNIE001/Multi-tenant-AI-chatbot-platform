@@ -76,15 +76,18 @@ async function refreshSnapshot() {
 
     const totals = metrics?.totals || {};
     out.textContent = [
-      `Status refreshed at: ${new Date().toLocaleString()}`,
-      `Tenant: ${me.tenant_id || "-"}`,
-      `Role: ${me.role || "-"}`,
-      `Bots configured: ${Array.isArray(bots) ? bots.length : 0}`,
-      `Knowledge docs/chunks: ${knowledge.document_count || 0} / ${knowledge.chunk_count || 0}`,
-      `Handoffs: all=${totals.all_tickets ?? 0}, unresolved=${totals.unresolved_tickets ?? 0}, escalated=${totals.escalated_tickets ?? 0}`,
+      `Snapshot updated ${new Date().toLocaleString()}`,
+      `Tenant ${me.tenant_id || "-"} (${me.role || "-"})`,
+      `Handoffs: ${totals.unresolved_tickets ?? 0} unresolved, ${totals.escalated_tickets ?? 0} escalated`,
+      `Knowledge: ${knowledge.document_count || 0} docs / ${knowledge.chunk_count || 0} chunks`,
     ].join("\n");
   } catch (e) {
-    out.textContent = String(e);
+    const msg = String(e);
+    if (msg.includes("401")) {
+      out.textContent = "Sign in to load snapshot.";
+    } else {
+      out.textContent = msg;
+    }
     grid.style.display = "none";
     grid.innerHTML = "";
   }
@@ -108,7 +111,7 @@ $("btnLogin").onclick = async () => {
     if (data && data.access_token) setToken(data.access_token);
     $("lgTenantIdRow").style.display = "none";
     $("lgTenantId").value = "";
-    out.textContent = pretty(data);
+    out.textContent = `Login successful for ${body.email}.`;
     await refreshSnapshot();
   } catch (e) {
     const msg = String(e);
