@@ -98,6 +98,7 @@ def check_tenant_console_guardrails(path: Path) -> list[str]:
 
 def main() -> int:
     html_files = [
+        FRONTEND_DIR / "dashboard.html",
         FRONTEND_DIR / "tenant-console.html",
         FRONTEND_DIR / "widget-test.html",
         FRONTEND_DIR / "embed-snippet.html",
