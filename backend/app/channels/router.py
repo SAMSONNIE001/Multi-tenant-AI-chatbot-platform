@@ -37,6 +37,12 @@ admin_router = APIRouter()
 webhook_router = APIRouter()
 
 
+def _require_admin_or_owner(user: User) -> None:
+    role = (getattr(user, "role", "") or "").strip().lower()
+    if role not in {"admin", "owner"}:
+        raise HTTPException(status_code=403, detail="Admin role required for this action")
+
+
 def _to_out(row: TenantChannelAccount) -> ChannelAccountOut:
     return ChannelAccountOut(
         id=row.id,
@@ -320,6 +326,7 @@ def merge_customer_profiles(
     current_user: User = Depends(get_current_user),
 ):
     require_scope(current_user, "channels:write")
+    _require_admin_or_owner(current_user)
 
     source = db.execute(
         select(CustomerProfile).where(

@@ -42,6 +42,34 @@ def _headers(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+def _register_and_token(client: TestClient, *, tenant_id: str, role: str) -> tuple[str, str]:
+    email = f"{_unique(role)}@example.com"
+    user_id = f"u_{uuid4().hex[:16]}"
+    password = "StrongPass123!"
+    register_resp = client.post(
+        "/api/v1/auth/register",
+        json={
+            "id": user_id,
+            "tenant_id": tenant_id,
+            "email": email,
+            "password": password,
+            "role": role,
+        },
+    )
+    assert register_resp.status_code == 200, register_resp.text
+    login_resp = client.post(
+        "/api/v1/auth/login",
+        json={
+            "tenant_id": tenant_id,
+            "email": email,
+            "password": password,
+        },
+    )
+    assert login_resp.status_code == 200, login_resp.text
+    token = login_resp.json()["access_token"]
+    return user_id, token
+
+
 def test_admin_handoff_claim_patch_sweep_metrics_and_ops_audit():
     with TestClient(app) as client:
         tenant_id, token = _onboard_and_token(client)
@@ -417,3 +445,61 @@ def test_handoff_reply_and_ai_toggle_require_conversation_id():
         )
         assert ai_toggle_resp.status_code == 422
         assert "no conversation_id" in ai_toggle_resp.json()["detail"]
+
+
+def test_support_role_blocked_from_advanced_admin_actions():
+    with TestClient(app) as client:
+        tenant_id, admin_token = _onboard_and_token(client)
+        _, support_token = _register_and_token(client, tenant_id=tenant_id, role="support")
+        admin_headers = _headers(admin_token)
+        support_headers = _headers(support_token)
+
+        create_resp = client.post(
+            "/api/v1/handoff/request",
+            headers=admin_headers,
+            json={"question": "Need human help", "reason": "manual_test"},
+        )
+        assert create_resp.status_code == 200, create_resp.text
+        handoff_id = create_resp.json()["id"]
+
+        sweep_resp = client.post("/api/v1/admin/handoff/escalation/sweep", headers=support_headers)
+        assert sweep_resp.status_code == 403
+        assert "Admin role required" in sweep_resp.json()["detail"]
+
+        patch_resp = client.patch(
+            f"/api/v1/admin/handoff/{handoff_id}",
+            headers=support_headers,
+            json={"priority": "high"},
+        )
+        assert patch_resp.status_code == 403
+        assert "Admin role required" in patch_resp.json()["detail"]
+
+        review_resp = client.post(
+            "/api/v1/admin/handoff/reply-review",
+            headers=support_headers,
+            json={"handoff_id": handoff_id, "draft": "Reply draft", "rewrite_mode": "none"},
+        )
+        assert review_resp.status_code == 403
+        assert "Admin role required" in review_resp.json()["detail"]
+
+        ai_toggle_resp = client.post(
+            f"/api/v1/admin/handoff/{handoff_id}/ai-toggle",
+            headers=support_headers,
+            json={"ai_paused": True},
+        )
+        assert ai_toggle_resp.status_code == 403
+        assert "Admin role required" in ai_toggle_resp.json()["detail"]
+
+        merge_resp = client.post(
+            "/api/v1/admin/channels/profiles/merge",
+            headers=support_headers,
+            json={
+                "source_profile_id": "cp_source_missing",
+                "target_profile_id": "cp_target_missing",
+            },
+        )
+        assert merge_resp.status_code == 403
+        assert (
+            "Admin role required" in merge_resp.json()["detail"]
+            or "Missing required scope: channels:write" in merge_resp.json()["detail"]
+        )

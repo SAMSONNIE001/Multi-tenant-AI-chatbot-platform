@@ -91,6 +91,12 @@ def _is_admin(user: User) -> bool:
     return (getattr(user, "role", "") or "").strip().lower() == "admin"
 
 
+def _require_admin_or_owner(user: User) -> None:
+    role = (getattr(user, "role", "") or "").strip().lower()
+    if role not in {"admin", "owner"}:
+        raise HTTPException(status_code=403, detail="Admin role required for this action")
+
+
 def _assert_handoff_operator(row: HandoffRequest, current_user: User) -> None:
     """
     Non-admin users can operate only unassigned handoffs or handoffs assigned to them.
@@ -395,6 +401,7 @@ def run_escalation_sweep(
     current_user: User = Depends(get_current_user),
 ):
     require_scope(current_user, "handoff:write")
+    _require_admin_or_owner(current_user)
 
     now = datetime.utcnow()
     rows = (
@@ -446,6 +453,7 @@ def review_agent_reply(
     current_user: User = Depends(get_current_user),
 ):
     require_scope(current_user, "handoff:write")
+    _require_admin_or_owner(current_user)
 
     row = db.execute(
         select(HandoffRequest).where(
@@ -480,6 +488,7 @@ def patch_handoff(
     current_user: User = Depends(get_current_user),
 ):
     require_scope(current_user, "handoff:write")
+    _require_admin_or_owner(current_user)
 
     row = db.execute(
         select(HandoffRequest).where(
@@ -737,6 +746,7 @@ def handoff_ai_toggle(
     current_user: User = Depends(get_current_user),
 ):
     require_scope(current_user, "handoff:write")
+    _require_admin_or_owner(current_user)
 
     row = db.execute(
         select(HandoffRequest).where(
