@@ -16,11 +16,15 @@ def _unique(prefix: str) -> str:
 def _onboard_and_token(client: TestClient) -> tuple[str, str]:
     tenant_name = f"Ops Tenant {_unique('name')}"
     admin_email = f"{_unique('admin')}@example.com"
+    tenant_id = f"t_{uuid4().hex[:16]}"
+    admin_id = f"u_{uuid4().hex[:16]}"
     password = "StrongPass123!"
     resp = client.post(
         "/api/v1/tenant/onboard",
         json={
+            "tenant_id": tenant_id,
             "tenant_name": tenant_name,
+            "admin_id": admin_id,
             "admin_email": admin_email,
             "admin_password": password,
             "compliance_level": "standard",
@@ -28,7 +32,7 @@ def _onboard_and_token(client: TestClient) -> tuple[str, str]:
             "allowed_origins": ["https://example.com"],
         },
     )
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.text
     body = resp.json()
     return body["tenant"]["id"], body["access_token"]
 
