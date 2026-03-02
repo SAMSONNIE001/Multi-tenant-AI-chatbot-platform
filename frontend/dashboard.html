@@ -6,42 +6,72 @@
   <title>StaunchBot Dashboard</title>
   <style>
     :root {
-      --bg: #f5f7fb;
+      --bg: #f4f7f9;
       --card: #ffffff;
       --ink: #0f172a;
-      --muted: #475569;
-      --line: #dbe3ee;
+      --muted: #5b6b7f;
+      --line: #d8e2ec;
       --brand: #0f766e;
       --brand-dark: #115e59;
+      --soft: #ecfdf5;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
+      background:
+        radial-gradient(900px 300px at 0% -10%, #dff8f2 0%, transparent 60%),
+        radial-gradient(900px 300px at 100% -20%, #eaf0ff 0%, transparent 55%),
+        var(--bg);
       color: var(--ink);
     }
     .wrap {
-      max-width: 1100px;
-      margin: 24px auto;
+      max-width: 1120px;
+      margin: 28px auto;
       padding: 0 16px;
     }
-    .header h1 {
-      margin: 0 0 6px;
-      font-size: 26px;
+    .hero {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fbfd 100%);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(8, 15, 40, 0.06);
+      display: grid;
+      gap: 12px;
     }
-    .header p {
+    .hero h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: -0.02em;
+    }
+    .hero p {
       margin: 0;
       color: var(--muted);
       font-size: 14px;
     }
-    .header .links {
-      margin-top: 8px;
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      border: 1px solid #bfe8dc;
+      background: var(--soft);
+      color: #065f46;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 4px 10px;
+    }
+    .links {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
     }
-    .header a {
+    .links a {
       color: var(--brand-dark);
       text-decoration: none;
       font-weight: 600;
@@ -49,13 +79,16 @@
       border: 1px solid var(--line);
       background: #fff;
       border-radius: 999px;
-      padding: 6px 10px;
+      padding: 7px 11px;
     }
     .grid {
-      margin-top: 16px;
+      margin-top: 14px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      grid-template-columns: minmax(340px, 1.25fr) minmax(300px, 0.75fr);
       gap: 14px;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
     }
     .card {
       background: var(--card);
@@ -65,9 +98,10 @@
       box-shadow: 0 8px 24px rgba(2, 6, 23, 0.05);
     }
     .card h2 {
-      margin: 0 0 10px;
-      font-size: 16px;
+      margin: 0 0 8px;
+      font-size: 17px;
     }
+    .muted { color: var(--muted); font-size: 13px; }
     .row {
       display: grid;
       gap: 6px;
@@ -94,7 +128,7 @@
       background: #fff;
     }
     textarea {
-      min-height: 94px;
+      min-height: 88px;
       resize: vertical;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 12px;
@@ -106,19 +140,9 @@
       background: var(--brand);
       color: #fff;
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 700;
     }
     button.alt { background: #334155; }
-    .out {
-      margin-top: 8px;
-      font-size: 12px;
-      background: #0b1220;
-      color: #dbeafe;
-      border-radius: 8px;
-      padding: 10px;
-      white-space: pre-wrap;
-      min-height: 56px;
-    }
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -141,63 +165,94 @@
       color: #0f172a;
       margin-top: 2px;
     }
+    .out {
+      margin-top: 8px;
+      font-size: 12px;
+      background: #0b1220;
+      color: #dbeafe;
+      border-radius: 8px;
+      padding: 10px;
+      white-space: pre-wrap;
+      min-height: 56px;
+    }
+    details {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: #fafcff;
+      margin-top: 10px;
+    }
+    summary {
+      cursor: pointer;
+      color: #334155;
+      font-weight: 600;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="header">
-      <h1>Main Dashboard</h1>
-      <p>Tenant-facing overview for day-to-day health checks.</p>
-      <p id="whoamiLine">Current User: not authenticated</p>
-      <div class="links">
-        <a href="./tenant-console.html">Open Ops Console</a>
-        <a href="./tenant-setup.html">Open Setup Console</a>
+    <section class="hero">
+      <h1>Dashboard</h1>
+      <p>A simple, professional view of your tenant health and support load.</p>
+      <div class="meta-row">
+        <span class="chip" id="whoamiLine">Current User: not authenticated</span>
       </div>
-    </div>
+      <div class="links">
+        <a href="./tenant-console.html">Ops Console</a>
+        <a href="./tenant-setup.html">Setup Console</a>
+      </div>
+    </section>
 
     <div class="grid">
       <section class="card">
-        <h2>Session</h2>
-        <div class="row">
-          <label for="apiBase">API Base</label>
-          <input id="apiBase" value="http://localhost:8000" />
-        </div>
+        <h2>Business Snapshot</h2>
+        <p class="muted">Use this as your daily control view. Refresh to pull latest status.</p>
         <div class="inline">
-          <button id="btnEnvProd" class="alt">Use Prod</button>
-          <button id="btnEnvStaging" class="alt">Use Staging</button>
-          <button id="btnEnvLocal" class="alt">Use Local</button>
+          <button id="btnRefreshAll">Refresh Snapshot</button>
         </div>
-        <div class="row">
-          <label for="stagingApiBase">Staging API Base</label>
-          <input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" />
-        </div>
-        <div class="row">
-          <label for="accessToken">Access Token</label>
-          <textarea id="accessToken" placeholder="Bearer token (auto-set after login)"></textarea>
-        </div>
-        <div class="inline">
-          <button id="saveToken" class="alt">Save Token</button>
-          <button id="clearToken" class="alt">Clear Token</button>
-        </div>
+        <div id="kpiGrid" class="kpi-grid" style="display:none;"></div>
+        <div id="outSnapshot" class="out"></div>
       </section>
 
       <section class="card">
-        <h2>Login</h2>
+        <h2>Sign In</h2>
+        <p class="muted">Sign in to load tenant data. Existing token can be reused.</p>
         <div class="row"><label>Email</label><input id="lgEmail" value="" placeholder="admin@example.com" /></div>
         <div class="row"><label>Password</label><input id="lgPassword" value="" placeholder="Enter password" /></div>
         <div class="row" id="lgTenantIdRow" style="display:none;">
-          <label>Tenant ID (if email is used by multiple tenants)</label>
+          <label>Tenant ID (only needed if email belongs to multiple tenants)</label>
           <input id="lgTenantId" value="" placeholder="t_..." />
         </div>
-        <button id="btnLogin">Login</button>
+        <div class="inline">
+          <button id="btnLogin">Login</button>
+        </div>
         <div id="outLogin" class="out"></div>
-      </section>
 
-      <section class="card">
-        <h2>Tenant Snapshot</h2>
-        <button id="btnRefreshAll">Refresh Snapshot</button>
-        <div id="outSnapshot" class="out"></div>
-        <div id="kpiGrid" class="kpi-grid" style="display:none;"></div>
+        <details>
+          <summary>Connection Settings</summary>
+          <div class="row" style="margin-top:10px;">
+            <label for="apiBase">API Base</label>
+            <input id="apiBase" value="http://localhost:8000" />
+          </div>
+          <div class="inline">
+            <button id="btnEnvProd" class="alt">Use Prod</button>
+            <button id="btnEnvStaging" class="alt">Use Staging</button>
+            <button id="btnEnvLocal" class="alt">Use Local</button>
+          </div>
+          <div class="row">
+            <label for="stagingApiBase">Staging API Base</label>
+            <input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" />
+          </div>
+          <div class="row">
+            <label for="accessToken">Access Token</label>
+            <textarea id="accessToken" placeholder="Bearer token (auto-set after login)"></textarea>
+          </div>
+          <div class="inline">
+            <button id="saveToken" class="alt">Save Token</button>
+            <button id="clearToken" class="alt">Clear Token</button>
+          </div>
+        </details>
       </section>
     </div>
   </div>

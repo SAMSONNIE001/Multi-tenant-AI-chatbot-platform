@@ -70,12 +70,15 @@ async function refreshSnapshot() {
       .map(([k, v]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${String(v)}</div></div>`)
       .join("");
 
-    out.textContent = pretty({
-      me,
-      bots_count: Array.isArray(bots) ? bots.length : 0,
-      knowledge,
-      handoff_totals: metrics?.totals || {},
-    });
+    const totals = metrics?.totals || {};
+    out.textContent = [
+      `Status refreshed at: ${new Date().toLocaleString()}`,
+      `Tenant: ${me.tenant_id || "-"}`,
+      `Role: ${me.role || "-"}`,
+      `Bots configured: ${Array.isArray(bots) ? bots.length : 0}`,
+      `Knowledge docs/chunks: ${knowledge.document_count || 0} / ${knowledge.chunk_count || 0}`,
+      `Handoffs: all=${totals.all_tickets ?? 0}, unresolved=${totals.unresolved_tickets ?? 0}, escalated=${totals.escalated_tickets ?? 0}`,
+    ].join("\n");
   } catch (e) {
     out.textContent = String(e);
     grid.style.display = "none";
@@ -126,6 +129,9 @@ $("clearToken").onclick = () => {
   localStorage.removeItem("dashboard_token");
   setToken("");
   renderWhoamiLine(null);
+  $("outSnapshot").textContent = "Signed out. Login to load tenant snapshot.";
+  $("kpiGrid").style.display = "none";
+  $("kpiGrid").innerHTML = "";
 };
 
 (function bootstrap() {
