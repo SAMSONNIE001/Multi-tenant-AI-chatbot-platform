@@ -1,4 +1,6 @@
 const $ = (id) => document.getElementById(id);
+const TOKEN_KEY = "tenant_console_token";
+const SESSION_EXPIRED_KEY = "tenant_console_session_expired";
 
 function pretty(v) {
   try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
@@ -16,6 +18,15 @@ function setToken(token) {
   $("accessToken").value = token || "";
 }
 
+function saveSessionToken(token) {
+  if (token && String(token).trim()) {
+    sessionStorage.setItem(TOKEN_KEY, String(token).trim());
+  } else {
+    sessionStorage.removeItem(TOKEN_KEY);
+  }
+  localStorage.removeItem(TOKEN_KEY);
+}
+
 function setApiBase(url) {
   const v = String(url || "").trim();
   if (!v) return;
@@ -31,7 +42,17 @@ async function api(path, options = {}) {
   const text = await res.text();
   let data = text;
   try { data = JSON.parse(text); } catch (_) {}
-  if (!res.ok) throw new Error(`${res.status} ${pretty(data)}`);
+  if (!res.ok) {
+    if (res.status === 401) {
+      sessionStorage.setItem(SESSION_EXPIRED_KEY, "1");
+      saveSessionToken("");
+      setToken("");
+      renderUser(null);
+      const outLogin = $("outLogin");
+      if (outLogin) outLogin.textContent = "Session expired. Please sign in again.";
+    }
+    throw new Error(`${res.status} ${pretty(data)}`);
+  }
   return data;
 }
 
@@ -194,7 +215,10 @@ $("btnLogin").onclick = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (data && data.access_token) setToken(data.access_token);
+    if (data && data.access_token) {
+      setToken(data.access_token);
+      saveSessionToken(data.access_token);
+    }
     $("lgTenantIdRow").style.display = "none";
     $("lgTenantId").value = "";
     out.textContent = pretty(data);
@@ -236,13 +260,13 @@ $("btnEnvStaging").onclick = () => setApiBase($("stagingApiBase").value.trim());
 $("btnEnvLocal").onclick = () => setApiBase("http://localhost:8000");
 
 $("saveToken").onclick = () => {
-  localStorage.setItem("tenant_console_token", $("accessToken").value);
+  saveSessionToken($("accessToken").value);
   localStorage.setItem("tenant_console_api_base", $("apiBase").value);
   localStorage.setItem("tenant_console_staging_api_base", $("stagingApiBase").value);
 };
 
 $("clearToken").onclick = () => {
-  localStorage.removeItem("tenant_console_token");
+  saveSessionToken("");
   setToken("");
   renderUser(null);
 };
@@ -259,7 +283,7 @@ if (navRelease) navRelease.classList.add("active");
 const btnNavSignOut = $("btnNavSignOut");
 if (btnNavSignOut) {
   btnNavSignOut.onclick = () => {
-    localStorage.removeItem("tenant_console_token");
+    saveSessionToken("");
     setToken("");
     renderUser(null);
     $("outLogin").textContent = "Signed out.";
@@ -267,12 +291,19 @@ if (btnNavSignOut) {
 }
 
 (function bootstrap() {
-  const savedToken = localStorage.getItem("tenant_console_token");
+  const savedToken = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
   const savedBase = localStorage.getItem("tenant_console_api_base");
   const savedStaging = localStorage.getItem("tenant_console_staging_api_base");
-  if (savedToken) setToken(savedToken);
+  if (savedToken) {
+    setToken(savedToken);
+    saveSessionToken(savedToken);
+  }
   if (savedBase) $("apiBase").value = savedBase;
   if (savedStaging) $("stagingApiBase").value = savedStaging;
+  if (sessionStorage.getItem(SESSION_EXPIRED_KEY) === "1") {
+    $("outLogin").textContent = "Session expired. Please sign in again.";
+    sessionStorage.removeItem(SESSION_EXPIRED_KEY);
+  }
 
   renderManualChecks();
   refreshUser().catch(() => {});

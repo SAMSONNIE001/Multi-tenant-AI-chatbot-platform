@@ -2,6 +2,7 @@
     const {
       $,
       setToken,
+      saveSessionToken,
       clearConsoleSession,
       request,
       parseOrigins,
@@ -37,13 +38,14 @@
     const state = tc.state;
 
     $("saveToken").onclick = () => {
-      localStorage.setItem("tenant_console_token", $("accessToken").value);
+      saveSessionToken($("accessToken").value);
       localStorage.setItem("tenant_console_api_base", $("apiBase").value);
       localStorage.setItem("tenant_console_staging_api_base", $("stagingApiBase").value);
       alert("Saved.");
     };
 
     $("clearToken").onclick = () => {
+      sessionStorage.removeItem("tenant_console_token");
       localStorage.removeItem("tenant_console_token");
       setToken("");
     };
@@ -67,7 +69,10 @@
           body: JSON.stringify(body),
         });
         out.textContent = pretty(data);
-        if (data && data.access_token) setToken(data.access_token);
+        if (data && data.access_token) {
+          setToken(data.access_token);
+          saveSessionToken(data.access_token);
+        }
         if (data && data.bot_id) $("botId").value = data.bot_id;
       } catch (e) {
         out.textContent = String(e);
@@ -94,6 +99,7 @@
         out.textContent = pretty(data);
         if (data && data.access_token) {
           setToken(data.access_token);
+          saveSessionToken(data.access_token);
           await syncCurrentUser();
         }
       } catch (e) {
@@ -433,13 +439,14 @@
     }
 
     (function bootstrap() {
-      const savedToken = localStorage.getItem("tenant_console_token");
+      const savedToken = sessionStorage.getItem("tenant_console_token") || localStorage.getItem("tenant_console_token");
       const savedBase = localStorage.getItem("tenant_console_api_base");
       const savedStaging = localStorage.getItem("tenant_console_staging_api_base");
       const savedPane = localStorage.getItem("tenant_console_active_pane");
       const savedAdvanced = localStorage.getItem("tenant_console_advanced");
       const savedRoleMode = localStorage.getItem("tenant_console_role_mode");
       if (savedToken) setToken(savedToken);
+      if (savedToken) saveSessionToken(savedToken);
       if (savedBase) $("apiBase").value = savedBase;
       if (savedStaging) $("stagingApiBase").value = savedStaging;
       if (savedRoleMode && roleModeEl && ["operator", "admin"].includes(savedRoleMode)) {
@@ -457,6 +464,11 @@
       setActivePane(savedPane && allowedPanes.includes(savedPane) ? savedPane : defaultPane);
       applyQaAvailability();
       renderCurrentUserBadge();
+      if (sessionStorage.getItem("tenant_console_session_expired") === "1") {
+        const outLogin = $("outLogin");
+        if (outLogin) outLogin.textContent = "Session expired. Please sign in again.";
+        sessionStorage.removeItem("tenant_console_session_expired");
+      }
       syncCurrentUser().catch(() => {});
       loadOpsAudit();
       runPreflightChecks(true).catch(() => {});

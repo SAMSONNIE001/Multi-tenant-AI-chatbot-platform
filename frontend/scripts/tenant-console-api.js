@@ -11,6 +11,8 @@
     let activePane = "daily";
     let roleMode = "operator";
     let currentUser = null;
+    const TOKEN_KEY = "tenant_console_token";
+    const SESSION_EXPIRED_KEY = "tenant_console_session_expired";
 
     function pretty(v) {
       try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
@@ -243,8 +245,28 @@
       $("accessToken").value = token || "";
     }
 
+    function saveSessionToken(token) {
+      if (token && String(token).trim()) {
+        sessionStorage.setItem(TOKEN_KEY, String(token).trim());
+      } else {
+        sessionStorage.removeItem(TOKEN_KEY);
+      }
+      // Backward-compat cleanup from previous localStorage strategy.
+      localStorage.removeItem(TOKEN_KEY);
+    }
+
+    function showSessionExpiredMessage() {
+      const msg = "Session expired. Please sign in again.";
+      const ids = ["outLogin", "outSnapshot", "outPreflight"];
+      ids.forEach((id) => {
+        const el = $(id);
+        if (el) el.textContent = msg;
+      });
+    }
+
     function clearConsoleSession() {
-      localStorage.removeItem("tenant_console_token");
+      sessionStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(TOKEN_KEY);
       setToken("");
       currentUser = null;
       renderCurrentUserBadge();
@@ -259,6 +281,11 @@
       let data = text;
       try { data = JSON.parse(text); } catch (_) {}
       if (!res.ok) {
+        if (res.status === 401) {
+          sessionStorage.setItem(SESSION_EXPIRED_KEY, "1");
+          clearConsoleSession();
+          showSessionExpiredMessage();
+        }
         const suffix = res.status === 403 ? " | Your role cannot run this action." : "";
         throw new Error(`${res.status} ${pretty(data)}${suffix}`);
       }
@@ -437,6 +464,7 @@
       getToken,
       setToken,
       clearConsoleSession,
+      saveSessionToken,
       request,
       runPreflightChecks,
       parseOrigins,

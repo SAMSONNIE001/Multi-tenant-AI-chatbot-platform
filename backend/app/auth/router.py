@@ -91,6 +91,14 @@ def _password_reset_public_message() -> str:
     return "If this account exists, a reset link and code have been sent to the account email."
 
 
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 def _enforce_refresh_token_limit(db: Session, *, user_id: str, tenant_id: str) -> None:
     now = datetime.now(timezone.utc)
     active_tokens = (
@@ -256,7 +264,8 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Refresh token not recognized")
     if row.revoked_at is not None:
         raise HTTPException(status_code=401, detail="Refresh token revoked")
-    if row.expires_at <= datetime.now(timezone.utc):
+    expires_at = _as_utc(row.expires_at)
+    if expires_at and expires_at <= datetime.now(timezone.utc):
         raise HTTPException(status_code=401, detail="Refresh token expired")
 
     user = db.get(User, user_id)

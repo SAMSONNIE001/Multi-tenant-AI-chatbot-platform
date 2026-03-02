@@ -30,6 +30,12 @@ Run API-level console smoke checks:
 .\frontend\scripts\run-console-smoke.ps1 -ApiBase "<api-base-url>"
 ```
 
+Run auth/session smoke checks:
+
+```powershell
+.\frontend\scripts\run-auth-smoke.ps1 -ApiBase "<api-base-url>"
+```
+
 Example:
 
 ```powershell
