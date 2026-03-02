@@ -426,6 +426,10 @@
       <section class="card workflow-card" data-pane="qa">
         <h2>Staging QA Checklist</h2>
         <div class="small">Run in order and verify pass badges before promoting.</div>
+        <div class="inline" style="margin-top:10px;">
+          <button id="btnRunUatPack" class="alt">Run UAT Pack</button>
+        </div>
+        <div id="outUatPack" class="out"></div>
         <ol class="step-list">
           <li>Run Preflight <span id="qaStepPreflight" class="badge">not run</span></li>
           <li>Run Staging QA Pack <span id="qaStepPack" class="badge">not run</span></li>
@@ -1865,6 +1869,60 @@
       }
     }
 
+    async function runUatPack() {
+      const out = $("outUatPack");
+      out.textContent = "Running UAT pack...";
+      const report = {
+        at: nowIso(),
+        api_base: getApiBase(),
+        mode: isProdApiBase() ? "production" : "staging_or_local",
+        steps: [],
+      };
+
+      async function runStep(name, fn, critical = true) {
+        const step = { name, critical, ok: false, detail: "" };
+        try {
+          const result = await fn();
+          step.ok = true;
+          step.detail = "ok";
+          if (result && typeof result === "object") step.result = result;
+        } catch (e) {
+          step.ok = false;
+          step.detail = String(e);
+        }
+        report.steps.push(step);
+      }
+
+      await runStep("preflight", async () => {
+        const pf = await runPreflightChecks(true);
+        if (!pf.critical_pass) throw new Error("critical preflight checks failed");
+        return pf;
+      });
+
+      await runStep("staging_qa_pack", async () => {
+        if (isProdApiBase()) throw new Error("UAT pack is intended for staging/local API base");
+        await runStagingQaPack();
+        if (!lastQaPack || !lastQaPack.ok) throw new Error("staging qa pack reported failure");
+        return lastQaPack;
+      });
+
+      await runStep("daily_ops.queue_load", async () => {
+        await loadHandoffQueue(true);
+        return { items: Array.isArray(lastQueueItems) ? lastQueueItems.length : 0 };
+      });
+
+      await runStep("daily_ops.metrics_load", async () => loadEscalationMetrics());
+      await runStep("daily_ops.profiles_load", async () => loadProfiles());
+      await runStep("setup_admin.bots_load", async () => request("/api/v1/tenant/bots"));
+      await runStep("setup_admin.knowledge_status", async () => request("/api/v1/tenant/knowledge/status"));
+
+      const criticalPass = report.steps.filter((s) => s.critical).every((s) => s.ok);
+      report.critical_pass = criticalPass;
+      report.pass = report.steps.every((s) => s.ok);
+      out.textContent = pretty(report);
+      return report;
+    }
+
     async function runQaSweepFlow() {
       const out = $("outEscalationOps");
       out.textContent = "Running QA sweep flow...";
@@ -2350,6 +2408,7 @@
     $("btnEnvStaging").onclick = () => switchApiBase($("stagingApiBase").value.trim());
     $("btnEnvLocal").onclick = () => switchApiBase("http://localhost:8000");
     $("btnRunStagingQaPack").onclick = () => runStagingQaPack();
+    $("btnRunUatPack").onclick = () => runUatPack();
     $("apiBase").onchange = () => applyQaAvailability();
     $("tabDaily").onclick = () => {
       localStorage.setItem("tenant_console_active_pane", "daily");
