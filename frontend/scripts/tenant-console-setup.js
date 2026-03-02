@@ -404,6 +404,7 @@
     const navDashboard = $("navDashboard");
     const navOps = $("navOps");
     const navSetup = $("navSetup");
+    const navRelease = $("navRelease");
     const path = (window.location.pathname || "").toLowerCase();
     if (path.includes("tenant-setup")) {
       if (navSetup) navSetup.classList.add("active");
@@ -411,6 +412,7 @@
       if (navOps) navOps.classList.add("active");
     }
     if (navDashboard && !path.includes("dashboard")) navDashboard.classList.remove("active");
+    if (navRelease && !path.includes("release-checklist")) navRelease.classList.remove("active");
     const btnNavSignOut = $("btnNavSignOut");
     if (btnNavSignOut) {
       btnNavSignOut.onclick = () => {

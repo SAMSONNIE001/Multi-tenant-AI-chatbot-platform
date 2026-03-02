@@ -9,6 +9,8 @@
    Ops and staging QA workflows.
 4. Setup/admin console: `/tenant-setup.html`  
    Tenant onboarding and setup-heavy actions.
+5. Release checklist: `/release-checklist.html`  
+   Release gate checks and manual promotion/smoke sign-off.
 
 ## Role Behavior
 1. UI role mode defaults to `Operator`.
@@ -38,3 +40,4 @@ Example:
 1. Start at dashboard (`/dashboard.html`) for high-level status.
 2. Move to daily ops (`/tenant-console.html`) for queue and QA checks.
 3. Use setup console (`/tenant-setup.html`) only for onboarding/configuration work.
+4. Use release checklist (`/release-checklist.html`) before/after production promotion.

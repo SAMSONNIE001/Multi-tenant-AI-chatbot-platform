@@ -140,9 +140,11 @@ $("clearToken").onclick = () => {
 const navDashboard = $("navDashboard");
 const navOps = $("navOps");
 const navSetup = $("navSetup");
+const navRelease = $("navRelease");
 if (navDashboard) navDashboard.classList.add("active");
 if (navOps) navOps.classList.remove("active");
 if (navSetup) navSetup.classList.remove("active");
+if (navRelease) navRelease.classList.remove("active");
 const btnNavSignOut = $("btnNavSignOut");
 if (btnNavSignOut) {
   btnNavSignOut.onclick = () => {

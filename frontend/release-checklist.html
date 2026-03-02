@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StaunchBot Release Checklist</title>
+  <style>
+    :root {
+      --bg: #f4f7f9;
+      --card: #ffffff;
+      --ink: #0f172a;
+      --muted: #5b6b7f;
+      --line: #d8e2ec;
+      --brand: #0f766e;
+      --danger: #b91c1c;
+      --ok: #15803d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background:
+        radial-gradient(900px 300px at 0% -10%, #dff8f2 0%, transparent 60%),
+        radial-gradient(900px 300px at 100% -20%, #eaf0ff 0%, transparent 55%),
+        var(--bg);
+      color: var(--ink);
+    }
+    .wrap {
+      max-width: 1120px;
+      margin: 28px auto;
+      padding: 0 16px;
+    }
+    .topnav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+    .topnav .links {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .topnav .links a {
+      text-decoration: none;
+      color: #0f172a;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #fff;
+    }
+    .topnav .links a.active {
+      border-color: #99f6e4;
+      background: #ecfeff;
+      color: #115e59;
+    }
+    .topnav .meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .user-badge {
+      display: inline-block;
+      border-radius: 999px;
+      border: 1px solid #dbe3ee;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 12px;
+      padding: 4px 10px;
+      font-weight: 600;
+    }
+    .hero, .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(2, 6, 23, 0.05);
+    }
+    .hero {
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+    }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(380px, 1.2fr) minmax(320px, 0.8fr);
+      gap: 12px;
+    }
+    @media (max-width: 920px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      padding: 14px;
+    }
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 17px;
+    }
+    .muted {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .inline {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .row {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .inline > * { flex: 1 1 140px; }
+    label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #fff;
+    }
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      background: var(--brand);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    button.alt { background: #334155; }
+    .out {
+      margin-top: 8px;
+      font-size: 12px;
+      background: #0b1220;
+      color: #dbeafe;
+      border-radius: 8px;
+      padding: 10px;
+      white-space: pre-wrap;
+      min-height: 56px;
+    }
+    .checklist {
+      margin-top: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .item {
+      display: grid;
+      grid-template-columns: minmax(170px, 1fr) minmax(80px, 100px) minmax(160px, 200px);
+      gap: 8px;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #eef2f7;
+      background: #fff;
+      font-size: 13px;
+    }
+    .item:last-child { border-bottom: 0; }
+    .badge {
+      display: inline-block;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      text-align: center;
+    }
+    .badge.pass {
+      border-color: #bbf7d0;
+      background: #ecfdf5;
+      color: var(--ok);
+    }
+    .badge.fail {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: var(--danger);
+    }
+    .badge.pending {
+      border-color: #cbd5e1;
+      background: #f8fafc;
+      color: #475569;
+    }
+    .stamp {
+      color: #64748b;
+      font-size: 11px;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topnav">
+      <div class="links">
+        <a id="navDashboard" href="./dashboard.html">Dashboard</a>
+        <a id="navOps" href="./tenant-console.html">Daily Ops</a>
+        <a id="navSetup" href="./tenant-setup.html">Setup</a>
+        <a id="navRelease" href="./release-checklist.html">Release</a>
+      </div>
+      <div class="meta">
+        <span id="navUserBadge" class="user-badge">Current User: not authenticated</span>
+        <button id="btnNavSignOut" class="alt" type="button">Sign out</button>
+      </div>
+    </div>
+
+    <section class="hero">
+      <h1>Release Checklist</h1>
+      <p>Keep release decisions simple: pass the gates, verify manual steps, then promote.</p>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Gate Checks</h2>
+        <p class="muted">Run these checks on your target API base before deployment.</p>
+        <div class="inline">
+          <button id="btnRunChecks">Run Release Checks</button>
+          <button id="btnClearManual" class="alt">Clear Manual Checks</button>
+        </div>
+        <div class="checklist">
+          <div class="item">
+            <div>API Health</div>
+            <span id="chkHealth" class="badge pending">pending</span>
+            <div id="stampHealth" class="stamp">not run</div>
+          </div>
+          <div class="item">
+            <div>Auth Session (`/auth/me`)</div>
+            <span id="chkAuthMe" class="badge pending">pending</span>
+            <div id="stampAuthMe" class="stamp">not run</div>
+          </div>
+          <div class="item">
+            <div>Handoff Metrics</div>
+            <span id="chkMetrics" class="badge pending">pending</span>
+            <div id="stampMetrics" class="stamp">not run</div>
+          </div>
+          <div class="item">
+            <div>Bots Endpoint</div>
+            <span id="chkBots" class="badge pending">pending</span>
+            <div id="stampBots" class="stamp">not run</div>
+          </div>
+          <div class="item">
+            <div>Knowledge Status</div>
+            <span id="chkKnowledge" class="badge pending">pending</span>
+            <div id="stampKnowledge" class="stamp">not run</div>
+          </div>
+          <div class="item">
+            <div>Manual: Prod Deploy Complete</div>
+            <span id="chkProdDeploy" class="badge pending">pending</span>
+            <div class="stamp"><button id="btnMarkDeploy" class="alt" type="button">Mark</button></div>
+          </div>
+          <div class="item">
+            <div>Manual: Prod Smoke Complete</div>
+            <span id="chkProdSmoke" class="badge pending">pending</span>
+            <div class="stamp"><button id="btnMarkSmoke" class="alt" type="button">Mark</button></div>
+          </div>
+        </div>
+        <div id="outChecks" class="out"></div>
+      </section>
+
+      <section class="card">
+        <h2>Sign In And Connection</h2>
+        <p class="muted" id="whoamiLine">Current User: not authenticated</p>
+        <div class="row"><label>Email</label><input id="lgEmail" value="" placeholder="admin@example.com" /></div>
+        <div class="row"><label>Password</label><input id="lgPassword" value="" placeholder="Enter password" /></div>
+        <div class="row" id="lgTenantIdRow" style="display:none;">
+          <label>Tenant ID (if user belongs to multiple tenants)</label>
+          <input id="lgTenantId" value="" placeholder="t_..." />
+        </div>
+        <div class="inline">
+          <button id="btnLogin">Login</button>
+          <button id="btnRunChecksRight" class="alt">Run Release Checks</button>
+        </div>
+        <div id="outLogin" class="out"></div>
+
+        <div class="row" style="margin-top:10px;">
+          <label for="apiBase">API Base</label>
+          <input id="apiBase" value="http://localhost:8000" />
+        </div>
+        <div class="inline">
+          <button id="btnEnvProd" class="alt">Use Prod</button>
+          <button id="btnEnvStaging" class="alt">Use Staging</button>
+          <button id="btnEnvLocal" class="alt">Use Local</button>
+        </div>
+        <div class="row">
+          <label for="stagingApiBase">Staging API Base</label>
+          <input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" />
+        </div>
+        <div class="row">
+          <label for="accessToken">Access Token</label>
+          <textarea id="accessToken" placeholder="Bearer token (auto-set after login)"></textarea>
+        </div>
+        <div class="inline">
+          <button id="saveToken" class="alt">Save Token</button>
+          <button id="clearToken" class="alt">Clear Token</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="./scripts/release-checklist.js"></script>
+</body>
+</html>
