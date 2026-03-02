@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
+from app.chat.memory_models import Conversation, Message
 from app.channels.models import CustomerChannelHandle
 from app.db.session import SessionLocal
 from app.handoff.models import HandoffRequest
@@ -268,3 +269,151 @@ def test_channel_identity_linking_and_profile_merge(monkeypatch):
         assert ("messenger", sender_source) in target_handle_keys
         assert ("messenger", sender_target) in target_handle_keys
         assert ("instagram", sender_target) in target_handle_keys
+
+
+def test_handoff_notes_reply_review_agent_reply_and_ai_toggle():
+    with TestClient(app) as client:
+        tenant_id, token = _onboard_and_token(client)
+        headers = _headers(token)
+
+        conv_id = f"conv_{uuid4().hex[:16]}"
+        now = datetime.utcnow()
+        with SessionLocal() as db:
+            db.add(
+                Conversation(
+                    id=conv_id,
+                    tenant_id=tenant_id,
+                    user_id=f"u_{uuid4().hex[:12]}",
+                    created_at=now,
+                    last_activity_at=now,
+                    ai_paused=False,
+                    ai_paused_at=None,
+                    ai_paused_by_user_id=None,
+                )
+            )
+            db.commit()
+
+        create_resp = client.post(
+            "/api/v1/handoff/request",
+            headers=headers,
+            json={
+                "question": "I need help with my account access",
+                "reason": "manual_test",
+                "conversation_id": conv_id,
+            },
+        )
+        assert create_resp.status_code == 200, create_resp.text
+        handoff_id = create_resp.json()["id"]
+
+        review_resp = client.post(
+            "/api/v1/admin/handoff/reply-review",
+            headers=headers,
+            json={
+                "handoff_id": handoff_id,
+                "draft": "This is guaranteed to always work.",
+                "rewrite_mode": "friendlier",
+            },
+        )
+        assert review_resp.status_code == 200, review_resp.text
+        review = review_resp.json()
+        assert review["handoff_id"] == handoff_id
+        assert review["requires_override"] is True
+        assert any(f["code"] == "overpromise" for f in review["risk_flags"])
+
+        add_note_resp = client.post(
+            f"/api/v1/admin/handoff/{handoff_id}/notes",
+            headers=headers,
+            json={"content": "Customer asked for a callback window."},
+        )
+        assert add_note_resp.status_code == 200, add_note_resp.text
+        added_note = add_note_resp.json()
+        assert added_note["handoff_id"] == handoff_id
+        assert added_note["content"] == "Customer asked for a callback window."
+
+        notes_resp = client.get(
+            f"/api/v1/admin/handoff/{handoff_id}/notes?limit=200&offset=0",
+            headers=headers,
+        )
+        assert notes_resp.status_code == 200, notes_resp.text
+        notes = notes_resp.json()
+        assert notes["handoff_id"] == handoff_id
+        assert notes["count"] >= 1
+        assert any(n["id"] == added_note["id"] for n in notes["items"])
+
+        reply_resp = client.post(
+            f"/api/v1/admin/handoff/{handoff_id}/reply",
+            headers=headers,
+            json={
+                "message": "Thanks for the details. We are reviewing this now.",
+                "mark_pending_customer": True,
+            },
+        )
+        assert reply_resp.status_code == 200, reply_resp.text
+        replied = reply_resp.json()
+        assert replied["status"] == "pending_customer"
+        assert replied["assigned_to_user_id"]
+
+        with SessionLocal() as db:
+            agent_messages = (
+                db.query(Message)
+                .filter(
+                    Message.conversation_id == conv_id,
+                    Message.role == "agent",
+                )
+                .all()
+            )
+            assert len(agent_messages) >= 1
+
+        pause_resp = client.post(
+            f"/api/v1/admin/handoff/{handoff_id}/ai-toggle",
+            headers=headers,
+            json={"ai_paused": True},
+        )
+        assert pause_resp.status_code == 200, pause_resp.text
+        paused = pause_resp.json()
+        assert paused["status"] == "open"
+
+        resume_resp = client.post(
+            f"/api/v1/admin/handoff/{handoff_id}/ai-toggle",
+            headers=headers,
+            json={"ai_paused": False},
+        )
+        assert resume_resp.status_code == 200, resume_resp.text
+        resumed = resume_resp.json()
+        assert resumed["status"] == "pending_customer"
+
+        with SessionLocal() as db:
+            conv = db.query(Conversation).filter(Conversation.id == conv_id).one()
+            assert conv.ai_paused is False
+            assert conv.ai_paused_at is None
+            assert conv.ai_paused_by_user_id is None
+
+
+def test_handoff_reply_and_ai_toggle_require_conversation_id():
+    with TestClient(app) as client:
+        _, token = _onboard_and_token(client)
+        headers = _headers(token)
+
+        create_resp = client.post(
+            "/api/v1/handoff/request",
+            headers=headers,
+            json={"question": "Need escalation support", "reason": "manual_test"},
+        )
+        assert create_resp.status_code == 200, create_resp.text
+        handoff_id = create_resp.json()["id"]
+
+        reply_resp = client.post(
+            f"/api/v1/admin/handoff/{handoff_id}/reply",
+            headers=headers,
+            json={"message": "Agent response", "mark_pending_customer": True},
+        )
+        assert reply_resp.status_code == 422
+        assert "no conversation_id" in reply_resp.json()["detail"]
+
+        ai_toggle_resp = client.post(
+            f"/api/v1/admin/handoff/{handoff_id}/ai-toggle",
+            headers=headers,
+            json={"ai_paused": True},
+        )
+        assert ai_toggle_resp.status_code == 422
+        assert "no conversation_id" in ai_toggle_resp.json()["detail"]
