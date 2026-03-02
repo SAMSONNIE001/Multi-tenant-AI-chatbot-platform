@@ -140,6 +140,48 @@ $("clearToken").onclick = () => {
   $("kpiGrid").style.display = "none";
   $("kpiGrid").innerHTML = "";
 };
+const btnForgotPassword = $("btnForgotPassword");
+if (btnForgotPassword) {
+  btnForgotPassword.onclick = async () => {
+    const out = $("outForgotPassword");
+    out.textContent = "Sending reset request...";
+    try {
+      const body = { email: $("fpEmail").value.trim() };
+      const tenantId = $("fpTenantId").value.trim();
+      if (tenantId) body.tenant_id = tenantId;
+      const data = await api("/api/v1/auth/password/forgot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      out.textContent = data.message || "If the account exists, reset email has been sent.";
+    } catch (e) {
+      out.textContent = String(e);
+    }
+  };
+}
+
+const btnResetPassword = $("btnResetPassword");
+if (btnResetPassword) {
+  btnResetPassword.onclick = async () => {
+    const out = $("outResetPassword");
+    out.textContent = "Resetting password...";
+    try {
+      const data = await api("/api/v1/auth/password/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reset_token: $("fpResetToken").value.trim(),
+          code: $("fpCode").value.trim(),
+          new_password: $("fpNewPassword").value,
+        }),
+      });
+      out.textContent = data.message || "Password reset successful.";
+    } catch (e) {
+      out.textContent = String(e);
+    }
+  };
+}
 const navDashboard = $("navDashboard");
 const navOps = $("navOps");
 const navSetup = $("navSetup");
@@ -168,5 +210,8 @@ if (btnNavSignOut) {
   if (savedToken) setToken(savedToken);
   if (savedBase) $("apiBase").value = savedBase;
   if (savedStaging) $("stagingApiBase").value = savedStaging;
+  const params = new URLSearchParams(window.location.search || "");
+  const resetToken = params.get("reset_token");
+  if (resetToken && $("fpResetToken")) $("fpResetToken").value = resetToken;
   refreshSnapshot().catch(() => {});
 })();

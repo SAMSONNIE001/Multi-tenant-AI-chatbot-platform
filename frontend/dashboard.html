@@ -299,6 +299,38 @@
         <div id="outLogin" class="out"></div>
 
         <details>
+          <summary>Forgot Password</summary>
+          <div class="row" style="margin-top:10px;">
+            <label>Account Email</label>
+            <input id="fpEmail" value="" placeholder="admin@example.com" />
+          </div>
+          <div class="row">
+            <label>Tenant ID (optional)</label>
+            <input id="fpTenantId" value="" placeholder="t_..." />
+          </div>
+          <div class="inline">
+            <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
+          </div>
+          <div id="outForgotPassword" class="out"></div>
+          <div class="row" style="margin-top:10px;">
+            <label>Reset Token (from link/email)</label>
+            <input id="fpResetToken" value="" placeholder="Paste reset token" />
+          </div>
+          <div class="row">
+            <label>Reset Code (from email)</label>
+            <input id="fpCode" value="" placeholder="6-digit code" />
+          </div>
+          <div class="row">
+            <label>New Password</label>
+            <input id="fpNewPassword" value="" placeholder="Enter new password" />
+          </div>
+          <div class="inline">
+            <button id="btnResetPassword" class="alt" type="button">Reset Password</button>
+          </div>
+          <div id="outResetPassword" class="out"></div>
+        </details>
+
+        <details>
           <summary>Advanced Connection Settings</summary>
           <div class="row" style="margin-top:10px;">
             <label for="apiBase">API Base</label>

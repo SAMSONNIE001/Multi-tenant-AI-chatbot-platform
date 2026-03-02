@@ -33,6 +33,13 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     GUNICORN_WORKERS: int = 2
     FRONTEND_PUBLIC_BASE_URL: str | None = None
+    PASSWORD_RESET_EXP_MINUTES: int = 15
+    SMTP_HOST: str | None = None
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_FROM: str | None = None
+    SMTP_STARTTLS: bool = True
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
