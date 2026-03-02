@@ -55,6 +55,29 @@ def on_startup() -> None:
         settings.JWT_ACCESS_EXP_MINUTES,
         settings.JWT_REFRESH_EXP_DAYS,
     )
+    smtp_required = {
+        "SMTP_HOST": bool(settings.SMTP_HOST),
+        "SMTP_USERNAME": bool(settings.SMTP_USERNAME),
+        "SMTP_PASSWORD": bool(settings.SMTP_PASSWORD),
+        "SMTP_FROM": bool(settings.SMTP_FROM),
+    }
+    smtp_enabled = all(smtp_required.values())
+    smtp_partial = any(smtp_required.values()) and not smtp_enabled
+    if smtp_enabled:
+        logger.info(
+            "Password reset email: enabled host=%s port=%s starttls=%s",
+            settings.SMTP_HOST,
+            settings.SMTP_PORT,
+            settings.SMTP_STARTTLS,
+        )
+    elif smtp_partial:
+        missing = [k for k, v in smtp_required.items() if not v]
+        logger.warning(
+            "Password reset email: partially configured. Missing: %s",
+            ", ".join(missing),
+        )
+    else:
+        logger.info("Password reset email: disabled (SMTP vars not configured)")
     init_db()
 
 
