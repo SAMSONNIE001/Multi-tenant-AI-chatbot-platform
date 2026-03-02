@@ -78,14 +78,23 @@
           email: $("lgEmail").value.trim(),
           password: $("lgPassword").value,
         };
+        const tenantId = $("lgTenantId").value.trim();
+        if (tenantId) body.tenant_id = tenantId;
         const data = await request("/api/v1/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
+        $("lgTenantIdRow").style.display = "none";
+        $("lgTenantId").value = "";
         out.textContent = pretty(data);
         if (data && data.access_token) setToken(data.access_token);
       } catch (e) {
+        const msg = String(e);
+        if (msg.includes("409") && msg.includes("Provide tenant_id")) {
+          $("lgTenantIdRow").style.display = "grid";
+          $("lgTenantId").focus();
+        }
         out.textContent = String(e);
       }
     };

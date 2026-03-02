@@ -452,6 +452,10 @@
         <h2>Tenant Login</h2>
         <div class="row"><label>Email</label><input id="lgEmail" value="" placeholder="admin@example.com" /></div>
         <div class="row"><label>Password</label><input id="lgPassword" value="" placeholder="Enter password" /></div>
+        <div class="row" id="lgTenantIdRow" style="display:none;">
+          <label>Tenant ID (required only if email is used by multiple tenants)</label>
+          <input id="lgTenantId" value="" placeholder="t_..." />
+        </div>
         <button id="btnLogin">Login</button>
         <div id="outLogin" class="out"></div>
       </section>
