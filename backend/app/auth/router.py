@@ -1,6 +1,7 @@
 import logging
 import secrets
 import smtplib
+from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 
@@ -38,6 +39,12 @@ from app.auth.deps import get_current_user
 router = APIRouter()
 MAX_ACTIVE_REFRESH_TOKENS = 5
 logger = logging.getLogger(__name__)
+FORGOT_WINDOW_SECONDS = 15 * 60
+FORGOT_MAX_PER_WINDOW = 3
+RESET_FAIL_WINDOW_SECONDS = 15 * 60
+RESET_FAIL_MAX = 5
+_forgot_attempts: dict[str, deque[datetime]] = defaultdict(deque)
+_reset_fail_attempts: dict[str, deque[datetime]] = defaultdict(deque)
 
 
 def _send_password_reset_email(
@@ -97,6 +104,22 @@ def _as_utc(value: datetime | None) -> datetime | None:
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
+
+
+def _prune_attempts(store: dict[str, deque[datetime]], key: str, now: datetime, window_seconds: int) -> None:
+    q = store[key]
+    cutoff = now - timedelta(seconds=window_seconds)
+    while q and q[0] < cutoff:
+        q.popleft()
+
+
+def _is_rate_limited(store: dict[str, deque[datetime]], key: str, now: datetime, window_seconds: int, limit: int) -> bool:
+    _prune_attempts(store, key, now, window_seconds)
+    return len(store[key]) >= limit
+
+
+def _register_attempt(store: dict[str, deque[datetime]], key: str, now: datetime) -> None:
+    store[key].append(now)
 
 
 def _enforce_refresh_token_limit(db: Session, *, user_id: str, tenant_id: str) -> None:
@@ -336,14 +359,20 @@ def me(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/password/forgot", response_model=ForgotPasswordResponse)
-def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+def forgot_password(payload: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
     email = str(payload.email).lower()
+    tenant_hint = (payload.tenant_id or "").strip() or "*"
+    client_ip = request.client.host if request.client else "unknown"
+    now = datetime.now(timezone.utc)
+    limit_key = f"{tenant_hint}:{email}:{client_ip}"
+    if _is_rate_limited(_forgot_attempts, limit_key, now, FORGOT_WINDOW_SECONDS, FORGOT_MAX_PER_WINDOW):
+        return ForgotPasswordResponse(message=_password_reset_public_message())
+    _register_attempt(_forgot_attempts, limit_key, now)
+
     q = db.query(User).filter(User.email == email)
     if payload.tenant_id:
         q = q.filter(User.tenant_id == payload.tenant_id.strip())
     users = q.limit(5).all()
-
-    now = datetime.now(timezone.utc)
     exp_minutes = max(5, int(settings.PASSWORD_RESET_EXP_MINUTES))
     expires_at = now + timedelta(minutes=exp_minutes)
 
@@ -376,12 +405,18 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
 
 
 @router.post("/password/reset", response_model=ResetPasswordResponse)
-def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+def reset_password(payload: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)):
     now = datetime.now(timezone.utc)
+    token_hash_value = hash_token(payload.reset_token.strip())
+    client_ip = request.client.host if request.client else "unknown"
+    limit_key = f"{token_hash_value}:{client_ip}"
+    if _is_rate_limited(_reset_fail_attempts, limit_key, now, RESET_FAIL_WINDOW_SECONDS, RESET_FAIL_MAX):
+        raise HTTPException(status_code=429, detail="Too many failed reset attempts. Request a new reset email.")
+
     row = (
         db.query(PasswordResetToken)
         .filter(
-            PasswordResetToken.token_hash == hash_token(payload.reset_token.strip()),
+            PasswordResetToken.token_hash == token_hash_value,
             PasswordResetToken.used_at.is_(None),
             PasswordResetToken.expires_at > now,
         )
@@ -389,8 +424,10 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
         .first()
     )
     if not row:
+        _register_attempt(_reset_fail_attempts, limit_key, now)
         raise HTTPException(status_code=400, detail="Invalid or expired reset token")
     if row.code_hash != hash_token(payload.code.strip()):
+        _register_attempt(_reset_fail_attempts, limit_key, now)
         raise HTTPException(status_code=400, detail="Invalid reset code")
 
     user = db.get(User, row.user_id)
@@ -420,6 +457,7 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
         db.add(token)
 
     db.commit()
+    _reset_fail_attempts.pop(limit_key, None)
     return ResetPasswordResponse(message="Password reset successful. Please log in with the new password.")
 
 

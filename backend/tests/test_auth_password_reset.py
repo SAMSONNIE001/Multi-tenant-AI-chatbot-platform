@@ -114,3 +114,96 @@ def test_password_reset_rejects_invalid_code(monkeypatch):
         )
         assert reset_resp.status_code == 400
         assert "Invalid reset code" in reset_resp.json()["detail"]
+
+
+def test_forgot_password_rate_limit_returns_generic_success(monkeypatch):
+    sent: dict[str, int] = {"count": 0}
+
+    def fake_send_email(*, to_email: str, tenant_id: str, reset_token: str, code: str, expires_minutes: int) -> bool:
+        sent["count"] += 1
+        return True
+
+    monkeypatch.setattr("app.auth.router._send_password_reset_email", fake_send_email)
+
+    email = "reset_limit@example.com"
+    password = "StrongPass123!"
+
+    with TestClient(app) as client:
+        onboard_resp = client.post(
+            "/api/v1/tenant/onboard",
+            json={
+                "tenant_name": "Reset Limit Tenant",
+                "admin_email": email,
+                "admin_password": password,
+                "compliance_level": "standard",
+                "bot_name": "Reset Bot",
+                "allowed_origins": ["https://example.com"],
+            },
+        )
+        assert onboard_resp.status_code == 200
+        tenant_id = onboard_resp.json()["tenant"]["id"]
+
+        for _ in range(4):
+            forgot_resp = client.post(
+                "/api/v1/auth/password/forgot",
+                json={"tenant_id": tenant_id, "email": email},
+            )
+            assert forgot_resp.status_code == 200
+            assert forgot_resp.json()["ok"] is True
+        assert sent["count"] == 3
+
+
+def test_password_reset_blocks_after_too_many_invalid_codes(monkeypatch):
+    captured: dict[str, str] = {}
+
+    def fake_send_email(*, to_email: str, tenant_id: str, reset_token: str, code: str, expires_minutes: int) -> bool:
+        captured["reset_token"] = reset_token
+        captured["code"] = code
+        return True
+
+    monkeypatch.setattr("app.auth.router._send_password_reset_email", fake_send_email)
+
+    email = "reset_fail_limit@example.com"
+    password = "StrongPass123!"
+
+    with TestClient(app) as client:
+        onboard_resp = client.post(
+            "/api/v1/tenant/onboard",
+            json={
+                "tenant_name": "Reset Fail Limit Tenant",
+                "admin_email": email,
+                "admin_password": password,
+                "compliance_level": "standard",
+                "bot_name": "Reset Bot",
+                "allowed_origins": ["https://example.com"],
+            },
+        )
+        assert onboard_resp.status_code == 200
+        tenant_id = onboard_resp.json()["tenant"]["id"]
+
+        forgot_resp = client.post(
+            "/api/v1/auth/password/forgot",
+            json={"tenant_id": tenant_id, "email": email},
+        )
+        assert forgot_resp.status_code == 200
+
+        for _ in range(5):
+            bad_reset = client.post(
+                "/api/v1/auth/password/reset",
+                json={
+                    "reset_token": captured["reset_token"],
+                    "code": "000000",
+                    "new_password": "NewStrongPass123!",
+                },
+            )
+            assert bad_reset.status_code == 400
+
+        blocked_reset = client.post(
+            "/api/v1/auth/password/reset",
+            json={
+                "reset_token": captured["reset_token"],
+                "code": captured["code"],
+                "new_password": "NewStrongPass123!",
+            },
+        )
+        assert blocked_reset.status_code == 429
