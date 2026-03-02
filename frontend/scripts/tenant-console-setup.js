@@ -1,3 +1,38 @@
+    const tc = window.TenantConsole;
+    const {
+      $,
+      setToken,
+      request,
+      parseOrigins,
+      pretty,
+      fetchReplyReview,
+      renderReplyReview,
+      loadHandoffNotes,
+      renderNotesTimeline,
+      renderConversationThread,
+      renderProductivityMetrics,
+      loadHandoffQueue,
+      setQueueAutoRefresh,
+      loadProfiles,
+      mergeProfiles,
+      runQaMergeFlow,
+      seedProfileActivity,
+      loadEscalationMetrics,
+      runEscalationSweep,
+      runQaSweepFlow,
+      loadOpsMonitor,
+      loadOpsAudit,
+      runPreflightChecks,
+      renderReleaseSnapshot,
+      switchApiBase,
+      runStagingQaPack,
+      runUatPack,
+      applyQaAvailability,
+      setActivePane,
+      applyConsoleMode,
+    } = tc;
+    const state = tc.state;
+
     $("saveToken").onclick = () => {
       localStorage.setItem("tenant_console_token", $("accessToken").value);
       localStorage.setItem("tenant_console_api_base", $("apiBase").value);
@@ -232,7 +267,7 @@
         out.textContent = pretty(data);
         $("hfAgentReply").value = "";
         $("hfSendOverride").checked = false;
-        lastReplyReview = null;
+        state.lastReplyReview = null;
         if ($("convId").value.trim()) {
           $("btnLoadConversation").click();
         }

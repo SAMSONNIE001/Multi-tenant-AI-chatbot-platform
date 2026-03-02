@@ -1,3 +1,23 @@
+    const tc = window.TenantConsole;
+    const {
+      $,
+      pretty,
+      nowIso,
+      getApiBase,
+      isProdApiBase,
+      switchApiBase,
+      runPreflightChecks,
+      updateQaChecklist,
+      request,
+      seedProfileActivity,
+      loadProfiles,
+      runEscalationSweep,
+      loadHandoffQueue,
+      loadEscalationMetrics,
+      mergeProfiles,
+    } = tc;
+    const state = tc.state;
+
     async function runStagingQaPack() {
       const out = $("outEscalationOps");
       out.textContent = "Running staging QA pack...";
@@ -21,23 +41,23 @@
           $("escSweepReason").value = `staging qa sweep ${new Date().toISOString()}`;
         }
         await runQaSweepFlow();
-        if (lastProfiles.length >= 2) {
-          $("cpSourceId").value = lastProfiles[0].id;
-          $("cpTargetId").value = lastProfiles[1].id;
+        if (state.lastProfiles.length >= 2) {
+          $("cpSourceId").value = state.lastProfiles[0].id;
+          $("cpTargetId").value = state.lastProfiles[1].id;
           $("cpMergeReason").value = `staging qa merge ${new Date().toISOString()}`;
           await runQaMergeFlow();
         }
         out.textContent = pretty({
           qa_pack: "staging_full",
           api_base: getApiBase(),
-          profiles_loaded: lastProfiles.length,
+          profiles_loaded: state.lastProfiles.length,
           sweep_test: "completed",
-          merge_test: lastProfiles.length >= 2 ? "completed" : "skipped_not_enough_profiles",
+          merge_test: state.lastProfiles.length >= 2 ? "completed" : "skipped_not_enough_profiles",
         });
-        lastQaPack = { at: nowIso(), ok: true };
+        state.lastQaPack = { at: nowIso(), ok: true };
       } catch (e) {
         out.textContent = String(e);
-        lastQaPack = { at: nowIso(), ok: false, error: String(e) };
+        state.lastQaPack = { at: nowIso(), ok: false, error: String(e) };
       } finally {
         updateQaChecklist();
       }
@@ -76,13 +96,13 @@
       await runStep("staging_qa_pack", async () => {
         if (isProdApiBase()) throw new Error("UAT pack is intended for staging/local API base");
         await runStagingQaPack();
-        if (!lastQaPack || !lastQaPack.ok) throw new Error("staging qa pack reported failure");
-        return lastQaPack;
+        if (!state.lastQaPack || !state.lastQaPack.ok) throw new Error("staging qa pack reported failure");
+        return state.lastQaPack;
       });
 
       await runStep("daily_ops.queue_load", async () => {
         await loadHandoffQueue(true);
-        return { items: Array.isArray(lastQueueItems) ? lastQueueItems.length : 0 };
+        return { items: Array.isArray(state.lastQueueItems) ? state.lastQueueItems.length : 0 };
       });
 
       await runStep("daily_ops.metrics_load", async () => loadEscalationMetrics());
@@ -106,7 +126,7 @@
         let before = null;
         if (selectedId) {
           await loadHandoffQueue(true);
-          before = (lastQueueItems || []).find((x) => x.id === selectedId) || null;
+          before = (state.lastQueueItems || []).find((x) => x.id === selectedId) || null;
         }
         if (!before) {
           const breached = await request("/api/v1/admin/handoff?breached_only=true");
@@ -117,7 +137,7 @@
           selectedId = candidate.id;
           $("hfId").value = selectedId;
           await loadHandoffQueue(true);
-          before = (lastQueueItems || []).find((x) => x.id === selectedId) || candidate;
+          before = (state.lastQueueItems || []).find((x) => x.id === selectedId) || candidate;
         }
         const beforePriority = String(before.priority || "").toLowerCase();
         const beforeEsc = !!before.escalation_flag;
@@ -125,7 +145,7 @@
           $("escSweepReason").value = `qa sweep validation ${new Date().toISOString()}`;
         }
         const sweep = await runEscalationSweep();
-        const after = (lastQueueItems || []).find((x) => x.id === selectedId);
+        const after = (state.lastQueueItems || []).find((x) => x.id === selectedId);
         out.textContent = pretty({
           qa_flow: "breached_ticket_sweep",
           selected_handoff_id: selectedId,
@@ -193,4 +213,11 @@
         out.textContent = String(e);
       }
     }
+
+    Object.assign(tc, {
+      runStagingQaPack,
+      runUatPack,
+      runQaSweepFlow,
+      runQaMergeFlow,
+    });
 

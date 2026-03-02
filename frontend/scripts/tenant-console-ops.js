@@ -1,3 +1,22 @@
+    const tc = window.TenantConsole;
+    const {
+      $,
+      esc,
+      shortDate,
+      pretty,
+      request,
+      nowIso,
+      currentActorId,
+      appendOpsAudit,
+      ensurePreflightForDestructive,
+      requireReasonAndConfirm,
+      updateQaChecklist,
+      renderReleaseSnapshot,
+      isProdApiBase,
+      loadOpsAudit,
+    } = tc;
+    const state = tc.state;
+
     function renderQueueTable(items) {
       const wrap = $("queueTableWrap");
       const body = $("queueTableBody");
@@ -95,7 +114,7 @@
       const body = $("profilesTableBody");
       body.innerHTML = "";
       const profiles = Array.isArray(data && data.profiles) ? data.profiles : [];
-      lastProfiles = profiles;
+      state.lastProfiles = profiles;
       if (!profiles.length) {
         wrap.style.display = "none";
         return;
@@ -169,7 +188,7 @@
         ["Escalated Total", t.escalated_tickets ?? "-"],
         ["24h Escalation %", w24.escalation_rate != null ? `${(Number(w24.escalation_rate) * 100).toFixed(1)}%` : "-"],
         ["24h Tickets", w24.total_tickets ?? "-"],
-        ["Last Sweep", lastSweepRun ? shortDate(lastSweepRun.at) : "never"],
+        ["Last Sweep", state.lastSweepRun ? shortDate(state.lastSweepRun.at) : "never"],
       ];
       box.style.display = "grid";
       box.innerHTML = cards.map(([k, v]) => `<div class="kpi"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
@@ -395,7 +414,7 @@
           rewrite_mode: mode,
         }),
       });
-      lastReplyReview = {
+      state.lastReplyReview = {
         handoff_id: handoffId,
         draft_before_send: draft,
         requires_override: !!data.requires_override,
@@ -448,13 +467,13 @@
     }
 
     function setQueueAutoRefresh() {
-      if (queueTimer) {
-        clearInterval(queueTimer);
-        queueTimer = null;
+      if (state.queueTimer) {
+        clearInterval(state.queueTimer);
+        state.queueTimer = null;
       }
       const seconds = parseInt($("hfAutoRefresh").value, 10) || 0;
       if (seconds > 0) {
-        queueTimer = setInterval(() => {
+        state.queueTimer = setInterval(() => {
           loadHandoffQueue(true);
         }, seconds * 1000);
       }
@@ -484,7 +503,7 @@
           items = items.filter((x) => !!x.escalation_flag);
         }
         items = sortQueueItems(items);
-        lastQueueItems = items;
+        state.lastQueueItems = items;
         if (!silent) out.textContent = pretty({ ...data, items });
         renderQueueMetrics(items);
         renderQueueTable(items);
@@ -493,7 +512,7 @@
         }
       } catch (e) {
         out.textContent = String(e);
-        lastQueueItems = [];
+        state.lastQueueItems = [];
         renderQueueMetrics([]);
         renderQueueTable([]);
       }
@@ -539,7 +558,7 @@
           result: data,
         });
         out.textContent = pretty(data);
-        lastMergeRun = { at: nowIso(), result: data };
+        state.lastMergeRun = { at: nowIso(), result: data };
         await loadProfiles();
         await loadOpsAudit();
         updateQaChecklist();
@@ -573,7 +592,7 @@
         ensurePreflightForDestructive("Run escalation sweep");
         const reason = requireReasonAndConfirm($("escSweepReason").value, "Run escalation sweep");
         const data = await request("/api/v1/admin/handoff/escalation/sweep", { method: "POST" });
-        lastSweepRun = {
+        state.lastSweepRun = {
           at: nowIso(),
           result: data,
         };
@@ -587,7 +606,7 @@
         out.textContent = pretty(data);
         await loadHandoffQueue(true);
         const metrics = await loadEscalationMetrics();
-        renderOpsMonitorGrid(metrics, lastQueueItems);
+        renderOpsMonitorGrid(metrics, state.lastQueueItems);
         await loadOpsAudit();
         updateQaChecklist();
         renderReleaseSnapshot();
@@ -605,13 +624,13 @@
         await loadHandoffQueue(true);
         const metrics = await request("/api/v1/admin/handoff/metrics");
         renderEscalationMetricsCards(metrics);
-        renderOpsMonitorGrid(metrics, lastQueueItems);
+        renderOpsMonitorGrid(metrics, state.lastQueueItems);
         out.textContent = pretty({
           tenant_id: metrics.tenant_id,
           as_of: metrics.as_of,
-          urgent_backlog: (lastQueueItems || []).filter((x) => String(x.priority || "").toLowerCase() === "urgent" && ["new", "open", "pending_customer"].includes(String(x.status || ""))).length,
-          escalated_open: (lastQueueItems || []).filter((x) => !!x.escalation_flag && ["new", "open", "pending_customer"].includes(String(x.status || ""))).length,
-          last_sweep_at: lastSweepRun ? lastSweepRun.at : null,
+          urgent_backlog: (state.lastQueueItems || []).filter((x) => String(x.priority || "").toLowerCase() === "urgent" && ["new", "open", "pending_customer"].includes(String(x.status || ""))).length,
+          escalated_open: (state.lastQueueItems || []).filter((x) => !!x.escalation_flag && ["new", "open", "pending_customer"].includes(String(x.status || ""))).length,
+          last_sweep_at: state.lastSweepRun ? state.lastSweepRun.at : null,
         });
       } catch (e) {
         out.textContent = String(e);
@@ -663,10 +682,41 @@
           channel_type: pageLike.channel_type,
           external_user_id: externalId,
           webhook_result: res,
-          profiles_count: lastProfiles.length,
+          profiles_count: state.lastProfiles.length,
         });
       } catch (e) {
         out.textContent = String(e);
       }
     }
+
+    Object.assign(tc, {
+      renderQueueTable,
+      queueMetrics,
+      renderQueueMetrics,
+      renderProfilesTable,
+      renderEscalationMetricsCards,
+      renderOpsMonitorGrid,
+      applyQaAvailability,
+      renderProductivityMetrics,
+      renderLineSvg,
+      renderBarSvg,
+      renderProdCharts,
+      roleClass,
+      renderConversationThread,
+      renderNotesTimeline,
+      loadHandoffNotes,
+      renderReplyReview,
+      fetchReplyReview,
+      priorityRank,
+      isSlaBreached,
+      sortQueueItems,
+      setQueueAutoRefresh,
+      loadHandoffQueue,
+      loadProfiles,
+      mergeProfiles,
+      loadEscalationMetrics,
+      runEscalationSweep,
+      loadOpsMonitor,
+      seedProfileActivity,
+    });
 

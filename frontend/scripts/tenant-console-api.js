@@ -334,3 +334,49 @@
       return d.toLocaleString();
     }
 
+    const tc = window.TenantConsole || {};
+    const state = tc.state || {};
+    Object.defineProperties(state, {
+      queueTimer: { get: () => queueTimer, set: (v) => { queueTimer = v; }, enumerable: true },
+      lastReplyReview: { get: () => lastReplyReview, set: (v) => { lastReplyReview = v; }, enumerable: true },
+      lastQueueItems: { get: () => lastQueueItems, set: (v) => { lastQueueItems = v; }, enumerable: true },
+      lastProfiles: { get: () => lastProfiles, set: (v) => { lastProfiles = v; }, enumerable: true },
+      lastSweepRun: { get: () => lastSweepRun, set: (v) => { lastSweepRun = v; }, enumerable: true },
+      lastMergeRun: { get: () => lastMergeRun, set: (v) => { lastMergeRun = v; }, enumerable: true },
+      lastPreflight: { get: () => lastPreflight, set: (v) => { lastPreflight = v; }, enumerable: true },
+      lastAuditRefreshAt: { get: () => lastAuditRefreshAt, set: (v) => { lastAuditRefreshAt = v; }, enumerable: true },
+      lastQaPack: { get: () => lastQaPack, set: (v) => { lastQaPack = v; }, enumerable: true },
+      activePane: { get: () => activePane, set: (v) => { activePane = v; }, enumerable: true },
+    });
+
+    Object.assign(tc, {
+      $,
+      pretty,
+      getApiBase,
+      isProdApiBase,
+      nowIso,
+      preflightAgeMin,
+      setChecklistBadge,
+      updateQaChecklist,
+      applyConsoleMode,
+      setActivePane,
+      renderReleaseSnapshot,
+      safeJwtField,
+      currentActorId,
+      appendOpsAuditLocal,
+      appendOpsAudit,
+      loadOpsAudit,
+      switchApiBase,
+      requireReasonAndConfirm,
+      ensurePreflightForDestructive,
+      getToken,
+      setToken,
+      request,
+      runPreflightChecks,
+      parseOrigins,
+      esc,
+      shortDate,
+      state,
+    });
+    window.TenantConsole = tc;
+
