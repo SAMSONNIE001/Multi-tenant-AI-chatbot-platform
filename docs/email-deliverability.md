@@ -39,6 +39,21 @@ Use `p=none` only during warm-up, then move to `quarantine`/`reject`.
 4. Reset password with token + code.
 5. Confirm old password fails and new password succeeds.
 
+## Production Execution Order
+1. Confirm app env vars are set on production Railway service:
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_STARTTLS`
+   - `FRONTEND_PUBLIC_BASE_URL=https://www.staunchbot.com`
+2. Confirm DNS alignment for the `SMTP_FROM` domain:
+   - SPF includes your provider
+   - DKIM selectors are valid
+   - DMARC policy exists (`none` during warm-up, then `quarantine`/`reject`)
+3. Run live production verification:
+   - Open `https://www.staunchbot.com/dashboard.html`
+   - Use Forgot Password with a real mailbox
+   - Complete reset using token + code
+4. Track placement across at least 2 mailbox providers (for example Gmail + Outlook).
+5. If placement is stable for 48-72 hours, tighten DMARC policy.
+
 ## Troubleshooting
 - If no email arrives:
   - Check startup logs for `Password reset email: partially configured`.
