@@ -1,7 +1,10 @@
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.engine.url import make_url
 
@@ -100,6 +103,11 @@ app.include_router(tenant_router, prefix="/api/v1/tenant", tags=["tenant"])
 
 
 # --- System ---
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/dashboard.html")
+
+
 @app.get("/health", tags=["system"])
 def health():
     return {"status": "ok"}
@@ -113,3 +121,8 @@ def readiness():
     except Exception:
         raise HTTPException(status_code=503, detail="Database not ready")
     return {"status": "ready"}
+
+
+frontend_dir = Path(__file__).resolve().parents[2] / "frontend"
+if frontend_dir.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
