@@ -6,28 +6,26 @@
   <title>StaunchBot Release Checklist</title>
   <style>
     :root {
-      --bg: #f4f7f9;
+      --bg: #edf2f7;
       --card: #ffffff;
       --ink: #0f172a;
-      --muted: #5b6b7f;
-      --line: #d8e2ec;
-      --brand: #0f766e;
+      --muted: #64748b;
+      --line: #d7e0ec;
+      --brand: #1f66d1;
       --danger: #b91c1c;
       --ok: #15803d;
+      --shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background:
-        radial-gradient(900px 300px at 0% -10%, #dff8f2 0%, transparent 60%),
-        radial-gradient(900px 300px at 100% -20%, #eaf0ff 0%, transparent 55%),
-        var(--bg);
+      font-family: "Segoe UI", "Trebuchet MS", "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg, #f2f5fa 0%, #e8eef6 100%);
       color: var(--ink);
     }
     .wrap {
-      max-width: 1120px;
-      margin: 28px auto;
+      max-width: 1220px;
+      margin: 18px auto;
       padding: 0 16px;
     }
     .topnav {
@@ -37,9 +35,10 @@
       gap: 10px;
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: #fff;
+      background: linear-gradient(180deg, #1f3b66, #2f5a96);
       padding: 10px 12px;
       margin-bottom: 12px;
+      box-shadow: var(--shadow);
     }
     .topnav .links {
       display: flex;
@@ -48,18 +47,18 @@
     }
     .topnav .links a {
       text-decoration: none;
-      color: #0f172a;
-      border: 1px solid var(--line);
+      color: #dbeafe;
+      border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 999px;
       padding: 5px 10px;
       font-size: 12px;
       font-weight: 700;
-      background: #fff;
+      background: rgba(255, 255, 255, 0.08);
     }
     .topnav .links a.active {
-      border-color: #99f6e4;
-      background: #ecfeff;
-      color: #115e59;
+      border-color: rgba(255, 255, 255, 0.45);
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
     }
     .topnav .meta {
       display: flex;
@@ -70,9 +69,9 @@
     .user-badge {
       display: inline-block;
       border-radius: 999px;
-      border: 1px solid #dbe3ee;
-      background: #f8fafc;
-      color: #334155;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
       font-size: 12px;
       padding: 4px 10px;
       font-weight: 600;
@@ -81,20 +80,22 @@
       border: 1px solid var(--line);
       border-radius: 12px;
       background: #fff;
-      box-shadow: 0 8px 24px rgba(2, 6, 23, 0.05);
+      box-shadow: var(--shadow);
     }
     .hero {
       padding: 16px;
       margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff, #f8fbff);
     }
     .hero h1 {
       margin: 0 0 6px;
-      font-size: 26px;
+      font-size: 24px;
+      letter-spacing: -0.02em;
     }
     .hero p {
       margin: 0;
       color: var(--muted);
-      font-size: 14px;
+      font-size: 13px;
     }
     .grid {
       display: grid;
@@ -109,7 +110,7 @@
     }
     .card h2 {
       margin: 0 0 10px;
-      font-size: 17px;
+      font-size: 16px;
     }
     .muted {
       font-size: 12px;
@@ -129,8 +130,8 @@
     .inline > * { flex: 1 1 140px; }
     label {
       font-size: 12px;
-      color: var(--muted);
-      font-weight: 600;
+      color: #475569;
+      font-weight: 700;
     }
     input, textarea {
       width: 100%;
@@ -159,7 +160,7 @@
     .out {
       margin-top: 8px;
       font-size: 12px;
-      background: #0b1220;
+      background: #0f172a;
       color: #dbeafe;
       border-radius: 8px;
       padding: 10px;
