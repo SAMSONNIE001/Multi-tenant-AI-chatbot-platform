@@ -23,8 +23,20 @@
     }
 
     function isProdApiBase() {
-      const base = getApiBase().toLowerCase();
-      return base.includes("api.staunchbot.com");
+      const base = getApiBase();
+      try {
+        const host = new URL(base).hostname.toLowerCase();
+        return host === "api.staunchbot.com"
+          || host === "www.staunchbot.com"
+          || host === "staunchbot.com"
+          || host === "multi-tenant-ai-chatbot-platform-production.up.railway.app";
+      } catch (_) {
+        const raw = String(base || "").toLowerCase();
+        return raw.includes("api.staunchbot.com")
+          || raw.includes("www.staunchbot.com")
+          || raw.includes("staunchbot.com")
+          || raw.includes("multi-tenant-ai-chatbot-platform-production.up.railway.app");
+      }
     }
 
     function nowIso() {
