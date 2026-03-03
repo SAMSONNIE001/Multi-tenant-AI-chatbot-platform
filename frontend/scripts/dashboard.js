@@ -94,6 +94,15 @@ async function refreshSnapshot() {
       .join("");
 
     const totals = metrics?.totals || {};
+    const setStat = (id, v) => {
+      const el = $(id);
+      if (el) el.textContent = String(v);
+    };
+    setStat("statOpenTickets", totals.unresolved_tickets ?? 0);
+    setStat("statPending", totals.pending_customer_tickets ?? 0);
+    setStat("statBreaches", totals.breached_tickets ?? 0);
+    setStat("statResolved", totals.resolved_tickets ?? 0);
+
     out.textContent = [
       `Snapshot updated ${new Date().toLocaleString()}`,
       `Tenant ${me.tenant_id || "-"} (${me.role || "-"})`,
