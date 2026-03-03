@@ -408,7 +408,7 @@
     $("btnQaSweepFlow").onclick = () => runQaSweepFlow();
     $("btnLoadOpsAudit").onclick = () => loadOpsAudit();
     $("btnRunPreflight").onclick = () => runPreflightChecks(false);
-    $("btnEnvProd").onclick = () => switchApiBase("https://www.staunchbot.com");
+    $("btnEnvProd").onclick = () => switchApiBase("https://api.staunchbot.com");
     $("btnEnvStaging").onclick = () => switchApiBase($("stagingApiBase").value.trim());
     $("btnEnvLocal").onclick = () => switchApiBase("http://localhost:8000");
     $("btnRunStagingQaPack").onclick = () => runStagingQaPack();

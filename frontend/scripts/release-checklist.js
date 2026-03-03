@@ -255,7 +255,7 @@ $("btnClearManual").onclick = () => {
   renderManualChecks();
 };
 
-$("btnEnvProd").onclick = () => setApiBase("https://www.staunchbot.com");
+$("btnEnvProd").onclick = () => setApiBase("https://api.staunchbot.com");
 $("btnEnvStaging").onclick = () => setApiBase($("stagingApiBase").value.trim());
 $("btnEnvLocal").onclick = () => setApiBase("http://localhost:8000");
 

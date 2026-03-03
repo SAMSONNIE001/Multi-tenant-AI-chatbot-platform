@@ -155,7 +155,7 @@ $("btnLogin").onclick = async () => {
 };
 
 $("btnRefreshAll").onclick = () => refreshSnapshot();
-$("btnEnvProd").onclick = () => setApiBase("https://www.staunchbot.com");
+$("btnEnvProd").onclick = () => setApiBase("https://api.staunchbot.com");
 $("btnEnvStaging").onclick = () => setApiBase($("stagingApiBase").value.trim());
 $("btnEnvLocal").onclick = () => setApiBase("http://localhost:8000");
 $("saveToken").onclick = () => {
