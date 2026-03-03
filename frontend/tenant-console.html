@@ -442,7 +442,7 @@
     <div class="topnav">
       <div class="links">
         <a id="navDashboard" href="./dashboard.html">Dashboard</a>
-        <a id="navOps" href="./tenant-console.html">Daily Ops</a>
+        <a id="navOps" href="./tenant-console.html">Operations</a>
         <a id="navSetup" href="./tenant-setup.html">Setup</a>
         <a id="navRelease" href="./release-checklist.html">Release</a>
       </div>
@@ -452,21 +452,20 @@
       </div>
     </div>
     <div class="header">
-      <h1>Daily Operations Console</h1>
-      <p>Operate queue, quality checks, and escalation controls from one place.</p>
-      <p class="small">Build: customer-profiles + escalation-ops (2026-03-01)</p>
-      <p class="small"><a href="./tenant-setup.html">Open Setup/Admin Console</a></p>
+      <h1>Operations Console</h1>
+      <p>Manage queue, quality checks, and escalations in one place.</p>
+      <p class="small"><a href="./tenant-setup.html">Open Setup Console</a></p>
       <p class="small">Use Setup for onboarding/configuration and Release for promotion checks.</p>
     </div>
 
     <div class="console-toolbar">
       <div class="tabbar">
-        <button id="tabDaily" class="tab-btn active" data-tab="daily">Daily Ops</button>
-        <button id="tabQa" class="tab-btn" data-tab="qa">Staging QA</button>
+        <button id="tabDaily" class="tab-btn active" data-tab="daily">Operations</button>
+        <button id="tabQa" class="tab-btn" data-tab="qa">QA Checks</button>
       </div>
       <div class="inline" style="align-items:center;">
         <div class="row" style="margin:0; min-width:140px;">
-          <label for="roleMode">View Mode</label>
+          <label for="roleMode">Access Mode</label>
           <select id="roleMode">
             <option value="operator">Operator</option>
             <option value="admin">Admin</option>
@@ -474,16 +473,16 @@
         </div>
         <label class="toggle">
           <input id="toggleAdvanced" type="checkbox" />
-          Show Advanced Actions
+          Show Advanced Tools
         </label>
       </div>
     </div>
 
     <div class="grid">
       <section class="card" data-pane="daily qa">
-        <h2>Connection + Session</h2>
+        <h2>Connection</h2>
         <div class="row">
-          <label for="apiBase">API Base</label>
+          <label for="apiBase">API URL</label>
           <input id="apiBase" value="http://localhost:8000" />
         </div>
         <div class="inline">
@@ -492,17 +491,17 @@
           <button id="btnEnvLocal" class="alt">Use Local</button>
         </div>
         <div class="row">
-          <label for="stagingApiBase">Staging API Base</label>
+          <label for="stagingApiBase">Staging API URL</label>
           <input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" />
         </div>
         <div class="row">
-          <label for="accessToken">Access Token</label>
+          <label for="accessToken">Session Token</label>
           <textarea id="accessToken" placeholder="Bearer token will appear here"></textarea>
         </div>
         <button id="saveToken" class="alt">Save Token</button>
         <button id="clearToken" class="alt">Clear Token</button>
-        <button id="btnRunPreflight" class="alt">Run Preflight Checks</button>
-        <button id="btnRunStagingQaPack" class="alt">Run Staging QA Pack</button>
+        <button id="btnRunPreflight" class="alt">Run Pre-Check</button>
+        <button id="btnRunStagingQaPack" class="alt">Run QA Pack</button>
         <div id="outPreflight" class="out"></div>
         <div class="small" style="margin-top:8px;">
           Token is stored in browser localStorage for this page only.
@@ -517,22 +516,22 @@
       </section>
 
       <section class="card workflow-card" data-pane="qa">
-        <h2>Staging QA Checklist</h2>
-        <div class="small">Run in order and verify pass badges before promotion.</div>
+        <h2>QA Checklist</h2>
+        <div class="small">Run in order and confirm each step passes before promotion.</div>
         <div class="inline" style="margin-top:10px;">
-          <button id="btnRunUatPack" class="alt">Run UAT Pack</button>
+          <button id="btnRunUatPack" class="alt">Run Full QA Pack</button>
         </div>
         <div id="outUatPack" class="out"></div>
         <ol class="step-list">
-          <li>Run Preflight <span id="qaStepPreflight" class="badge">not run</span></li>
-          <li>Run Staging QA Pack <span id="qaStepPack" class="badge">not run</span></li>
+          <li>Run Pre-Check <span id="qaStepPreflight" class="badge">not run</span></li>
+          <li>Run QA Pack <span id="qaStepPack" class="badge">not run</span></li>
           <li>Escalation sweep + metrics <span id="qaStepSweep" class="badge">pending</span></li>
           <li>Profile merge flow <span id="qaStepMerge" class="badge">pending</span></li>
         </ol>
       </section>
 
       <section class="card" data-pane="setup daily qa">
-        <h2>Tenant Login</h2>
+        <h2>Sign In</h2>
         <div class="row"><label>Email</label><input id="lgEmail" value="" placeholder="admin@example.com" /></div>
         <div class="row"><label>Password</label><input id="lgPassword" value="" placeholder="Enter password" /></div>
         <div class="row" id="lgTenantIdRow" style="display:none;">
