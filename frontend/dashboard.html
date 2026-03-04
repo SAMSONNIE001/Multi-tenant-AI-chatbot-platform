@@ -6,208 +6,179 @@
   <title>StaunchBot Dashboard</title>
   <style>
     :root {
-      --bg: #edf2f7;
-      --panel: #ffffff;
+      --bg: #f4f7f9;
+      --card: #ffffff;
       --ink: #0f172a;
-      --muted: #64748b;
-      --line: #d6deea;
-      --brand-900: #1f3b66;
-      --brand-800: #27497d;
-      --brand-700: #2f5a96;
-      --blue: #3b82f6;
-      --orange: #f59e0b;
-      --red: #ef4444;
-      --green: #22c55e;
-      --shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+      --muted: #5b6b7f;
+      --line: #d8e2ec;
+      --brand: #0f766e;
+      --brand-dark: #115e59;
+      --soft: #ecfdf5;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: "Segoe UI", "Trebuchet MS", "Helvetica Neue", Arial, sans-serif;
-      background: linear-gradient(180deg, #f2f5fa 0%, #e8eef6 100%);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background:
+        radial-gradient(900px 300px at 0% -10%, #dff8f2 0%, transparent 60%),
+        radial-gradient(900px 300px at 100% -20%, #eaf0ff 0%, transparent 55%),
+        var(--bg);
       color: var(--ink);
     }
-    .app {
-      max-width: 1220px;
-      margin: 18px auto;
-      padding: 0 12px;
-      display: grid;
-      grid-template-columns: 220px 1fr;
-      gap: 12px;
-      min-height: calc(100vh - 36px);
+    .wrap {
+      max-width: 1120px;
+      margin: 28px auto;
+      padding: 0 16px;
     }
-    @media (max-width: 980px) {
-      .app {
-        grid-template-columns: 1fr;
-      }
-    }
-    .sidebar {
-      background: linear-gradient(180deg, var(--brand-900), var(--brand-700));
-      border-radius: 14px;
-      color: #dbeafe;
-      box-shadow: var(--shadow);
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      overflow: hidden;
-    }
-    .brand {
-      padding: 16px 14px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-      font-weight: 700;
-      font-size: 16px;
-      letter-spacing: 0.02em;
-    }
-    .side-links {
-      display: grid;
-      gap: 6px;
-      padding: 12px;
-      align-content: start;
-    }
-    .side-links a {
-      color: #dbeafe;
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 600;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 8px;
-      padding: 8px 10px;
-      background: rgba(255, 255, 255, 0.05);
-    }
-    .side-links a.active {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: rgba(255, 255, 255, 0.3);
-      color: #ffffff;
-    }
-    .side-footer {
-      padding: 12px;
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
-      display: grid;
-      gap: 8px;
-    }
-    .user-badge {
-      display: block;
-      font-size: 11px;
-      line-height: 1.4;
-      color: #e2e8f0;
-    }
-    .main {
-      background: transparent;
-      display: grid;
-      gap: 10px;
-      align-content: start;
-    }
-    .topbar {
+    .topnav {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       gap: 10px;
-      background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 12px;
+      background: #fff;
       padding: 10px 12px;
-      box-shadow: var(--shadow);
+      margin-bottom: 12px;
     }
-    .topbar h1 {
-      margin: 0;
-      font-size: 20px;
-      letter-spacing: -0.02em;
-    }
-    .topbar .right {
+    .topnav .links {
       display: flex;
       gap: 8px;
-      align-items: center;
+      flex-wrap: wrap;
     }
-    .chip {
+    .topnav .links a {
+      text-decoration: none;
+      color: #0f172a;
       border: 1px solid var(--line);
       border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #fff;
+    }
+    .topnav .links a.active {
+      border-color: #99f6e4;
+      background: #ecfeff;
+      color: #115e59;
+    }
+    .topnav .meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .user-badge {
+      display: inline-block;
+      border-radius: 999px;
+      border: 1px solid #dbe3ee;
       background: #f8fafc;
       color: #334155;
       font-size: 12px;
-      font-weight: 700;
-      padding: 5px 10px;
-      white-space: nowrap;
-      max-width: 420px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .ticket-strip {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(140px, 1fr));
-      gap: 8px;
-    }
-    @media (max-width: 900px) {
-      .ticket-strip {
-        grid-template-columns: repeat(2, minmax(140px, 1fr));
-      }
-    }
-    .ticket {
-      border-radius: 10px;
-      color: #fff;
-      padding: 10px 12px;
-      box-shadow: var(--shadow);
-    }
-    .ticket .k {
-      font-size: 11px;
-      opacity: 0.9;
+      padding: 4px 10px;
       font-weight: 600;
     }
-    .ticket .v {
-      margin-top: 3px;
-      font-size: 24px;
-      font-weight: 800;
-      line-height: 1;
-    }
-    .ticket.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-    .ticket.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
-    .ticket.red { background: linear-gradient(135deg, #ef4444, #dc2626); }
-    .ticket.green { background: linear-gradient(135deg, #22c55e, #16a34a); }
-    .grid {
+    .hero {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fbfd 100%);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(8, 15, 40, 0.06);
       display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 10px;
+      gap: 12px;
     }
-    @media (max-width: 980px) {
+    .hero h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: -0.02em;
+    }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      border: 1px solid #bfe8dc;
+      background: var(--soft);
+      color: #065f46;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 4px 10px;
+    }
+    .links {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .links a {
+      color: var(--brand-dark);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 13px;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 999px;
+      padding: 7px 11px;
+    }
+    .grid {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: minmax(340px, 1.25fr) minmax(300px, 0.75fr);
+      gap: 14px;
+    }
+    @media (max-width: 900px) {
       .grid { grid-template-columns: 1fr; }
     }
     .card {
-      background: var(--panel);
+      background: var(--card);
       border: 1px solid var(--line);
       border-radius: 12px;
-      padding: 12px;
-      box-shadow: var(--shadow);
+      padding: 14px;
+      box-shadow: 0 8px 24px rgba(2, 6, 23, 0.05);
     }
     .card h2 {
       margin: 0 0 8px;
-      font-size: 15px;
-      letter-spacing: -0.01em;
+      font-size: 17px;
     }
-    .muted {
-      color: var(--muted);
-      font-size: 12px;
+    .muted { color: var(--muted); font-size: 13px; }
+    .list {
+      margin: 0;
+      padding-left: 18px;
+      color: #334155;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .list li { margin-bottom: 8px; }
+    .row {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 10px;
     }
     .inline {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-      margin-top: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
     .inline > * { flex: 1 1 140px; }
-    .row {
-      display: grid;
-      gap: 5px;
-      margin-bottom: 8px;
-    }
     label {
-      color: #475569;
       font-size: 12px;
-      font-weight: 700;
+      color: var(--muted);
+      font-weight: 600;
     }
     input, textarea {
       width: 100%;
+      padding: 9px 10px;
       border: 1px solid #cbd5e1;
       border-radius: 8px;
-      padding: 9px 10px;
       font-size: 14px;
       background: #fff;
     }
@@ -221,192 +192,184 @@
       border: 0;
       border-radius: 8px;
       padding: 9px 12px;
-      background: #1f66d1;
+      background: var(--brand);
       color: #fff;
-      font-weight: 700;
       cursor: pointer;
+      font-weight: 700;
     }
-    button.alt { background: #475569; }
+    button.alt { background: #334155; }
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 8px;
-      margin-top: 8px;
+      margin-top: 10px;
     }
     .kpi {
-      border: 1px solid #dbe3ee;
+      border: 1px solid #e2e8f0;
       border-radius: 8px;
       background: #f8fafc;
       padding: 8px;
     }
     .kpi .k {
-      color: #64748b;
       font-size: 11px;
-      font-weight: 600;
+      color: #64748b;
     }
     .kpi .v {
-      margin-top: 3px;
       font-size: 18px;
       font-weight: 800;
+      color: #0f172a;
+      margin-top: 2px;
     }
     .out {
       margin-top: 8px;
-      border-radius: 8px;
-      background: #0f172a;
-      color: #dbeafe;
-      padding: 10px;
-      min-height: 56px;
       font-size: 12px;
+      background: #0b1220;
+      color: #dbeafe;
+      border-radius: 8px;
+      padding: 10px;
       white-space: pre-wrap;
+      min-height: 56px;
     }
     details {
-      margin-top: 8px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #f8fafc;
       padding: 8px;
+      background: #fafcff;
+      margin-top: 10px;
     }
     summary {
       cursor: pointer;
-      font-size: 12px;
-      font-weight: 700;
       color: #334155;
-    }
-    .workflow {
-      margin: 0;
-      padding-left: 18px;
-      color: #334155;
+      font-weight: 600;
       font-size: 13px;
-      line-height: 1.6;
     }
   </style>
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <div class="brand">StaunchBot</div>
-      <nav class="side-links">
+  <div class="wrap">
+    <div class="topnav">
+      <div class="links">
         <a id="navDashboard" href="./dashboard.html">Dashboard</a>
-        <a id="navOps" href="./tenant-console.html">Unified Inbox</a>
-        <a id="navSetup" href="./tenant-setup.html">Integrations</a>
+        <a id="navOps" href="./tenant-console.html">Daily Ops</a>
+        <a id="navSetup" href="./tenant-setup.html">Setup</a>
         <a id="navRelease" href="./release-checklist.html">Release</a>
-      </nav>
-      <div class="side-footer">
-        <span id="navUserBadge" class="user-badge">Current User: not authenticated</span>
-        <button id="btnNavSignOut" type="button" class="alt">Sign out</button>
       </div>
-    </aside>
+      <div class="meta">
+        <span id="navUserBadge" class="user-badge">Current User: not authenticated</span>
+        <button id="btnNavSignOut" class="alt" type="button">Sign out</button>
+      </div>
+    </div>
+    <section class="hero">
+      <h1>Operations Dashboard</h1>
+      <p>Daily control center for tenant health, service load, and release readiness.</p>
+      <div class="meta-row">
+        <span class="chip" id="whoamiLine">Current User: not authenticated</span>
+      </div>
+      <div class="links">
+        <a href="./tenant-console.html">Ops Console</a>
+        <a href="./tenant-setup.html">Setup Console</a>
+        <a href="./release-checklist.html">Release Checklist</a>
+      </div>
+    </section>
 
-    <main class="main">
-      <section class="topbar">
-        <h1>Operations Dashboard</h1>
-        <div class="right">
-          <span class="chip" id="whoamiLine">Current User: not authenticated</span>
+    <div class="grid">
+      <section class="card">
+        <h2>Business Snapshot</h2>
+        <p class="muted">Refresh to view current service health and handoff pressure.</p>
+        <div class="inline">
+          <button id="btnRefreshAll">Refresh Snapshot</button>
+          <a href="./release-checklist.html" style="text-decoration:none;"><button type="button" class="alt">Open Release Checklist</button></a>
         </div>
-      </section>
-
-      <section class="ticket-strip">
-        <div class="ticket blue"><div class="k">Open Tickets</div><div class="v" id="statOpenTickets">--</div></div>
-        <div class="ticket orange"><div class="k">Pending Customer</div><div class="v" id="statPending">--</div></div>
-        <div class="ticket red"><div class="k">SLA Breaches</div><div class="v" id="statBreaches">--</div></div>
-        <div class="ticket green"><div class="k">Resolved Signals</div><div class="v" id="statResolved">--</div></div>
-      </section>
-
-      <section class="grid">
-        <article class="card">
-          <h2>Snapshot</h2>
-          <p class="muted">Daily status for support operations, knowledge health, and escalation pressure.</p>
-          <div class="inline">
-            <button id="btnRefreshAll">Refresh Snapshot</button>
-            <a href="./tenant-console.html" style="text-decoration:none;"><button type="button" class="alt">Open Inbox</button></a>
-            <a href="./release-checklist.html" style="text-decoration:none;"><button type="button" class="alt">Open Release</button></a>
-          </div>
-          <div id="kpiGrid" class="kpi-grid" style="display:none;"></div>
-          <div id="outSnapshot" class="out"></div>
-        </article>
-
-        <article class="card">
-          <h2>Sign In</h2>
-          <p class="muted">Use your tenant account to access operations and release controls.</p>
-          <div class="row"><label>Email</label><input id="lgEmail" value="" placeholder="admin@example.com" /></div>
-          <div class="row"><label>Password</label><input id="lgPassword" value="" placeholder="Enter password" /></div>
-          <div class="row" id="lgTenantIdRow" style="display:none;">
-            <label>Tenant ID (only needed if email belongs to multiple tenants)</label>
-            <input id="lgTenantId" value="" placeholder="t_..." />
-          </div>
-          <div class="inline">
-            <button id="btnLogin">Login</button>
-          </div>
-          <div id="outLogin" class="out"></div>
-
-          <details>
-            <summary>Forgot Password</summary>
-            <div class="row" style="margin-top:10px;">
-              <label>Account Email</label>
-              <input id="fpEmail" value="" placeholder="admin@example.com" />
-            </div>
-            <div class="row">
-              <label>Tenant ID (optional)</label>
-              <input id="fpTenantId" value="" placeholder="t_..." />
-            </div>
-            <div class="inline">
-              <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
-            </div>
-            <div id="outForgotPassword" class="out"></div>
-            <div class="row" style="margin-top:10px;">
-              <label>Reset Token (from link/email)</label>
-              <input id="fpResetToken" value="" placeholder="Paste reset token" />
-            </div>
-            <div class="row">
-              <label>Reset Code (from email)</label>
-              <input id="fpCode" value="" placeholder="6-digit code" />
-            </div>
-            <div class="row">
-              <label>New Password</label>
-              <input id="fpNewPassword" value="" placeholder="Enter new password" />
-            </div>
-            <div class="inline">
-              <button id="btnResetPassword" class="alt" type="button">Reset Password</button>
-            </div>
-            <div id="outResetPassword" class="out"></div>
-          </details>
-
-          <details>
-            <summary>Advanced Connection Settings</summary>
-            <div class="row" style="margin-top:10px;">
-              <label for="apiBase">API Base</label>
-              <input id="apiBase" value="http://localhost:8000" />
-            </div>
-            <div class="inline">
-              <button id="btnEnvProd" class="alt">Use Prod</button>
-              <button id="btnEnvStaging" class="alt">Use Staging</button>
-              <button id="btnEnvLocal" class="alt">Use Local</button>
-            </div>
-            <div class="row">
-              <label for="stagingApiBase">Staging API Base</label>
-              <input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" />
-            </div>
-            <div class="row">
-              <label for="accessToken">Access Token</label>
-              <textarea id="accessToken" placeholder="Bearer token (auto-set after login)"></textarea>
-            </div>
-            <div class="inline">
-              <button id="saveToken" class="alt">Save Token</button>
-              <button id="clearToken" class="alt">Clear Token</button>
-            </div>
-          </details>
-        </article>
+        <div id="kpiGrid" class="kpi-grid" style="display:none;"></div>
+        <div id="outSnapshot" class="out"></div>
       </section>
 
       <section class="card">
-        <h2>Daily Workflow</h2>
-        <ol class="workflow">
-          <li>Sign in and refresh snapshot to confirm current tenant status.</li>
-          <li>Open Unified Inbox to process pending escalations and customer tickets.</li>
-          <li>Use Release Checklist before any production promotion.</li>
-        </ol>
+        <h2>Sign In</h2>
+        <p class="muted">Sign in with email and password to load tenant data.</p>
+        <div class="row"><label>Email</label><input id="lgEmail" value="" placeholder="admin@example.com" /></div>
+        <div class="row"><label>Password</label><input id="lgPassword" value="" placeholder="Enter password" /></div>
+        <div class="row" id="lgTenantIdRow" style="display:none;">
+          <label>Tenant ID (only needed if email belongs to multiple tenants)</label>
+          <input id="lgTenantId" value="" placeholder="t_..." />
+        </div>
+        <div class="inline">
+          <button id="btnLogin">Login</button>
+        </div>
+        <div id="outLogin" class="out"></div>
+
+        <details>
+          <summary>Forgot Password</summary>
+          <div class="row" style="margin-top:10px;">
+            <label>Account Email</label>
+            <input id="fpEmail" value="" placeholder="admin@example.com" />
+          </div>
+          <div class="row">
+            <label>Tenant ID (optional)</label>
+            <input id="fpTenantId" value="" placeholder="t_..." />
+          </div>
+          <div class="inline">
+            <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
+          </div>
+          <div id="outForgotPassword" class="out"></div>
+          <div class="row" style="margin-top:10px;">
+            <label>Reset Token (from link/email)</label>
+            <input id="fpResetToken" value="" placeholder="Paste reset token" />
+          </div>
+          <div class="row">
+            <label>Reset Code (from email)</label>
+            <input id="fpCode" value="" placeholder="6-digit code" />
+          </div>
+          <div class="row">
+            <label>New Password</label>
+            <input id="fpNewPassword" value="" placeholder="Enter new password" />
+          </div>
+          <div class="inline">
+            <button id="btnResetPassword" class="alt" type="button">Reset Password</button>
+          </div>
+          <div id="outResetPassword" class="out"></div>
+        </details>
+
+        <details>
+          <summary>Advanced Connection Settings</summary>
+          <div class="row" style="margin-top:10px;">
+            <label for="apiBase">API Base</label>
+            <input id="apiBase" value="http://localhost:8000" />
+          </div>
+          <div class="inline">
+            <button id="btnEnvProd" class="alt">Use Prod</button>
+            <button id="btnEnvStaging" class="alt">Use Staging</button>
+            <button id="btnEnvLocal" class="alt">Use Local</button>
+          </div>
+          <div class="row">
+            <label for="stagingApiBase">Staging API Base</label>
+            <input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" />
+          </div>
+          <div class="row">
+            <label for="accessToken">Access Token</label>
+            <textarea id="accessToken" placeholder="Bearer token (auto-set after login)"></textarea>
+          </div>
+          <div class="inline">
+            <button id="saveToken" class="alt">Save Token</button>
+            <button id="clearToken" class="alt">Clear Token</button>
+          </div>
+        </details>
       </section>
-    </main>
+
+      <section class="card">
+        <h2>Today Workflow</h2>
+        <p class="muted">Keep daily execution predictable with this sequence.</p>
+        <ol class="list">
+          <li>Sign in and refresh snapshot.</li>
+          <li>Handle live queue and QA checks in Daily Ops.</li>
+          <li>Confirm release gates in Release Checklist before production actions.</li>
+        </ol>
+        <div class="inline">
+          <a href="./tenant-console.html" style="text-decoration:none;"><button type="button">Go To Daily Ops</button></a>
+          <a href="./release-checklist.html" style="text-decoration:none;"><button type="button" class="alt">Go To Release</button></a>
+        </div>
+      </section>
+    </div>
   </div>
 
   <script src="./scripts/dashboard.js"></script>
