@@ -469,7 +469,12 @@
       const savedRoleMode = localStorage.getItem("tenant_console_role_mode");
       if (savedToken) setToken(savedToken);
       if (savedToken) saveSessionToken(savedToken);
+      const host = String(window.location.hostname || "").toLowerCase();
+      const hostedDefaultBase = (host === "www.staunchbot.com" || host === "staunchbot.com") ? "https://api.staunchbot.com" : "";
       if (savedBase) $("apiBase").value = savedBase;
+      if (hostedDefaultBase && (!savedBase || /^https?:\/\/localhost(:\d+)?/i.test(savedBase))) {
+        $("apiBase").value = hostedDefaultBase;
+      }
       if (savedStaging) $("stagingApiBase").value = savedStaging;
       if (savedRoleMode && roleModeEl && ["operator", "admin"].includes(savedRoleMode)) {
         roleModeEl.value = savedRoleMode;

@@ -238,11 +238,16 @@ if (btnNavSignOut) {
   const savedToken = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
   const savedBase = localStorage.getItem("tenant_console_api_base");
   const savedStaging = localStorage.getItem("tenant_console_staging_api_base");
+  const host = String(window.location.hostname || "").toLowerCase();
+  const hostedDefaultBase = (host === "www.staunchbot.com" || host === "staunchbot.com") ? "https://api.staunchbot.com" : "";
   if (savedToken) {
     setToken(savedToken);
     saveSessionToken(savedToken);
   }
   if (savedBase) $("apiBase").value = savedBase;
+  if (hostedDefaultBase && (!savedBase || /^https?:\/\/localhost(:\d+)?/i.test(savedBase))) {
+    $("apiBase").value = hostedDefaultBase;
+  }
   if (savedStaging) $("stagingApiBase").value = savedStaging;
   if (sessionStorage.getItem(SESSION_EXPIRED_KEY) === "1") {
     $("outLogin").textContent = "Session expired. Please sign in again.";
