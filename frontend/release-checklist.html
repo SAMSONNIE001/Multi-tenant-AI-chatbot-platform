@@ -222,7 +222,7 @@
     <div class="topnav">
       <div class="links">
         <a id="navDashboard" href="./dashboard.html">Dashboard</a>
-        <a id="navOps" href="./tenant-console.html">Operations</a>
+        <a id="navOps" href="./tenant-console.html">Daily Ops</a>
         <a id="navSetup" href="./tenant-setup.html">Setup</a>
         <a id="navRelease" href="./release-checklist.html">Release</a>
       </div>
@@ -233,16 +233,16 @@
     </div>
 
     <section class="hero">
-      <h1>Release Readiness Checklist</h1>
-      <p>Keep release decisions simple: pass checks, confirm manual steps, then promote.</p>
+      <h1>Release Checklist</h1>
+      <p>Keep release decisions simple: pass the gates, verify manual steps, then promote.</p>
     </section>
 
     <div class="grid">
       <section class="card">
-        <h2>Readiness Checks</h2>
-        <p class="muted">Run these checks on your target API URL before deployment.</p>
+        <h2>Gate Checks</h2>
+        <p class="muted">Run these checks on your target API base before deployment.</p>
         <div class="inline">
-          <button id="btnRunChecks">Run Checks</button>
+          <button id="btnRunChecks">Run Release Checks</button>
           <button id="btnClearManual" class="alt">Clear Manual Checks</button>
         </div>
         <div class="checklist">
@@ -296,12 +296,12 @@
         </div>
         <div class="inline">
           <button id="btnLogin">Login</button>
-          <button id="btnRunChecksRight" class="alt">Run Checks</button>
+          <button id="btnRunChecksRight" class="alt">Run Release Checks</button>
         </div>
         <div id="outLogin" class="out"></div>
 
         <div class="row" style="margin-top:10px;">
-          <label for="apiBase">API URL</label>
+          <label for="apiBase">API Base</label>
           <input id="apiBase" value="http://localhost:8000" />
         </div>
         <div class="inline">
@@ -310,11 +310,11 @@
           <button id="btnEnvLocal" class="alt">Use Local</button>
         </div>
         <div class="row">
-          <label for="stagingApiBase">Staging API URL</label>
+          <label for="stagingApiBase">Staging API Base</label>
           <input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" />
         </div>
         <div class="row">
-          <label for="accessToken">Session Token</label>
+          <label for="accessToken">Access Token</label>
           <textarea id="accessToken" placeholder="Bearer token (auto-set after login)"></textarea>
         </div>
         <div class="inline">

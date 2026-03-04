@@ -326,8 +326,8 @@
         </article>
 
         <article class="card">
-          <h2>Welcome Back</h2>
-          <p class="muted">Sign in to manage support operations and release decisions.</p>
+          <h2>Sign In</h2>
+          <p class="muted">Use your tenant account to access operations and release controls.</p>
           <div class="row"><label>Email</label><input id="lgEmail" value="" placeholder="admin@example.com" /></div>
           <div class="row"><label>Password</label><input id="lgPassword" value="" placeholder="Enter password" /></div>
           <div class="row" id="lgTenantIdRow" style="display:none;">
@@ -372,9 +372,9 @@
           </details>
 
           <details>
-            <summary>Connection Settings</summary>
+            <summary>Advanced Connection Settings</summary>
             <div class="row" style="margin-top:10px;">
-              <label for="apiBase">API URL</label>
+              <label for="apiBase">API Base</label>
               <input id="apiBase" value="http://localhost:8000" />
             </div>
             <div class="inline">
@@ -383,11 +383,11 @@
               <button id="btnEnvLocal" class="alt">Use Local</button>
             </div>
             <div class="row">
-              <label for="stagingApiBase">Staging API URL</label>
+              <label for="stagingApiBase">Staging API Base</label>
               <input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" />
             </div>
             <div class="row">
-              <label for="accessToken">Session Token</label>
+              <label for="accessToken">Access Token</label>
               <textarea id="accessToken" placeholder="Bearer token (auto-set after login)"></textarea>
             </div>
             <div class="inline">
@@ -399,11 +399,11 @@
       </section>
 
       <section class="card">
-        <h2>Today Plan</h2>
+        <h2>Daily Workflow</h2>
         <ol class="workflow">
           <li>Sign in and refresh snapshot to confirm current tenant status.</li>
           <li>Open Unified Inbox to process pending escalations and customer tickets.</li>
-          <li>Use the Release Checklist before any production promotion.</li>
+          <li>Use Release Checklist before any production promotion.</li>
         </ol>
       </section>
     </main>
