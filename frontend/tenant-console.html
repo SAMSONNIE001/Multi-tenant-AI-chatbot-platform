@@ -5,63 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>StaunchBot Tenant Console</title>
   <style>
-    :root {
-      --bg-top: #f3f6fb;
-      --bg-bottom: #e9eff7;
-      --panel: #ffffff;
-      --ink: #0f172a;
-      --muted: #64748b;
-      --line: #d7e0ec;
-      --brand: #1f66d1;
-      --brand-dark: #184ea3;
-      --shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-    }
     body {
       margin: 0;
-      font-family: "Segoe UI", "Trebuchet MS", "Helvetica Neue", Arial, sans-serif;
-      background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
-      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f7fb;
+      color: #0f172a;
     }
     .wrap {
-      max-width: 1220px;
-      margin: 18px auto;
+      max-width: 1100px;
+      margin: 24px auto;
       padding: 0 16px;
     }
     .header {
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: linear-gradient(135deg, #ffffff, #f8fbff);
-      box-shadow: var(--shadow);
-      padding: 14px;
       margin-bottom: 16px;
     }
     .header h1 {
-      margin: 0 0 4px;
-      font-size: 23px;
-      letter-spacing: -0.02em;
+      margin: 0 0 6px;
+      font-size: 24px;
     }
     .header p {
       margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.55;
+      color: #475569;
+      font-size: 14px;
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 14px;
     }
     .card {
-      background: var(--panel);
-      border: 1px solid var(--line);
+      background: #fff;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
       padding: 14px;
-      box-shadow: var(--shadow);
+      box-shadow: 0 8px 24px rgba(2, 6, 23, 0.05);
     }
     .card h2 {
-      font-size: 15px;
-      letter-spacing: -0.01em;
-      margin: 0 0 8px;
+      font-size: 16px;
+      margin: 0 0 10px;
     }
     .row {
       display: grid;
@@ -71,7 +52,7 @@
     label {
       font-size: 12px;
       color: #475569;
-      font-weight: 700;
+      font-weight: 600;
     }
     input, textarea {
       width: 100%;
@@ -91,13 +72,13 @@
       border: 0;
       border-radius: 8px;
       padding: 9px 12px;
-      background: var(--brand);
+      background: #0f766e;
       color: #fff;
       cursor: pointer;
-      font-weight: 700;
+      font-weight: 600;
     }
     button.alt {
-      background: #475569;
+      background: #334155;
     }
     button:disabled {
       opacity: 0.6;
@@ -106,7 +87,7 @@
     .out {
       margin-top: 8px;
       font-size: 12px;
-      background: #0f172a;
+      background: #0b1220;
       color: #dbeafe;
       border-radius: 8px;
       padding: 10px;
@@ -142,7 +123,7 @@
       margin-top: 10px;
     }
     .kpi {
-      border: 1px solid #dbe3ee;
+      border: 1px solid #e2e8f0;
       border-radius: 8px;
       background: #f8fafc;
       padding: 8px;
@@ -314,11 +295,6 @@
       flex-wrap: wrap;
       align-items: center;
       margin: 12px 0 14px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-      padding: 10px;
     }
     .tabbar {
       display: flex;
@@ -335,8 +311,8 @@
       font-weight: 700;
     }
     .tab-btn.active {
-      background: var(--brand);
-      border-color: var(--brand);
+      background: #0f766e;
+      border-color: #0f766e;
       color: #ffffff;
     }
     .toggle {
@@ -356,7 +332,7 @@
       margin: 0;
     }
     .workflow-card {
-      border-left: 4px solid var(--brand);
+      border-left: 4px solid #0f766e;
     }
     .step-list {
       margin: 8px 0 0;
@@ -389,12 +365,11 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      border: 1px solid var(--line);
+      border: 1px solid #dbe3ee;
       border-radius: 12px;
-      background: linear-gradient(180deg, #1f3b66, #2f5a96);
+      background: #fff;
       padding: 10px 12px;
       margin-bottom: 12px;
-      box-shadow: var(--shadow);
     }
     .topnav .links {
       display: flex;
@@ -403,18 +378,18 @@
     }
     .topnav .links a {
       text-decoration: none;
-      color: #dbeafe;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #0f172a;
+      border: 1px solid #dbe3ee;
       border-radius: 999px;
       padding: 5px 10px;
       font-size: 12px;
       font-weight: 700;
-      background: rgba(255, 255, 255, 0.08);
+      background: #fff;
     }
     .topnav .links a.active {
-      border-color: rgba(255, 255, 255, 0.45);
-      background: rgba(255, 255, 255, 0.25);
-      color: #ffffff;
+      border-color: #99f6e4;
+      background: #ecfeff;
+      color: #115e59;
     }
     .topnav .meta {
       display: flex;
@@ -425,9 +400,9 @@
     .user-badge {
       display: inline-block;
       border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      background: rgba(255, 255, 255, 0.08);
-      color: #e2e8f0;
+      border: 1px solid #dbe3ee;
+      background: #f8fafc;
+      color: #334155;
       font-size: 12px;
       padding: 4px 10px;
       font-weight: 600;
