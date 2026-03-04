@@ -1,3 +1,4 @@
+(() => {
     const tcQa = window.TenantConsole;
     const {
       $,
@@ -220,4 +221,5 @@
       runQaSweepFlow,
       runQaMergeFlow,
     });
+})();
 

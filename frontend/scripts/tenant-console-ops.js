@@ -1,3 +1,4 @@
+(() => {
     const tcOps = window.TenantConsole;
     const {
       $,
@@ -719,4 +720,5 @@
       loadOpsMonitor,
       seedProfileActivity,
     });
+})();
 

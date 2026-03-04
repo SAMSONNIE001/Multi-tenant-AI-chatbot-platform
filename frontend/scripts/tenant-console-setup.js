@@ -1,3 +1,4 @@
+(() => {
     const tcSetup = window.TenantConsole;
     const {
       $,
@@ -502,3 +503,4 @@
       renderReleaseSnapshot();
       setQueueAutoRefresh();
     })();
+})();
