@@ -1,4 +1,4 @@
-    const tc = window.TenantConsole;
+    const tcQa = window.TenantConsole;
     const {
       $,
       pretty,
@@ -15,8 +15,8 @@
       loadHandoffQueue,
       loadEscalationMetrics,
       mergeProfiles,
-    } = tc;
-    const state = tc.state;
+    } = tcQa;
+    const state = tcQa.state;
 
     async function runStagingQaPack() {
       const out = $("outEscalationOps");
@@ -214,7 +214,7 @@
       }
     }
 
-    Object.assign(tc, {
+    Object.assign(tcQa, {
       runStagingQaPack,
       runUatPack,
       runQaSweepFlow,

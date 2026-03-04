@@ -1,4 +1,4 @@
-    const tc = window.TenantConsole;
+    const tcSetup = window.TenantConsole;
     const {
       $,
       setToken,
@@ -34,8 +34,8 @@
       applyConsoleMode,
       syncCurrentUser,
       renderCurrentUserBadge,
-    } = tc;
-    const state = tc.state;
+    } = tcSetup;
+    const state = tcSetup.state;
 
     $("saveToken").onclick = () => {
       saveSessionToken($("accessToken").value);

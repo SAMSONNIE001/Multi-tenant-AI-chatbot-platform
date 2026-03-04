@@ -1,4 +1,4 @@
-    const tc = window.TenantConsole;
+    const tcOps = window.TenantConsole;
     const {
       $,
       esc,
@@ -14,8 +14,8 @@
       renderReleaseSnapshot,
       isProdApiBase,
       loadOpsAudit,
-    } = tc;
-    const state = tc.state;
+    } = tcOps;
+    const state = tcOps.state;
 
     function renderQueueTable(items) {
       const wrap = $("queueTableWrap");
@@ -689,7 +689,7 @@
       }
     }
 
-    Object.assign(tc, {
+    Object.assign(tcOps, {
       renderQueueTable,
       queueMetrics,
       renderQueueMetrics,
