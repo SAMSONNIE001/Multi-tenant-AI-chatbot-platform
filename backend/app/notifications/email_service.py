@@ -53,12 +53,49 @@ def _send_via_zeptomail(*, to_email: str, subject: str, text_body: str, html_bod
     )
     try:
         with url_request.urlopen(req, timeout=int(settings.SMTP_CONNECT_TIMEOUT_SECONDS)) as resp:
+            response_body = resp.read().decode("utf-8", errors="replace")
             if not (200 <= int(resp.status) < 300):
-                body = resp.read().decode("utf-8", errors="replace")
-                raise RuntimeError(f"ZeptoMail HTTP {resp.status}: {body[:500]}")
+                logger.error(
+                    "ZeptoMail non-2xx response status=%s reason=%s url=%s from=%s to=%s body=%s",
+                    resp.status,
+                    getattr(resp, "reason", ""),
+                    settings.ZEPTOMAIL_API_URL,
+                    from_email,
+                    to_email,
+                    response_body[:1200],
+                )
+                raise RuntimeError(f"ZeptoMail HTTP {resp.status}: {response_body[:500]}")
     except url_error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
+        headers = {k: v for k, v in (exc.headers.items() if exc.headers else [])}
+        logger.error(
+            "ZeptoMail HTTP error code=%s reason=%s url=%s from=%s to=%s headers=%s body=%s",
+            exc.code,
+            getattr(exc, "reason", ""),
+            settings.ZEPTOMAIL_API_URL,
+            from_email,
+            to_email,
+            headers,
+            body[:1200],
+        )
         raise RuntimeError(f"ZeptoMail HTTP {exc.code}: {body[:500]}") from exc
+    except url_error.URLError as exc:
+        logger.error(
+            "ZeptoMail URL error reason=%s url=%s from=%s to=%s",
+            getattr(exc, "reason", exc),
+            settings.ZEPTOMAIL_API_URL,
+            from_email,
+            to_email,
+        )
+        raise
+    except Exception:
+        logger.exception(
+            "Unexpected ZeptoMail error url=%s from=%s to=%s",
+            settings.ZEPTOMAIL_API_URL,
+            from_email,
+            to_email,
+        )
+        raise
     return True
 
 
@@ -118,4 +155,3 @@ def send_welcome_email(*, to_email: str, tenant_name: str, login_url: str | None
         text_body=text_body,
         html_body=None,
     )
-
