@@ -67,6 +67,67 @@ function renderWhoamiLine(me) {
   if (nav) nav.textContent = txt;
 }
 
+function setIntegrationState(id, enabled, enabledText = "Connected", disabledText = "Not Connected") {
+  const el = $(id);
+  if (!el) return;
+  el.className = `state ${enabled ? "enabled" : "disabled"}`;
+  el.textContent = enabled ? enabledText : disabledText;
+}
+
+function setIntegrationSwitch(id, enabled) {
+  const el = $(id);
+  if (!el) return;
+  el.className = enabled ? "switch on" : "switch";
+}
+
+async function refreshIntegrationStatus({ bots } = {}) {
+  const sync = $("integrationSync");
+  if (sync) sync.textContent = "Syncing...";
+  try {
+    const botList = Array.isArray(bots) ? bots : await api("/api/v1/tenant/bots");
+    let accounts = [];
+    try {
+      const res = await api("/api/v1/admin/channels/accounts");
+      accounts = Array.isArray(res) ? res : [];
+    } catch (_) {
+      accounts = [];
+    }
+
+    const active = accounts.filter((a) => a && a.is_active);
+    const hasWebsite = botList.length > 0;
+    const hasWhatsapp = active.some((a) =>
+      String(a.channel_type || "").toLowerCase() === "whatsapp" && !!(a.phone_number_id || a.has_access_token)
+    );
+    const hasMessenger = active.some((a) => {
+      const t = String(a.channel_type || "").toLowerCase();
+      return (t === "messenger" || t === "facebook") && !!(a.page_id || a.has_access_token);
+    });
+    const hasInstagram = active.some((a) =>
+      String(a.channel_type || "").toLowerCase() === "instagram" && !!(a.instagram_account_id || a.page_id)
+    );
+
+    setIntegrationState("intWebsiteState", hasWebsite, "Enabled", "Not Configured");
+    setIntegrationSwitch("intWebsiteSwitch", hasWebsite);
+    setIntegrationState("intWhatsappState", hasWhatsapp, "Enabled", "Not Connected");
+    setIntegrationSwitch("intWhatsappSwitch", hasWhatsapp);
+    setIntegrationState("intMessengerState", hasMessenger, "Enabled", "Not Connected");
+    setIntegrationSwitch("intMessengerSwitch", hasMessenger);
+    setIntegrationState("intInstagramState", hasInstagram, "Enabled", "Not Connected");
+    setIntegrationSwitch("intInstagramSwitch", hasInstagram);
+    if (sync) sync.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
+  } catch (_) {
+    setIntegrationState("intWebsiteState", false, "Enabled", "Unavailable");
+    setIntegrationState("intWhatsappState", false, "Enabled", "Unavailable");
+    setIntegrationState("intMessengerState", false, "Enabled", "Unavailable");
+    setIntegrationState("intInstagramState", false, "Enabled", "Unavailable");
+    setIntegrationSwitch("intWebsiteSwitch", false);
+    setIntegrationSwitch("intWhatsappSwitch", false);
+    setIntegrationSwitch("intMessengerSwitch", false);
+    setIntegrationSwitch("intInstagramSwitch", false);
+    if (sync) sync.textContent = "Integration status unavailable";
+  }
+}
+
 async function refreshSnapshot() {
   const out = $("outSnapshot");
   out.textContent = "Refreshing...";
@@ -100,6 +161,7 @@ async function refreshSnapshot() {
       `Handoffs: ${totals.unresolved_tickets ?? 0} unresolved, ${totals.escalated_tickets ?? 0} escalated`,
       `Knowledge: ${knowledge.document_count || 0} docs / ${knowledge.chunk_count || 0} chunks`,
     ].join("\n");
+    await refreshIntegrationStatus({ bots });
   } catch (e) {
     const msg = String(e);
     if (msg.includes("401")) {
@@ -109,6 +171,7 @@ async function refreshSnapshot() {
     }
     grid.style.display = "none";
     grid.innerHTML = "";
+    await refreshIntegrationStatus({ bots: [] });
   }
 }
 
@@ -135,6 +198,7 @@ $("btnLogin").onclick = async () => {
     $("lgTenantId").value = "";
     out.textContent = `Login successful for ${body.email}.`;
     await refreshSnapshot();
+    await refreshIntegrationStatus();
   } catch (e) {
     const msg = String(e);
     if (msg.includes("409") && msg.includes("Provide tenant_id")) {
@@ -161,6 +225,7 @@ $("clearToken").onclick = () => {
   $("outSnapshot").textContent = "Signed out. Login to load tenant snapshot.";
   $("kpiGrid").style.display = "none";
   $("kpiGrid").innerHTML = "";
+  refreshIntegrationStatus({ bots: [] }).catch(() => {});
 };
 const btnForgotPassword = $("btnForgotPassword");
 if (btnForgotPassword) {
@@ -222,6 +287,7 @@ if (btnNavSignOut) {
     $("outSnapshot").textContent = "Signed out. Login to load tenant snapshot.";
     $("kpiGrid").style.display = "none";
     $("kpiGrid").innerHTML = "";
+    refreshIntegrationStatus({ bots: [] }).catch(() => {});
   };
 }
 
@@ -247,5 +313,6 @@ if (btnNavSignOut) {
   const params = new URLSearchParams(window.location.search || "");
   const resetToken = params.get("reset_token");
   if (resetToken && $("fpResetToken")) $("fpResetToken").value = resetToken;
+  refreshIntegrationStatus({ bots: [] }).catch(() => {});
   refreshSnapshot().catch(() => {});
 })();

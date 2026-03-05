@@ -6,370 +6,632 @@
   <title>StaunchBot Dashboard</title>
   <style>
     :root {
-      --bg: #f4f7f9;
-      --card: #ffffff;
-      --ink: #0f172a;
-      --muted: #5b6b7f;
-      --line: #d8e2ec;
-      --brand: #0f766e;
-      --brand-dark: #115e59;
-      --soft: #ecfdf5;
+      --bg: #eef2f8;
+      --panel: #ffffff;
+      --line: #d7e0eb;
+      --ink: #0f1b2d;
+      --muted: #5d6b80;
+      --nav-top: #1e2f4e;
+      --nav-bottom: #2c4e77;
+      --nav-text: #d9e6ff;
+      --accent: #2f7de1;
+      --ok: #2f9d62;
+      --warn: #df9b2e;
+      --danger: #d85b4c;
+      --radius: 14px;
+      --shadow: 0 10px 26px rgba(15, 27, 45, 0.08);
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background:
-        radial-gradient(900px 300px at 0% -10%, #dff8f2 0%, transparent 60%),
-        radial-gradient(900px 300px at 100% -20%, #eaf0ff 0%, transparent 55%),
-        var(--bg);
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
       color: var(--ink);
+      background:
+        radial-gradient(900px 240px at 12% -10%, #dbe8ff 0%, transparent 65%),
+        radial-gradient(900px 240px at 85% -15%, #d8f1ee 0%, transparent 70%),
+        var(--bg);
     }
-    .wrap {
-      max-width: 1120px;
-      margin: 28px auto;
-      padding: 0 16px;
+
+    .app {
+      max-width: 1240px;
+      margin: 18px auto;
+      padding: 0 12px;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 14px;
+      min-height: calc(100vh - 36px);
     }
-    .topnav {
+
+    .sidebar {
+      background: linear-gradient(180deg, var(--nav-top), var(--nav-bottom));
+      border-radius: 16px;
+      padding: 16px 12px;
+      color: var(--nav-text);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .brand-badge {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: inline-grid;
+      place-items: center;
+      background: #ffffff;
+      color: #204272;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .nav-list {
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--nav-text);
+      font-size: 13px;
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+    }
+
+    .nav-link.active {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+    }
+
+    .nav-link:hover {
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .sidebar-foot button {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border-radius: 10px;
+      padding: 9px 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .main {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
+      background: #f5f8fc;
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: #fff;
-      padding: 10px 12px;
-      margin-bottom: 12px;
+      padding: 9px 12px;
     }
-    .topnav .links {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .topnav .links a {
-      text-decoration: none;
-      color: #0f172a;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 5px 10px;
-      font-size: 12px;
-      font-weight: 700;
-      background: #fff;
-    }
-    .topnav .links a.active {
-      border-color: #99f6e4;
-      background: #ecfeff;
-      color: #115e59;
-    }
-    .topnav .meta {
+
+    .search-pill {
       display: flex;
       align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .user-badge {
-      display: inline-block;
+      gap: 6px;
+      border: 1px solid #d3dceb;
+      background: #fff;
+      color: #67758b;
       border-radius: 999px;
-      border: 1px solid #dbe3ee;
-      background: #f8fafc;
-      color: #334155;
+      padding: 6px 10px;
       font-size: 12px;
-      padding: 4px 10px;
-      font-weight: 600;
+      min-width: 210px;
     }
-    .hero {
-      background: linear-gradient(135deg, #ffffff 0%, #f8fbfd 100%);
+
+    .panel {
+      background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 18px;
-      box-shadow: 0 10px 30px rgba(8, 15, 40, 0.06);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .panel h1, .panel h2, .panel h3 {
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .muted { color: var(--muted); font-size: 13px; }
+
+    .kpi-strip {
+      margin-top: 12px;
       display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+    }
+
+    .kpi-box {
+      border-radius: 10px;
+      padding: 10px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      display: grid;
+      gap: 4px;
+      box-shadow: inset 0 -8px 18px rgba(0, 0, 0, 0.12);
+    }
+
+    .kpi-box b { font-size: 20px; line-height: 1; }
+    .kpi-box.blue { background: #3a81dd; }
+    .kpi-box.orange { background: #de8d45; }
+    .kpi-box.red { background: #db6257; }
+    .kpi-box.green { background: #46a16e; }
+    .kpi-box.indigo { background: #5f7de6; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.22fr 0.78fr;
       gap: 12px;
     }
-    .hero h1 {
-      margin: 0;
-      font-size: 28px;
-      letter-spacing: -0.02em;
-    }
-    .hero p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 14px;
-    }
-    .meta-row {
+
+    .card-title {
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .ticket-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .ticket-row {
+      border: 1px solid #e2e8f2;
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #fafcff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 10px;
-      flex-wrap: wrap;
     }
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      border-radius: 999px;
-      border: 1px solid #bfe8dc;
-      background: var(--soft);
-      color: #065f46;
-      font-weight: 700;
-      font-size: 12px;
-      padding: 4px 10px;
+
+    .ticket-row.active {
+      border-color: #f1d28d;
+      background: #fff9ea;
+      box-shadow: inset 3px 0 0 #dfa63a;
     }
-    .links {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .links a {
-      color: var(--brand-dark);
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 13px;
-      border: 1px solid var(--line);
-      background: #fff;
-      border-radius: 999px;
-      padding: 7px 11px;
-    }
-    .grid {
-      margin-top: 14px;
+
+    .tiny { font-size: 11px; color: #6b7a92; }
+
+    .conversation {
+      border: 1px solid #e0e8f1;
+      border-radius: 10px;
+      padding: 8px;
+      background: #fbfdff;
       display: grid;
-      grid-template-columns: minmax(340px, 1.25fr) minmax(300px, 0.75fr);
-      gap: 14px;
+      gap: 7px;
     }
-    @media (max-width: 900px) {
-      .grid { grid-template-columns: 1fr; }
-    }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 14px;
-      box-shadow: 0 8px 24px rgba(2, 6, 23, 0.05);
-    }
-    .card h2 {
-      margin: 0 0 8px;
-      font-size: 17px;
-    }
-    .muted { color: var(--muted); font-size: 13px; }
-    .list {
-      margin: 0;
-      padding-left: 18px;
-      color: #334155;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-    .list li { margin-bottom: 8px; }
-    .row {
-      display: grid;
-      gap: 6px;
-      margin-bottom: 10px;
-    }
-    .inline {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
-    }
-    .inline > * { flex: 1 1 140px; }
-    label {
-      font-size: 12px;
-      color: var(--muted);
-      font-weight: 600;
-    }
-    input, textarea {
-      width: 100%;
-      padding: 9px 10px;
-      border: 1px solid #cbd5e1;
+
+    .msg {
+      border: 1px solid #e0e8f1;
       border-radius: 8px;
-      font-size: 14px;
-      background: #fff;
-    }
-    textarea {
-      min-height: 88px;
-      resize: vertical;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      padding: 7px 8px;
       font-size: 12px;
+      background: #ffffff;
     }
+
+    .msg.ai {
+      background: #f2f8ff;
+      border-color: #d4e3f9;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-row button,
     button {
       border: 0;
       border-radius: 8px;
-      padding: 9px 12px;
-      background: var(--brand);
-      color: #fff;
+      padding: 8px 12px;
       cursor: pointer;
-      font-weight: 700;
+      font-weight: 600;
+      font-size: 12px;
+      background: var(--accent);
+      color: #fff;
     }
-    button.alt { background: #334155; }
+
+    button.alt {
+      background: #5d6b81;
+      color: #fff;
+    }
+
+    .small-btn { padding: 7px 10px; font-size: 11px; }
+
+    .integrations {
+      display: grid;
+      gap: 10px;
+    }
+
+    .int-row {
+      border: 1px solid #e0e8f1;
+      border-radius: 10px;
+      background: #fcfdff;
+      padding: 8px 10px;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .int-app {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    .icon-img {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      object-fit: cover;
+      background: #fff;
+      border: 1px solid #d8e2ef;
+      padding: 2px;
+    }
+
+    .state {
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid;
+    }
+
+    .state.enabled {
+      color: #1d7e4d;
+      border-color: #b9e6cc;
+      background: #eaf9f0;
+    }
+
+    .state.disabled {
+      color: #6c7a90;
+      border-color: #dbe2ed;
+      background: #f2f5fa;
+    }
+
+    .switch {
+      width: 34px;
+      height: 18px;
+      border-radius: 999px;
+      background: #ccd7e7;
+      position: relative;
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .switch.on {
+      background: #79c49a;
+    }
+
+    .switch.on::after {
+      left: 18px;
+    }
+
+    .row, .inline { display: grid; gap: 6px; margin-bottom: 10px; }
+    .inline { grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 8px; }
+
+    label {
+      font-size: 12px;
+      color: #5d6b80;
+      font-weight: 600;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid #cbd7e6;
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 13px;
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 82px;
+      resize: vertical;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+    }
+
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 8px;
     }
+
     .kpi {
-      border: 1px solid #e2e8f0;
+      border: 1px solid #dce5ef;
       border-radius: 8px;
-      background: #f8fafc;
       padding: 8px;
+      background: #f8fbff;
     }
-    .kpi .k {
-      font-size: 11px;
-      color: #64748b;
-    }
-    .kpi .v {
-      font-size: 18px;
-      font-weight: 800;
-      color: #0f172a;
-      margin-top: 2px;
-    }
+
+    .kpi .k { font-size: 11px; color: #6a7890; }
+    .kpi .v { font-size: 18px; font-weight: 700; }
+
     .out {
       margin-top: 8px;
-      font-size: 12px;
-      background: #0b1220;
-      color: #dbeafe;
+      background: #0f1a2c;
       border-radius: 8px;
-      padding: 10px;
-      white-space: pre-wrap;
+      color: #cde0ff;
       min-height: 56px;
-    }
-    details {
-      border: 1px solid var(--line);
-      border-radius: 8px;
       padding: 8px;
-      background: #fafcff;
-      margin-top: 10px;
+      white-space: pre-wrap;
+      font-size: 12px;
     }
+
+    details {
+      margin-top: 10px;
+      border: 1px solid #dde5ef;
+      border-radius: 8px;
+      background: #fbfdff;
+      padding: 8px;
+    }
+
     summary {
       cursor: pointer;
-      color: #334155;
-      font-weight: 600;
-      font-size: 13px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #33435b;
+    }
+
+    @media (max-width: 1080px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { grid-template-rows: auto auto auto; }
+      .nav-list { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .kpi-strip { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="topnav">
-      <div class="links">
-        <a id="navDashboard" href="./dashboard.html">Dashboard</a>
-        <a id="navOps" href="./tenant-console.html">Daily Ops</a>
-        <a id="navSetup" href="./tenant-setup.html">Setup</a>
-        <a id="navRelease" href="./release-checklist.html">Release</a>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-badge">SB</span>
+        <span>StaunchBot</span>
       </div>
-      <div class="meta">
-        <span id="navUserBadge" class="user-badge">Current User: not authenticated</span>
+      <nav class="nav-list">
+        <a id="navDashboard" class="nav-link active" href="./dashboard.html">Dashboard</a>
+        <a id="navOps" class="nav-link" href="./tenant-console.html">Unified Inbox</a>
+        <a id="navSetup" class="nav-link" href="./tenant-setup.html">Knowledge Base</a>
+        <a id="navRelease" class="nav-link" href="./release-checklist.html">Release</a>
+      </nav>
+      <div class="sidebar-foot">
         <button id="btnNavSignOut" class="alt" type="button">Sign out</button>
       </div>
-    </div>
-    <section class="hero">
-      <h1>Operations Dashboard</h1>
-      <p>Daily control center for tenant health, service load, and release readiness.</p>
-      <div class="meta-row">
-        <span class="chip" id="whoamiLine">Current User: not authenticated</span>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <strong>Dashboard</strong>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="search-pill">Search...</div>
+          <span id="navUserBadge" class="search-pill" style="min-width:0;">Current User: not authenticated</span>
+        </div>
       </div>
-      <div class="links">
-        <a href="./tenant-console.html">Ops Console</a>
-        <a href="./tenant-setup.html">Setup Console</a>
-        <a href="./release-checklist.html">Release Checklist</a>
+
+      <section class="panel">
+        <h1>Operations Dashboard</h1>
+        <p class="muted" style="margin:6px 0 0;">Live service posture, active tickets, and channel integrations in one view.</p>
+        <div class="tiny" id="whoamiLine" style="margin-top:6px;">Current User: not authenticated</div>
+        <div class="kpi-strip">
+          <div class="kpi-box blue"><span>Open Tickets</span><b>12</b></div>
+          <div class="kpi-box orange"><span>Pending Customer</span><b>8</b></div>
+          <div class="kpi-box red"><span>SLA Breaches</span><b>2</b></div>
+          <div class="kpi-box green"><span>Resolved Today</span><b>24</b></div>
+          <div class="kpi-box indigo"><span>New Tickets</span><b>7</b></div>
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="panel">
+          <div class="card-title">
+            <h2>Unified Inbox</h2>
+            <button id="btnRefreshAll" class="small-btn">Refresh Snapshot</button>
+          </div>
+          <div class="ticket-list">
+            <div class="ticket-row">
+              <div>
+                <strong>Order Issue</strong>
+                <div class="tiny">John Davis</div>
+              </div>
+              <span class="tiny">Assigned: Sarah</span>
+            </div>
+            <div class="ticket-row active">
+              <div>
+                <strong>Billing Question</strong>
+                <div class="tiny">Lisa Chen</div>
+              </div>
+              <span class="tiny">SLA: 1h left</span>
+            </div>
+            <div class="ticket-row">
+              <div>
+                <strong>Tech Support</strong>
+                <div class="tiny">Mark Wilson</div>
+              </div>
+              <span class="tiny">Waiting on customer</span>
+            </div>
+          </div>
+
+          <div id="kpiGrid" class="kpi-grid" style="display:none;"></div>
+          <div id="outSnapshot" class="out"></div>
+        </section>
+
+        <section class="panel">
+          <div class="card-title">
+            <h2>Active Ticket</h2>
+            <span class="tiny">Assigned to You</span>
+          </div>
+          <div class="conversation">
+            <div class="msg"><strong>Customer:</strong> I cannot access my account.</div>
+            <div class="msg ai"><strong>AI Summary:</strong> User likely has invalid password.</div>
+            <div class="msg">Recommend sending password reset link and verification code.</div>
+            <div class="action-row">
+              <button class="small-btn">Send Reply</button>
+              <button class="small-btn alt" type="button">Add Note</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="card-title">
+            <h2>Channel Integrations</h2>
+            <span class="tiny" id="integrationSync">Syncing...</span>
+          </div>
+          <div class="integrations">
+            <div class="int-row">
+              <div class="int-app"><img class="icon-img" src="https://cdn.simpleicons.org/webflow/146EF5" alt="Website Chat" /> Website Live Chat</div>
+              <span class="state disabled" id="intWebsiteState">Checking...</span>
+              <span class="switch" id="intWebsiteSwitch"></span>
+            </div>
+            <div class="int-row">
+              <div class="int-app"><img class="icon-img" src="https://cdn.simpleicons.org/whatsapp/25D366" alt="WhatsApp" /> WhatsApp Business</div>
+              <span class="state disabled" id="intWhatsappState">Checking...</span>
+              <span class="switch" id="intWhatsappSwitch"></span>
+            </div>
+            <div class="int-row">
+              <div class="int-app"><img class="icon-img" src="https://cdn.simpleicons.org/facebookmessenger/00B2FF" alt="Messenger" /> Facebook Messenger</div>
+              <span class="state disabled" id="intMessengerState">Checking...</span>
+              <span class="switch" id="intMessengerSwitch"></span>
+            </div>
+            <div class="int-row">
+              <div class="int-app"><img class="icon-img" src="https://cdn.simpleicons.org/instagram/E4405F" alt="Instagram" /> Instagram</div>
+              <span class="state disabled" id="intInstagramState">Checking...</span>
+              <span class="switch" id="intInstagramSwitch"></span>
+            </div>
+            <div class="int-row">
+              <div class="int-app"><img class="icon-img" src="https://cdn.simpleicons.org/x/000000" alt="X" /> X (Twitter)</div>
+              <span class="state disabled">Not Connected</span>
+              <span class="switch"></span>
+            </div>
+            <div class="int-row">
+              <div class="int-app"><img class="icon-img" src="https://cdn.simpleicons.org/telegram/26A5E4" alt="Telegram" /> Telegram</div>
+              <span class="state disabled">Not Supported</span>
+              <span class="switch"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Sign In</h2>
+          <p class="muted">Use your tenant account to activate live data controls.</p>
+          <div class="row"><label>Email</label><input id="lgEmail" value="" placeholder="admin@example.com" /></div>
+          <div class="row"><label>Password</label><input id="lgPassword" value="" placeholder="Enter password" /></div>
+          <div class="row" id="lgTenantIdRow" style="display:none;">
+            <label>Tenant ID</label>
+            <input id="lgTenantId" value="" placeholder="t_..." />
+          </div>
+          <div class="inline" style="grid-template-columns:1fr;">
+            <button id="btnLogin">Login</button>
+          </div>
+          <div id="outLogin" class="out"></div>
+
+          <details>
+            <summary>Forgot Password</summary>
+            <div class="row" style="margin-top:10px;">
+              <label>Account Email</label>
+              <input id="fpEmail" value="" placeholder="admin@example.com" />
+            </div>
+            <div class="row">
+              <label>Tenant ID (optional)</label>
+              <input id="fpTenantId" value="" placeholder="t_..." />
+            </div>
+            <div class="inline" style="grid-template-columns:1fr;">
+              <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
+            </div>
+            <div id="outForgotPassword" class="out"></div>
+            <div class="row" style="margin-top:10px;">
+              <label>Reset Token</label>
+              <input id="fpResetToken" value="" placeholder="Paste reset token" />
+            </div>
+            <div class="row">
+              <label>Reset Code</label>
+              <input id="fpCode" value="" placeholder="6-digit code" />
+            </div>
+            <div class="row">
+              <label>New Password</label>
+              <input id="fpNewPassword" value="" placeholder="Enter new password" />
+            </div>
+            <div class="inline" style="grid-template-columns:1fr;">
+              <button id="btnResetPassword" class="alt" type="button">Reset Password</button>
+            </div>
+            <div id="outResetPassword" class="out"></div>
+          </details>
+
+          <details>
+            <summary>Advanced Connection Settings</summary>
+            <div class="row" style="margin-top:10px;">
+              <label for="apiBase">API Base</label>
+              <input id="apiBase" value="http://localhost:8000" />
+            </div>
+            <div class="inline">
+              <button id="btnEnvProd" class="alt">Use Prod</button>
+              <button id="btnEnvStaging" class="alt">Use Staging</button>
+              <button id="btnEnvLocal" class="alt">Use Local</button>
+            </div>
+            <div class="row">
+              <label for="stagingApiBase">Staging API Base</label>
+              <input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" />
+            </div>
+            <div class="row">
+              <label for="accessToken">Access Token</label>
+              <textarea id="accessToken" placeholder="Bearer token (auto-set after login)"></textarea>
+            </div>
+            <div class="inline">
+              <button id="saveToken" class="alt">Save Token</button>
+              <button id="clearToken" class="alt">Clear Token</button>
+            </div>
+          </details>
+        </section>
       </div>
-    </section>
-
-    <div class="grid">
-      <section class="card">
-        <h2>Business Snapshot</h2>
-        <p class="muted">Refresh to view current service health and handoff pressure.</p>
-        <div class="inline">
-          <button id="btnRefreshAll">Refresh Snapshot</button>
-          <a href="./release-checklist.html" style="text-decoration:none;"><button type="button" class="alt">Open Release Checklist</button></a>
-        </div>
-        <div id="kpiGrid" class="kpi-grid" style="display:none;"></div>
-        <div id="outSnapshot" class="out"></div>
-      </section>
-
-      <section class="card">
-        <h2>Sign In</h2>
-        <p class="muted">Sign in with email and password to load tenant data.</p>
-        <div class="row"><label>Email</label><input id="lgEmail" value="" placeholder="admin@example.com" /></div>
-        <div class="row"><label>Password</label><input id="lgPassword" value="" placeholder="Enter password" /></div>
-        <div class="row" id="lgTenantIdRow" style="display:none;">
-          <label>Tenant ID (only needed if email belongs to multiple tenants)</label>
-          <input id="lgTenantId" value="" placeholder="t_..." />
-        </div>
-        <div class="inline">
-          <button id="btnLogin">Login</button>
-        </div>
-        <div id="outLogin" class="out"></div>
-
-        <details>
-          <summary>Forgot Password</summary>
-          <div class="row" style="margin-top:10px;">
-            <label>Account Email</label>
-            <input id="fpEmail" value="" placeholder="admin@example.com" />
-          </div>
-          <div class="row">
-            <label>Tenant ID (optional)</label>
-            <input id="fpTenantId" value="" placeholder="t_..." />
-          </div>
-          <div class="inline">
-            <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
-          </div>
-          <div id="outForgotPassword" class="out"></div>
-          <div class="row" style="margin-top:10px;">
-            <label>Reset Token (from link/email)</label>
-            <input id="fpResetToken" value="" placeholder="Paste reset token" />
-          </div>
-          <div class="row">
-            <label>Reset Code (from email)</label>
-            <input id="fpCode" value="" placeholder="6-digit code" />
-          </div>
-          <div class="row">
-            <label>New Password</label>
-            <input id="fpNewPassword" value="" placeholder="Enter new password" />
-          </div>
-          <div class="inline">
-            <button id="btnResetPassword" class="alt" type="button">Reset Password</button>
-          </div>
-          <div id="outResetPassword" class="out"></div>
-        </details>
-
-        <details>
-          <summary>Advanced Connection Settings</summary>
-          <div class="row" style="margin-top:10px;">
-            <label for="apiBase">API Base</label>
-            <input id="apiBase" value="http://localhost:8000" />
-          </div>
-          <div class="inline">
-            <button id="btnEnvProd" class="alt">Use Prod</button>
-            <button id="btnEnvStaging" class="alt">Use Staging</button>
-            <button id="btnEnvLocal" class="alt">Use Local</button>
-          </div>
-          <div class="row">
-            <label for="stagingApiBase">Staging API Base</label>
-            <input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" />
-          </div>
-          <div class="row">
-            <label for="accessToken">Access Token</label>
-            <textarea id="accessToken" placeholder="Bearer token (auto-set after login)"></textarea>
-          </div>
-          <div class="inline">
-            <button id="saveToken" class="alt">Save Token</button>
-            <button id="clearToken" class="alt">Clear Token</button>
-          </div>
-        </details>
-      </section>
-
-      <section class="card">
-        <h2>Today Workflow</h2>
-        <p class="muted">Keep daily execution predictable with this sequence.</p>
-        <ol class="list">
-          <li>Sign in and refresh snapshot.</li>
-          <li>Handle live queue and QA checks in Daily Ops.</li>
-          <li>Confirm release gates in Release Checklist before production actions.</li>
-        </ol>
-        <div class="inline">
-          <a href="./tenant-console.html" style="text-decoration:none;"><button type="button">Go To Daily Ops</button></a>
-          <a href="./release-checklist.html" style="text-decoration:none;"><button type="button" class="alt">Go To Release</button></a>
-        </div>
-      </section>
-    </div>
+    </main>
   </div>
 
   <script src="./scripts/dashboard.js"></script>

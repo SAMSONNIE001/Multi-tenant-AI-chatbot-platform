@@ -35,6 +35,7 @@
       applyConsoleMode,
       syncCurrentUser,
       renderCurrentUserBadge,
+      syncChannelIntegrations,
     } = tcSetup;
     const state = tcSetup.state;
 
@@ -49,6 +50,7 @@
       sessionStorage.removeItem("tenant_console_token");
       localStorage.removeItem("tenant_console_token");
       setToken("");
+      syncChannelIntegrations().catch(() => {});
     };
 
     const btnOnboard = $("btnOnboard");
@@ -447,6 +449,7 @@
       btnNavSignOut.onclick = () => {
         clearConsoleSession();
         $("outLogin").textContent = "Signed out.";
+        syncChannelIntegrations().catch(() => {});
       };
     }
     $("toggleAdvanced").onchange = () => {
@@ -498,6 +501,7 @@
         sessionStorage.removeItem("tenant_console_session_expired");
       }
       syncCurrentUser().catch(() => {});
+      syncChannelIntegrations().catch(() => {});
       loadOpsAudit();
       runPreflightChecks(true).catch(() => {});
       renderReleaseSnapshot();

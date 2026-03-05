@@ -75,12 +75,12 @@
     }
 
     function applyConsoleMode() {
-      const sections = document.querySelectorAll("section.card[data-pane]");
-      sections.forEach((section) => {
-        const panes = String(section.getAttribute("data-pane") || "")
+      const paneNodes = document.querySelectorAll("[data-pane]");
+      paneNodes.forEach((node) => {
+        const panes = String(node.getAttribute("data-pane") || "")
           .split(/\s+/)
           .filter(Boolean);
-        section.style.display = panes.includes(activePane) ? "block" : "none";
+        node.style.display = panes.includes(activePane) ? "block" : "none";
       });
 
       const roleSelect = $("roleMode");
@@ -169,6 +169,53 @@
         return;
       }
       el.textContent = `Current User: ${currentUser.email || "-"} | role=${currentUser.role || "-"} | tenant=${currentUser.tenant_id || "-"}`;
+    }
+
+    function _setIntegrationState(id, enabled, enabledText = "Enabled", disabledText = "Not Connected") {
+      const el = $(id);
+      if (!el) return;
+      el.className = `state ${enabled ? "enabled" : "disabled"}`;
+      el.textContent = enabled ? enabledText : disabledText;
+    }
+
+    async function syncChannelIntegrations() {
+      const sync = $("integrationSync");
+      if (sync) sync.textContent = "Syncing configured channels from backend...";
+      try {
+        const bots = await request("/api/v1/tenant/bots");
+        let accounts = [];
+        try {
+          const rows = await request("/api/v1/admin/channels/accounts");
+          accounts = Array.isArray(rows) ? rows : [];
+        } catch (_) {
+          accounts = [];
+        }
+
+        const active = accounts.filter((a) => a && a.is_active);
+        const hasWebsite = Array.isArray(bots) && bots.length > 0;
+        const hasWhatsapp = active.some((a) =>
+          String(a.channel_type || "").toLowerCase() === "whatsapp" && !!(a.phone_number_id || a.has_access_token)
+        );
+        const hasMessenger = active.some((a) => {
+          const t = String(a.channel_type || "").toLowerCase();
+          return (t === "messenger" || t === "facebook") && !!(a.page_id || a.has_access_token);
+        });
+        const hasInstagram = active.some((a) =>
+          String(a.channel_type || "").toLowerCase() === "instagram" && !!(a.instagram_account_id || a.page_id)
+        );
+
+        _setIntegrationState("intWebsiteState", hasWebsite, "Enabled", "Not Configured");
+        _setIntegrationState("intWhatsappState", hasWhatsapp, "Enabled", "Not Connected");
+        _setIntegrationState("intMessengerState", hasMessenger, "Enabled", "Not Connected");
+        _setIntegrationState("intInstagramState", hasInstagram, "Enabled", "Not Connected");
+        if (sync) sync.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
+      } catch (_) {
+        _setIntegrationState("intWebsiteState", false, "Enabled", "Unavailable");
+        _setIntegrationState("intWhatsappState", false, "Enabled", "Unavailable");
+        _setIntegrationState("intMessengerState", false, "Enabled", "Unavailable");
+        _setIntegrationState("intInstagramState", false, "Enabled", "Unavailable");
+        if (sync) sync.textContent = "Could not sync channel status";
+      }
     }
 
     function appendOpsAuditLocal(entry) {
@@ -323,6 +370,7 @@
         }
         renderCurrentUserBadge();
         applyConsoleMode();
+        await syncChannelIntegrations();
         return me;
       } catch (_) {
         currentUser = null;
@@ -486,6 +534,7 @@
       isBackendAdminLike,
       renderCurrentUserBadge,
       syncCurrentUser,
+      syncChannelIntegrations,
     });
     window.TenantConsole = tc;
 

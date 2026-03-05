@@ -410,6 +410,170 @@
     .advanced-only {
       display: none;
     }
+    :root {
+      --sb-bg: #eef2f8;
+      --sb-line: #d7e0eb;
+      --sb-panel: #ffffff;
+      --sb-ink: #0f1b2d;
+      --sb-muted: #5d6b80;
+      --sb-accent: #2f7de1;
+      --sb-nav-top: #1e2f4e;
+      --sb-nav-bottom: #2c4e77;
+      --sb-shadow: 0 10px 26px rgba(15, 27, 45, 0.08);
+    }
+    body {
+      background:
+        radial-gradient(900px 260px at 12% -10%, #dbe8ff 0%, transparent 65%),
+        radial-gradient(900px 260px at 85% -15%, #d8f1ee 0%, transparent 70%),
+        var(--sb-bg);
+      color: var(--sb-ink);
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    }
+    .wrap {
+      max-width: 1220px;
+      margin: 18px auto;
+      padding: 0 12px 24px;
+    }
+    .topnav {
+      background: linear-gradient(180deg, var(--sb-nav-top), var(--sb-nav-bottom));
+      border: 1px solid #2f4a72;
+      box-shadow: var(--sb-shadow);
+    }
+    .topnav .links a {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #d9e6ff;
+      border-radius: 10px;
+      padding: 7px 10px;
+    }
+    .topnav .links a.active {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.28);
+      color: #fff;
+    }
+    .user-badge {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #fff;
+    }
+    button.alt {
+      background: #5d6b81;
+    }
+    .header {
+      background: var(--sb-panel);
+      border: 1px solid var(--sb-line);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: var(--sb-shadow);
+    }
+    .header h1 {
+      font-size: 30px;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+    .header p {
+      color: var(--sb-muted);
+    }
+    .console-toolbar {
+      background: #f5f8fc;
+      border: 1px solid var(--sb-line);
+      border-radius: 12px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    .tab-btn {
+      background: #e8eef7;
+      border-color: #cbd7e6;
+    }
+    .tab-btn.active {
+      background: var(--sb-accent);
+      border-color: var(--sb-accent);
+    }
+    .grid {
+      margin-top: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: var(--sb-panel);
+      border: 1px solid var(--sb-line);
+      border-radius: 14px;
+      box-shadow: var(--sb-shadow);
+    }
+    .card h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    input, textarea, select {
+      border-color: #cbd7e6;
+    }
+    .table-wrap, .thread-box {
+      border-color: #dde6f1;
+    }
+    .integration-strip {
+      margin-top: 10px;
+      background: var(--sb-panel);
+      border: 1px solid var(--sb-line);
+      border-radius: 14px;
+      box-shadow: var(--sb-shadow);
+      padding: 12px;
+    }
+    .integration-strip h2 {
+      margin: 0 0 4px;
+      font-size: 18px;
+    }
+    .integration-strip .small {
+      margin-bottom: 8px;
+    }
+    .integration-grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    }
+    .int-item {
+      border: 1px solid #e0e8f1;
+      border-radius: 10px;
+      background: #fcfdff;
+      padding: 8px 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+    }
+    .int-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #24314a;
+    }
+    .icon-img {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      border: 1px solid #d8e2ef;
+      background: #fff;
+      padding: 2px;
+    }
+    .state {
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid;
+      line-height: 1;
+    }
+    .state.enabled {
+      color: #1d7e4d;
+      border-color: #b9e6cc;
+      background: #eaf9f0;
+    }
+    .state.disabled {
+      color: #6c7a90;
+      border-color: #dbe2ed;
+      background: #f2f5fa;
+    }
   </style>
 </head>
 <body>
@@ -453,6 +617,37 @@
         </label>
       </div>
     </div>
+
+    <section class="integration-strip" data-pane="daily qa">
+      <h2>Channel Integrations</h2>
+      <div class="small" id="integrationSync">Syncing configured channels from backend...</div>
+      <div class="integration-grid">
+        <div class="int-item">
+          <div class="int-label"><img class="icon-img" src="https://cdn.simpleicons.org/webflow/146EF5" alt="Website Chat" /> Website Live Chat</div>
+          <span class="state disabled" id="intWebsiteState">Checking...</span>
+        </div>
+        <div class="int-item">
+          <div class="int-label"><img class="icon-img" src="https://cdn.simpleicons.org/whatsapp/25D366" alt="WhatsApp" /> WhatsApp Business</div>
+          <span class="state disabled" id="intWhatsappState">Checking...</span>
+        </div>
+        <div class="int-item">
+          <div class="int-label"><img class="icon-img" src="https://cdn.simpleicons.org/facebookmessenger/00B2FF" alt="Messenger" /> Facebook Messenger</div>
+          <span class="state disabled" id="intMessengerState">Checking...</span>
+        </div>
+        <div class="int-item">
+          <div class="int-label"><img class="icon-img" src="https://cdn.simpleicons.org/instagram/E4405F" alt="Instagram" /> Instagram</div>
+          <span class="state disabled" id="intInstagramState">Checking...</span>
+        </div>
+        <div class="int-item">
+          <div class="int-label"><img class="icon-img" src="https://cdn.simpleicons.org/x/000000" alt="X" /> X (Twitter)</div>
+          <span class="state disabled">Not Connected</span>
+        </div>
+        <div class="int-item">
+          <div class="int-label"><img class="icon-img" src="https://cdn.simpleicons.org/telegram/26A5E4" alt="Telegram" /> Telegram</div>
+          <span class="state disabled">Not Supported</span>
+        </div>
+      </div>
+    </section>
 
     <div class="grid">
       <section class="card" data-pane="daily qa">
