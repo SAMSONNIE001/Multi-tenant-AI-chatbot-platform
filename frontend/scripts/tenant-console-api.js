@@ -178,42 +178,52 @@
       el.textContent = enabled ? enabledText : disabledText;
     }
 
+    function _setIntegrationMeta(id, text) {
+      const el = $(id);
+      if (!el) return;
+      el.textContent = text || "-";
+    }
+
+    function _integrationDetail(channel) {
+      if (!channel) return "-";
+      if (channel.last_error) return `error: ${channel.last_error}`;
+      if (channel.last_webhook_at || channel.last_outbound_at) {
+        const inbound = channel.last_webhook_at ? shortDate(channel.last_webhook_at) : "-";
+        const outbound = channel.last_outbound_at ? shortDate(channel.last_outbound_at) : "-";
+        return `inbound ${inbound} | outbound ${outbound}`;
+      }
+      return channel.note || channel.health_status || "-";
+    }
+
     async function syncChannelIntegrations() {
       const sync = $("integrationSync");
       if (sync) sync.textContent = "Syncing configured channels from backend...";
       try {
-        const bots = await request("/api/v1/tenant/bots");
-        let accounts = [];
-        try {
-          const rows = await request("/api/v1/admin/channels/accounts");
-          accounts = Array.isArray(rows) ? rows : [];
-        } catch (_) {
-          accounts = [];
-        }
+        const data = await request("/api/v1/tenant/integrations/status");
+        state.integrationStatus = data;
+        const website = data.website_live_chat || {};
+        const whatsapp = data.whatsapp_business || {};
+        const messenger = data.facebook_messenger || {};
+        const instagram = data.instagram || {};
 
-        const active = accounts.filter((a) => a && a.is_active);
-        const hasWebsite = Array.isArray(bots) && bots.length > 0;
-        const hasWhatsapp = active.some((a) =>
-          String(a.channel_type || "").toLowerCase() === "whatsapp" && !!(a.phone_number_id || a.has_access_token)
-        );
-        const hasMessenger = active.some((a) => {
-          const t = String(a.channel_type || "").toLowerCase();
-          return (t === "messenger" || t === "facebook") && !!(a.page_id || a.has_access_token);
-        });
-        const hasInstagram = active.some((a) =>
-          String(a.channel_type || "").toLowerCase() === "instagram" && !!(a.instagram_account_id || a.page_id)
-        );
-
-        _setIntegrationState("intWebsiteState", hasWebsite, "Enabled", "Not Configured");
-        _setIntegrationState("intWhatsappState", hasWhatsapp, "Enabled", "Not Connected");
-        _setIntegrationState("intMessengerState", hasMessenger, "Enabled", "Not Connected");
-        _setIntegrationState("intInstagramState", hasInstagram, "Enabled", "Not Connected");
+        _setIntegrationState("intWebsiteState", !!website.enabled, website.status_label || "Enabled", "Not Configured");
+        _setIntegrationState("intWhatsappState", !!whatsapp.enabled, whatsapp.status_label || "Enabled", "Not Connected");
+        _setIntegrationState("intMessengerState", !!messenger.enabled, messenger.status_label || "Enabled", "Not Connected");
+        _setIntegrationState("intInstagramState", !!instagram.enabled, instagram.status_label || "Enabled", "Not Connected");
+        _setIntegrationMeta("intWebsiteMeta", _integrationDetail(website));
+        _setIntegrationMeta("intWhatsappMeta", _integrationDetail(whatsapp));
+        _setIntegrationMeta("intMessengerMeta", _integrationDetail(messenger));
+        _setIntegrationMeta("intInstagramMeta", _integrationDetail(instagram));
         if (sync) sync.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
       } catch (_) {
         _setIntegrationState("intWebsiteState", false, "Enabled", "Unavailable");
         _setIntegrationState("intWhatsappState", false, "Enabled", "Unavailable");
         _setIntegrationState("intMessengerState", false, "Enabled", "Unavailable");
         _setIntegrationState("intInstagramState", false, "Enabled", "Unavailable");
+        _setIntegrationMeta("intWebsiteMeta", "Unavailable");
+        _setIntegrationMeta("intWhatsappMeta", "Unavailable");
+        _setIntegrationMeta("intMessengerMeta", "Unavailable");
+        _setIntegrationMeta("intInstagramMeta", "Unavailable");
         if (sync) sync.textContent = "Could not sync channel status";
       }
     }

@@ -623,19 +623,31 @@
       <div class="small" id="integrationSync">Syncing configured channels from backend...</div>
       <div class="integration-grid">
         <div class="int-item">
-          <div class="int-label"><img class="icon-img" src="https://cdn.simpleicons.org/webflow/146EF5" alt="Website Chat" /> Website Live Chat</div>
+          <div class="int-label">
+            <img class="icon-img" src="https://cdn.simpleicons.org/webflow/146EF5" alt="Website Chat" />
+            <div><div>Website Live Chat</div><div class="small" id="intWebsiteMeta">-</div></div>
+          </div>
           <span class="state disabled" id="intWebsiteState">Checking...</span>
         </div>
         <div class="int-item">
-          <div class="int-label"><img class="icon-img" src="https://cdn.simpleicons.org/whatsapp/25D366" alt="WhatsApp" /> WhatsApp Business</div>
+          <div class="int-label">
+            <img class="icon-img" src="https://cdn.simpleicons.org/whatsapp/25D366" alt="WhatsApp" />
+            <div><div>WhatsApp Business</div><div class="small" id="intWhatsappMeta">-</div></div>
+          </div>
           <span class="state disabled" id="intWhatsappState">Checking...</span>
         </div>
         <div class="int-item">
-          <div class="int-label"><img class="icon-img" src="https://cdn.simpleicons.org/facebookmessenger/00B2FF" alt="Messenger" /> Facebook Messenger</div>
+          <div class="int-label">
+            <img class="icon-img" src="https://cdn.simpleicons.org/facebookmessenger/00B2FF" alt="Messenger" />
+            <div><div>Facebook Messenger</div><div class="small" id="intMessengerMeta">-</div></div>
+          </div>
           <span class="state disabled" id="intMessengerState">Checking...</span>
         </div>
         <div class="int-item">
-          <div class="int-label"><img class="icon-img" src="https://cdn.simpleicons.org/instagram/E4405F" alt="Instagram" /> Instagram</div>
+          <div class="int-label">
+            <img class="icon-img" src="https://cdn.simpleicons.org/instagram/E4405F" alt="Instagram" />
+            <div><div>Instagram</div><div class="small" id="intInstagramMeta">-</div></div>
+          </div>
           <span class="state disabled" id="intInstagramState">Checking...</span>
         </div>
         <div class="int-item">
@@ -647,6 +659,59 @@
           <span class="state disabled">Not Supported</span>
         </div>
       </div>
+    </section>
+
+    <section class="card" data-pane="daily qa">
+      <h2>Live Channel Setup</h2>
+      <div class="small">Configure your active channels only: Website, WhatsApp, and Facebook Messenger.</div>
+      <div class="inline" style="margin-top:10px;">
+        <button id="btnReloadIntegrations" class="alt" type="button">Reload Integration Status</button>
+      </div>
+
+      <div class="row">
+        <label>WhatsApp Account Name</label>
+        <input id="waName" placeholder="WhatsApp Main" />
+      </div>
+      <div class="inline">
+        <div class="row">
+          <label>WhatsApp Access Token</label>
+          <input id="waAccessToken" placeholder="EAAB..." />
+        </div>
+        <div class="row">
+          <label>Phone Number ID</label>
+          <input id="waPhoneNumberId" placeholder="1234567890" />
+        </div>
+      </div>
+      <div class="row">
+        <label>WhatsApp App Secret (optional)</label>
+        <input id="waAppSecret" placeholder="Meta app secret" />
+      </div>
+      <div class="inline">
+        <button id="btnSaveWhatsApp" type="button">Save WhatsApp</button>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <label>Facebook Account Name</label>
+        <input id="fbName" placeholder="Facebook Main" />
+      </div>
+      <div class="inline">
+        <div class="row">
+          <label>Facebook Page Access Token</label>
+          <input id="fbAccessToken" placeholder="EAAB..." />
+        </div>
+        <div class="row">
+          <label>Facebook Page ID</label>
+          <input id="fbPageId" placeholder="112233445566778" />
+        </div>
+      </div>
+      <div class="row">
+        <label>Facebook App Secret (optional)</label>
+        <input id="fbAppSecret" placeholder="Meta app secret" />
+      </div>
+      <div class="inline">
+        <button id="btnSaveFacebook" type="button">Save Facebook</button>
+      </div>
+      <div id="outIntegrationSetup" class="out"></div>
     </section>
 
     <div class="grid">

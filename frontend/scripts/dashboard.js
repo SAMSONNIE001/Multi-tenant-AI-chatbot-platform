@@ -80,40 +80,56 @@ function setIntegrationSwitch(id, enabled) {
   el.className = enabled ? "switch on" : "switch";
 }
 
-async function refreshIntegrationStatus({ bots } = {}) {
+function setIntegrationMeta(id, text) {
+  const el = $(id);
+  if (!el) return;
+  el.textContent = text || "-";
+}
+
+function shortDate(v) {
+  if (!v) return "-";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return String(v);
+  return d.toLocaleString();
+}
+
+function describeIntegration(channel) {
+  if (!channel) return "-";
+  if (channel.last_error) return `error: ${channel.last_error}`;
+  if (channel.last_webhook_at || channel.last_outbound_at) {
+    const inbound = channel.last_webhook_at ? shortDate(channel.last_webhook_at) : "-";
+    const outbound = channel.last_outbound_at ? shortDate(channel.last_outbound_at) : "-";
+    return `inbound ${inbound} | outbound ${outbound}`;
+  }
+  return channel.note || channel.health_status || "-";
+}
+
+async function refreshIntegrationStatus() {
   const sync = $("integrationSync");
   if (sync) sync.textContent = "Syncing...";
   try {
-    const botList = Array.isArray(bots) ? bots : await api("/api/v1/tenant/bots");
-    let accounts = [];
-    try {
-      const res = await api("/api/v1/admin/channels/accounts");
-      accounts = Array.isArray(res) ? res : [];
-    } catch (_) {
-      accounts = [];
-    }
+    const data = await api("/api/v1/tenant/integrations/status");
+    const website = data.website_live_chat || {};
+    const whatsapp = data.whatsapp_business || {};
+    const messenger = data.facebook_messenger || {};
+    const instagram = data.instagram || {};
 
-    const active = accounts.filter((a) => a && a.is_active);
-    const hasWebsite = botList.length > 0;
-    const hasWhatsapp = active.some((a) =>
-      String(a.channel_type || "").toLowerCase() === "whatsapp" && !!(a.phone_number_id || a.has_access_token)
-    );
-    const hasMessenger = active.some((a) => {
-      const t = String(a.channel_type || "").toLowerCase();
-      return (t === "messenger" || t === "facebook") && !!(a.page_id || a.has_access_token);
-    });
-    const hasInstagram = active.some((a) =>
-      String(a.channel_type || "").toLowerCase() === "instagram" && !!(a.instagram_account_id || a.page_id)
-    );
+    setIntegrationState("intWebsiteState", !!website.enabled, website.status_label || "Enabled", "Not Configured");
+    setIntegrationSwitch("intWebsiteSwitch", !!website.enabled);
+    setIntegrationMeta("intWebsiteMeta", describeIntegration(website));
 
-    setIntegrationState("intWebsiteState", hasWebsite, "Enabled", "Not Configured");
-    setIntegrationSwitch("intWebsiteSwitch", hasWebsite);
-    setIntegrationState("intWhatsappState", hasWhatsapp, "Enabled", "Not Connected");
-    setIntegrationSwitch("intWhatsappSwitch", hasWhatsapp);
-    setIntegrationState("intMessengerState", hasMessenger, "Enabled", "Not Connected");
-    setIntegrationSwitch("intMessengerSwitch", hasMessenger);
-    setIntegrationState("intInstagramState", hasInstagram, "Enabled", "Not Connected");
-    setIntegrationSwitch("intInstagramSwitch", hasInstagram);
+    setIntegrationState("intWhatsappState", !!whatsapp.enabled, whatsapp.status_label || "Enabled", "Not Connected");
+    setIntegrationSwitch("intWhatsappSwitch", !!whatsapp.enabled);
+    setIntegrationMeta("intWhatsappMeta", describeIntegration(whatsapp));
+
+    setIntegrationState("intMessengerState", !!messenger.enabled, messenger.status_label || "Enabled", "Not Connected");
+    setIntegrationSwitch("intMessengerSwitch", !!messenger.enabled);
+    setIntegrationMeta("intMessengerMeta", describeIntegration(messenger));
+
+    setIntegrationState("intInstagramState", !!instagram.enabled, instagram.status_label || "Enabled", "Not Connected");
+    setIntegrationSwitch("intInstagramSwitch", !!instagram.enabled);
+    setIntegrationMeta("intInstagramMeta", describeIntegration(instagram));
+
     if (sync) sync.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
   } catch (_) {
     setIntegrationState("intWebsiteState", false, "Enabled", "Unavailable");
@@ -124,6 +140,10 @@ async function refreshIntegrationStatus({ bots } = {}) {
     setIntegrationSwitch("intWhatsappSwitch", false);
     setIntegrationSwitch("intMessengerSwitch", false);
     setIntegrationSwitch("intInstagramSwitch", false);
+    setIntegrationMeta("intWebsiteMeta", "Unavailable");
+    setIntegrationMeta("intWhatsappMeta", "Unavailable");
+    setIntegrationMeta("intMessengerMeta", "Unavailable");
+    setIntegrationMeta("intInstagramMeta", "Unavailable");
     if (sync) sync.textContent = "Integration status unavailable";
   }
 }
@@ -161,7 +181,7 @@ async function refreshSnapshot() {
       `Handoffs: ${totals.unresolved_tickets ?? 0} unresolved, ${totals.escalated_tickets ?? 0} escalated`,
       `Knowledge: ${knowledge.document_count || 0} docs / ${knowledge.chunk_count || 0} chunks`,
     ].join("\n");
-    await refreshIntegrationStatus({ bots });
+    await refreshIntegrationStatus();
   } catch (e) {
     const msg = String(e);
     if (msg.includes("401")) {
@@ -171,7 +191,7 @@ async function refreshSnapshot() {
     }
     grid.style.display = "none";
     grid.innerHTML = "";
-    await refreshIntegrationStatus({ bots: [] });
+    await refreshIntegrationStatus();
   }
 }
 
@@ -225,7 +245,7 @@ $("clearToken").onclick = () => {
   $("outSnapshot").textContent = "Signed out. Login to load tenant snapshot.";
   $("kpiGrid").style.display = "none";
   $("kpiGrid").innerHTML = "";
-  refreshIntegrationStatus({ bots: [] }).catch(() => {});
+  refreshIntegrationStatus().catch(() => {});
 };
 const btnForgotPassword = $("btnForgotPassword");
 if (btnForgotPassword) {
@@ -287,7 +307,7 @@ if (btnNavSignOut) {
     $("outSnapshot").textContent = "Signed out. Login to load tenant snapshot.";
     $("kpiGrid").style.display = "none";
     $("kpiGrid").innerHTML = "";
-    refreshIntegrationStatus({ bots: [] }).catch(() => {});
+    refreshIntegrationStatus().catch(() => {});
   };
 }
 
@@ -313,6 +333,6 @@ if (btnNavSignOut) {
   const params = new URLSearchParams(window.location.search || "");
   const resetToken = params.get("reset_token");
   if (resetToken && $("fpResetToken")) $("fpResetToken").value = resetToken;
-  refreshIntegrationStatus({ bots: [] }).catch(() => {});
+  refreshIntegrationStatus().catch(() => {});
   refreshSnapshot().catch(() => {});
 })();

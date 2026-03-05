@@ -104,6 +104,7 @@
           setToken(data.access_token);
           saveSessionToken(data.access_token);
           await syncCurrentUser();
+          await populateChannelSetupFields();
         }
       } catch (e) {
         const msg = String(e);
@@ -114,6 +115,147 @@
         out.textContent = String(e);
       }
     };
+
+    async function populateChannelSetupFields() {
+      const waName = $("waName");
+      if (!waName) return;
+      try {
+        const accounts = await request("/api/v1/admin/channels/accounts");
+        const rows = Array.isArray(accounts) ? accounts : [];
+        const wa = rows.find((a) => String(a.channel_type || "").toLowerCase() === "whatsapp");
+        const fb = rows.find((a) => {
+          const t = String(a.channel_type || "").toLowerCase();
+          return t === "facebook" || t === "messenger";
+        });
+        if (wa) {
+          $("waName").value = wa.name || "";
+          $("waPhoneNumberId").value = wa.phone_number_id || "";
+          $("btnSaveWhatsApp").setAttribute("data-account-id", wa.id || "");
+        } else {
+          $("btnSaveWhatsApp").setAttribute("data-account-id", "");
+        }
+        if (fb) {
+          $("fbName").value = fb.name || "";
+          $("fbPageId").value = fb.page_id || "";
+          $("btnSaveFacebook").setAttribute("data-account-id", fb.id || "");
+        } else {
+          $("btnSaveFacebook").setAttribute("data-account-id", "");
+        }
+      } catch (_) {
+        // Non-admin users can still use console, but cannot mutate channel accounts.
+      }
+    }
+
+    const btnReloadIntegrations = $("btnReloadIntegrations");
+    if (btnReloadIntegrations) {
+      btnReloadIntegrations.onclick = async () => {
+        const out = $("outIntegrationSetup");
+        out.textContent = "Reloading integration status...";
+        try {
+          await syncChannelIntegrations();
+          await populateChannelSetupFields();
+          out.textContent = "Integration status reloaded.";
+        } catch (e) {
+          out.textContent = String(e);
+        }
+      };
+    }
+
+    const btnSaveWhatsApp = $("btnSaveWhatsApp");
+    if (btnSaveWhatsApp) {
+      btnSaveWhatsApp.onclick = async () => {
+        const out = $("outIntegrationSetup");
+        out.textContent = "Saving WhatsApp channel...";
+        try {
+          const name = $("waName").value.trim() || "WhatsApp Main";
+          const accessToken = $("waAccessToken").value.trim();
+          const phoneNumberId = $("waPhoneNumberId").value.trim();
+          const appSecret = $("waAppSecret").value.trim();
+          if (!accessToken || accessToken.length < 8) throw new Error("Provide a valid WhatsApp access token.");
+          if (!phoneNumberId || phoneNumberId.length < 3) throw new Error("Provide a valid phone number ID.");
+
+          const body = {
+            name,
+            access_token: accessToken,
+            phone_number_id: phoneNumberId,
+            is_active: true,
+          };
+          if (appSecret) body.app_secret = appSecret;
+
+          const accountId = $("btnSaveWhatsApp").getAttribute("data-account-id") || "";
+          const data = accountId
+            ? await request(`/api/v1/admin/channels/accounts/${encodeURIComponent(accountId)}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            })
+            : await request("/api/v1/admin/channels/accounts", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                channel_type: "whatsapp",
+                name,
+                access_token: accessToken,
+                app_secret: appSecret || undefined,
+                phone_number_id: phoneNumberId,
+              }),
+            });
+          out.textContent = pretty({ saved: "whatsapp", account_id: data.id, status: "ok" });
+          await syncChannelIntegrations();
+          await populateChannelSetupFields();
+        } catch (e) {
+          out.textContent = String(e);
+        }
+      };
+    }
+
+    const btnSaveFacebook = $("btnSaveFacebook");
+    if (btnSaveFacebook) {
+      btnSaveFacebook.onclick = async () => {
+        const out = $("outIntegrationSetup");
+        out.textContent = "Saving Facebook Messenger channel...";
+        try {
+          const name = $("fbName").value.trim() || "Facebook Main";
+          const accessToken = $("fbAccessToken").value.trim();
+          const pageId = $("fbPageId").value.trim();
+          const appSecret = $("fbAppSecret").value.trim();
+          if (!accessToken || accessToken.length < 8) throw new Error("Provide a valid Facebook page token.");
+          if (!pageId || pageId.length < 3) throw new Error("Provide a valid Facebook page ID.");
+
+          const body = {
+            name,
+            access_token: accessToken,
+            page_id: pageId,
+            is_active: true,
+          };
+          if (appSecret) body.app_secret = appSecret;
+
+          const accountId = $("btnSaveFacebook").getAttribute("data-account-id") || "";
+          const data = accountId
+            ? await request(`/api/v1/admin/channels/accounts/${encodeURIComponent(accountId)}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            })
+            : await request("/api/v1/admin/channels/accounts", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                channel_type: "facebook",
+                name,
+                access_token: accessToken,
+                app_secret: appSecret || undefined,
+                page_id: pageId,
+              }),
+            });
+          out.textContent = pretty({ saved: "facebook_messenger", account_id: data.id, status: "ok" });
+          await syncChannelIntegrations();
+          await populateChannelSetupFields();
+        } catch (e) {
+          out.textContent = String(e);
+        }
+      };
+    }
 
     const btnBots = $("btnBots");
     if (btnBots) btnBots.onclick = async () => {
@@ -502,6 +644,7 @@
       }
       syncCurrentUser().catch(() => {});
       syncChannelIntegrations().catch(() => {});
+      populateChannelSetupFields().catch(() => {});
       loadOpsAudit();
       runPreflightChecks(true).catch(() => {});
       renderReleaseSnapshot();

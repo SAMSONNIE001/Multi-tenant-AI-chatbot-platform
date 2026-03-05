@@ -19,6 +19,7 @@ from app.db.session import get_db
 from app.embed.models import TenantBotCredential
 from app.embed.router import _normalize_origins
 from app.embed.security import generate_bot_key, hash_bot_key
+from app.channels.models import TenantChannelAccount
 from app.core.config import settings
 from app.rag.embeddings import embed_text
 from app.rag.file_extract import extract_text_from_upload
@@ -30,6 +31,8 @@ from app.tenant.schemas import (
     TenantKnowledgeReindexResponse,
     TenantKnowledgeStatusResponse,
     TenantKnowledgeUploadResponse,
+    TenantIntegrationsStatusResponse,
+    IntegrationChannelStatus,
     TenantOnboardRequest,
     TenantOnboardResponse,
     TenantProfilePatchRequest,
@@ -67,6 +70,81 @@ def _resolve_widget_script_base(bot: TenantBotCredential) -> str:
 
 def _js_escape(value: str) -> str:
     return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _account_health_status(account: TenantChannelAccount) -> str:
+    if not account.is_active:
+        return "inactive"
+    if account.last_error:
+        return "error"
+    if account.last_webhook_at or account.last_outbound_at:
+        return "healthy"
+    return "configured"
+
+
+def _pick_best_account(accounts: list[TenantChannelAccount], allowed_types: set[str]) -> TenantChannelAccount | None:
+    candidates = [a for a in accounts if str(a.channel_type or "").lower() in allowed_types]
+    if not candidates:
+        return None
+    candidates.sort(
+        key=lambda a: (
+            int(bool(a.is_active)),
+            int(bool(a.last_webhook_at or a.last_outbound_at)),
+            int(bool(a.last_error)),
+            a.updated_at or datetime.min,
+        ),
+        reverse=True,
+    )
+    return candidates[0]
+
+
+def _channel_status_from_account(
+    account: TenantChannelAccount | None,
+    *,
+    supported: bool = True,
+    configured_check=None,
+    enabled_check=None,
+    unsupported_note: str | None = None,
+) -> IntegrationChannelStatus:
+    if not supported:
+        return IntegrationChannelStatus(
+            supported=False,
+            configured=False,
+            enabled=False,
+            health_status="unsupported",
+            status_label="Not Supported",
+            note=unsupported_note or "Not supported by backend yet.",
+        )
+    if not account:
+        return IntegrationChannelStatus(
+            supported=True,
+            configured=False,
+            enabled=False,
+            health_status="not_configured",
+            status_label="Not Connected",
+            note="No channel account configured.",
+        )
+    configured = bool(configured_check(account) if configured_check else True)
+    enabled = bool(enabled_check(account) if enabled_check else (configured and account.is_active))
+    health = _account_health_status(account)
+    label = "Enabled" if enabled else ("Configured" if configured else "Not Connected")
+    if health == "error":
+        label = "Error"
+    if health == "inactive":
+        label = "Inactive"
+    if not configured:
+        health = "not_configured"
+    return IntegrationChannelStatus(
+        supported=True,
+        configured=configured,
+        enabled=enabled,
+        health_status=health,
+        status_label=label,
+        account_id=account.id,
+        last_webhook_at=account.last_webhook_at,
+        last_outbound_at=account.last_outbound_at,
+        last_error=account.last_error,
+    )
 
 
 @router.post("/onboard", response_model=TenantOnboardResponse)
@@ -189,6 +267,64 @@ def tenant_bots(
         .order_by(TenantBotCredential.created_at.desc())
     ).scalars().all()
     return rows
+
+
+@router.get("/integrations/status", response_model=TenantIntegrationsStatusResponse)
+def tenant_integrations_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    bots = db.execute(
+        select(TenantBotCredential).where(TenantBotCredential.tenant_id == current_user.tenant_id)
+    ).scalars().all()
+    accounts = db.execute(
+        select(TenantChannelAccount).where(TenantChannelAccount.tenant_id == current_user.tenant_id)
+    ).scalars().all()
+
+    website_configured = len(bots) > 0
+    website_enabled = any(bool(b.is_active) for b in bots)
+    website_health = "healthy" if website_enabled else ("configured" if website_configured else "not_configured")
+    website_label = "Enabled" if website_enabled else ("Configured" if website_configured else "Not Configured")
+    website_note = None
+    if website_configured:
+        website_note = f"{sum(1 for b in bots if b.is_active)} active of {len(bots)} bot(s)"
+
+    whatsapp_account = _pick_best_account(accounts, {"whatsapp"})
+    messenger_account = _pick_best_account(accounts, {"messenger", "facebook"})
+    instagram_account = _pick_best_account(accounts, {"instagram"})
+
+    return TenantIntegrationsStatusResponse(
+        tenant_id=current_user.tenant_id,
+        generated_at=datetime.now(timezone.utc),
+        website_live_chat=IntegrationChannelStatus(
+            supported=True,
+            configured=website_configured,
+            enabled=website_enabled,
+            health_status=website_health,
+            status_label=website_label,
+            note=website_note,
+        ),
+        whatsapp_business=_channel_status_from_account(
+            whatsapp_account,
+            configured_check=lambda a: bool(a.access_token and a.phone_number_id),
+            enabled_check=lambda a: bool(a.is_active and a.access_token and a.phone_number_id),
+        ),
+        facebook_messenger=_channel_status_from_account(
+            messenger_account,
+            configured_check=lambda a: bool(a.access_token and a.page_id),
+            enabled_check=lambda a: bool(a.is_active and a.access_token and a.page_id),
+        ),
+        instagram=_channel_status_from_account(
+            instagram_account,
+            configured_check=lambda a: bool(a.access_token and (a.instagram_account_id or a.page_id)),
+            enabled_check=lambda a: bool(a.is_active and a.access_token and (a.instagram_account_id or a.page_id)),
+        ),
+        telegram=_channel_status_from_account(
+            None,
+            supported=False,
+            unsupported_note="Telegram channel routing is not implemented in this backend.",
+        ),
+    )
 
 
 @router.post("/bots")

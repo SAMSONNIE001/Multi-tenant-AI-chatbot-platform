@@ -77,3 +77,26 @@ class TenantEmbedSnippetResponse(BaseModel):
     bot_id: str
     api_base: str
     snippet_html: str
+
+
+class IntegrationChannelStatus(BaseModel):
+    supported: bool
+    configured: bool
+    enabled: bool
+    health_status: str
+    status_label: str
+    account_id: str | None = None
+    last_webhook_at: datetime | None = None
+    last_outbound_at: datetime | None = None
+    last_error: str | None = None
+    note: str | None = None
+
+
+class TenantIntegrationsStatusResponse(BaseModel):
+    tenant_id: str
+    generated_at: datetime
+    website_live_chat: IntegrationChannelStatus
+    whatsapp_business: IntegrationChannelStatus
+    facebook_messenger: IntegrationChannelStatus
+    instagram: IntegrationChannelStatus
+    telegram: IntegrationChannelStatus

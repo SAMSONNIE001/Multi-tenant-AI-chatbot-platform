@@ -159,3 +159,67 @@ def test_login_email_only_requires_tenant_hint_when_email_is_ambiguous():
         )
         assert login_resp.status_code == 409
         assert "Provide tenant_id" in login_resp.json()["detail"]
+
+
+def test_tenant_integrations_status_reflects_live_channels():
+    tenant_name = f"Integrations Tenant {_unique('name')}"
+    admin_local = _unique("admin")
+    admin_email = f"{admin_local}@example.com"
+    password = "StrongPass123!"
+
+    with TestClient(app) as client:
+        onboard_resp = client.post(
+            "/api/v1/tenant/onboard",
+            json={
+                "tenant_name": tenant_name,
+                "admin_email": admin_email,
+                "admin_password": password,
+                "compliance_level": "standard",
+                "bot_name": "Main Website Bot",
+                "allowed_origins": ["https://example.com"],
+            },
+        )
+        assert onboard_resp.status_code == 200
+        access_token = onboard_resp.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        status_initial = client.get("/api/v1/tenant/integrations/status", headers=headers)
+        assert status_initial.status_code == 200
+        data_initial = status_initial.json()
+        assert data_initial["website_live_chat"]["enabled"] is True
+        assert data_initial["whatsapp_business"]["configured"] is False
+        assert data_initial["facebook_messenger"]["configured"] is False
+        assert data_initial["telegram"]["supported"] is False
+
+        wa_create = client.post(
+            "/api/v1/admin/channels/accounts",
+            headers=headers,
+            json={
+                "channel_type": "whatsapp",
+                "name": "WhatsApp Main",
+                "access_token": "wa_dummy_access_token_12345",
+                "app_secret": "wa_dummy_app_secret",
+                "phone_number_id": "1234567890",
+            },
+        )
+        assert wa_create.status_code == 200
+
+        fb_create = client.post(
+            "/api/v1/admin/channels/accounts",
+            headers=headers,
+            json={
+                "channel_type": "facebook",
+                "name": "Facebook Main",
+                "access_token": "fb_dummy_access_token_12345",
+                "app_secret": "fb_dummy_app_secret",
+                "page_id": "112233445566778",
+            },
+        )
+        assert fb_create.status_code == 200
+
+        status_after = client.get("/api/v1/tenant/integrations/status", headers=headers)
+        assert status_after.status_code == 200
+        data_after = status_after.json()
+        assert data_after["whatsapp_business"]["enabled"] is True
+        assert data_after["facebook_messenger"]["enabled"] is True
+        assert data_after["instagram"]["configured"] is False
