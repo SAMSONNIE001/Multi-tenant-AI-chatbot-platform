@@ -1,14 +1,18 @@
 import os
+import logging
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.session import get_db
 from app.tenants.models import Tenant
 from app.auth.models import User
 from app.auth.security import hash_password, create_access_token
 from app.system.schemas import BootstrapRequest
+from app.notifications.email_service import send_welcome_email
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/bootstrap")
@@ -53,6 +57,15 @@ def bootstrap(
     )
     db.add(user)
     db.commit()
+    login_url = f"{str(settings.FRONTEND_PUBLIC_BASE_URL).rstrip('/')}/dashboard.html" if settings.FRONTEND_PUBLIC_BASE_URL else None
+    try:
+        send_welcome_email(
+            to_email=user.email,
+            tenant_name=tenant.name or tenant.id,
+            login_url=login_url,
+        )
+    except Exception:
+        logger.exception("Failed to dispatch welcome email during bootstrap tenant=%s user=%s", tenant.id, user.id)
 
     token = create_access_token(
         {"sub": user.id, "tenant_id": user.tenant_id, "role": user.role, "email": user.email}

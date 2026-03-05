@@ -1,4 +1,5 @@
 import secrets
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
@@ -34,8 +35,10 @@ from app.tenant.schemas import (
     TenantProfilePatchRequest,
 )
 from app.tenants.models import Tenant
+from app.notifications.email_service import send_welcome_email
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _slugify(value: str, *, fallback: str) -> str:
@@ -145,6 +148,15 @@ def tenant_onboard(
     )
 
     db.commit()
+    login_url = f"{str(settings.FRONTEND_PUBLIC_BASE_URL).rstrip('/')}/dashboard.html" if settings.FRONTEND_PUBLIC_BASE_URL else None
+    try:
+        send_welcome_email(
+            to_email=admin.email,
+            tenant_name=tenant.name or tenant.id,
+            login_url=login_url,
+        )
+    except Exception:
+        logger.exception("Failed to dispatch welcome email for tenant=%s admin=%s", tenant.id, admin.id)
 
     return TenantOnboardResponse(
         tenant={

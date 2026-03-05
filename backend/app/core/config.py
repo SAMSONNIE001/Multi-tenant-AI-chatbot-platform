@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str | None = None
     SMTP_FROM: str | None = None
     SMTP_STARTTLS: bool = True
+    SMTP_CONNECT_TIMEOUT_SECONDS: int = 15
+    EMAIL_PROVIDER: str = "smtp"
+    ZEPTOMAIL_API_URL: str = "https://api.zeptomail.com/v1.1/email"
+    ZEPTOMAIL_API_KEY: str | None = None
+    ZEPTOMAIL_FROM_EMAIL: str | None = None
+    ZEPTOMAIL_FROM_NAME: str | None = None
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
@@ -52,6 +58,14 @@ class Settings(BaseSettings):
     @classmethod
     def _normalize_log_level(cls, value: str) -> str:
         return (value or "INFO").upper()
+
+    @field_validator("EMAIL_PROVIDER")
+    @classmethod
+    def _normalize_email_provider(cls, value: str) -> str:
+        normalized = (value or "smtp").strip().lower()
+        if normalized not in {"smtp", "zeptomail"}:
+            raise ValueError("EMAIL_PROVIDER must be one of: smtp, zeptomail")
+        return normalized
 
 
 settings = Settings()

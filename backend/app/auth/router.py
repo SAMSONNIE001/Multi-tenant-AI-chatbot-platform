@@ -1,9 +1,7 @@
 import logging
 import secrets
-import smtplib
 from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
-from email.message import EmailMessage
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -35,6 +33,7 @@ from app.auth.security import (
     verify_password,
 )
 from app.auth.deps import get_current_user
+from app.notifications.email_service import send_transactional_email, send_welcome_email
 
 router = APIRouter()
 MAX_ACTIVE_REFRESH_TOKENS = 5
@@ -71,27 +70,12 @@ def _send_password_reset_email(
         body_lines.extend(["", f"Reset link: {reset_link}"])
     body_lines.extend(["", "If you did not request this, you can ignore this email."])
 
-    if not settings.SMTP_HOST:
-        logger.info(
-            "Password reset email skipped (SMTP_HOST unset). email=%s tenant=%s",
-            to_email,
-            tenant_id,
-        )
-        return False
-
-    msg = EmailMessage()
-    msg["Subject"] = "Password reset request"
-    msg["From"] = settings.SMTP_FROM or settings.SMTP_USERNAME or "no-reply@localhost"
-    msg["To"] = to_email
-    msg.set_content("\n".join(body_lines))
-
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as smtp:
-        if settings.SMTP_STARTTLS:
-            smtp.starttls()
-        if settings.SMTP_USERNAME and settings.SMTP_PASSWORD:
-            smtp.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-        smtp.send_message(msg)
-    return True
+    return send_transactional_email(
+        to_email=to_email,
+        subject="Password reset request",
+        text_body="\n".join(body_lines),
+        html_body=None,
+    )
 
 
 def _password_reset_public_message() -> str:
@@ -197,6 +181,15 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+    login_url = f"{str(settings.FRONTEND_PUBLIC_BASE_URL).rstrip('/')}/dashboard.html" if settings.FRONTEND_PUBLIC_BASE_URL else None
+    try:
+        send_welcome_email(
+            to_email=user.email,
+            tenant_name=tenant.name or user.tenant_id,
+            login_url=login_url,
+        )
+    except Exception:
+        logger.exception("Failed to dispatch welcome email for user=%s tenant=%s", user.id, user.tenant_id)
 
     return MeResponse(
         id=user.id,
