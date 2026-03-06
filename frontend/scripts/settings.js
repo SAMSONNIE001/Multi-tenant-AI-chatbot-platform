@@ -103,6 +103,42 @@ async function saveRetention() {
   }
 }
 
+async function sendPasswordReset() {
+  setStatus("outSecurity", "Sending reset request...");
+  try {
+    const body = { email: $("acEmail").value.trim() };
+    const tenant = $("fpTenantId").value.trim();
+    if (tenant) body.tenant_id = tenant;
+    const res = await api("/api/v1/auth/password/forgot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    setStatus("outSecurity", res.message || "If account exists, reset email was sent.");
+  } catch (e) {
+    setStatus("outSecurity", cleanError(e));
+  }
+}
+
+async function applyPasswordReset() {
+  setStatus("outSecurity", "Resetting password...");
+  try {
+    const res = await api("/api/v1/auth/password/reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reset_token: $("fpResetToken").value.trim(),
+        code: $("fpCode").value.trim(),
+        new_password: $("fpNewPassword").value,
+      }),
+    });
+    $("fpNewPassword").value = "";
+    setStatus("outSecurity", res.message || "Password reset successful.");
+  } catch (e) {
+    setStatus("outSecurity", cleanError(e));
+  }
+}
+
 (async function bootstrap() {
   const token = getToken();
   if (!token) {
@@ -114,10 +150,15 @@ async function saveRetention() {
   $("btnSaveLimits").onclick = () => saveLimits();
   $("btnLoadRetention").onclick = () => loadRetention();
   $("btnSaveRetention").onclick = () => saveRetention();
+  if ($("btnForgotPassword")) $("btnForgotPassword").onclick = () => sendPasswordReset();
+  if ($("btnResetPassword")) $("btnResetPassword").onclick = () => applyPasswordReset();
   setStatus("outSettings", "Loading account context...");
+  setStatus("outSecurity", "Use this section to update account password securely.");
   try {
     const me = await api("/api/v1/auth/me");
     $("navUserBadge").textContent = `Current User: ${me.email || "-"}`;
+    if ($("acEmail")) $("acEmail").value = me.email || "";
+    if ($("fpTenantId")) $("fpTenantId").value = me.tenant_id || "";
     setStatus("outSettings", `Signed in as ${me.email || "-"} (${me.role || "-"}).`);
   } catch (e) {
     setStatus("outSettings", cleanError(e));

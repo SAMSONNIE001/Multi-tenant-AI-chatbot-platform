@@ -4,11 +4,10 @@
   const steps = [
     { id: "dashboard", label: "1. Dashboard", path: "dashboard.html" },
     { id: "profile", label: "2. Profile", path: "profile.html" },
-    { id: "account", label: "3. Account Security", path: "account-settings.html" },
-    { id: "company", label: "4. Company Settings", path: "settings.html" },
-    { id: "integrations", label: "5. Integrations", path: "integrations.html" },
-    { id: "knowledge", label: "6. Knowledge Base", path: "tenant-setup.html" },
-    { id: "inbox", label: "7. Unified Inbox", path: "tenant-console.html" },
+    { id: "settings", label: "3. Settings", path: "settings.html" },
+    { id: "integrations", label: "4. Integrations", path: "integrations.html" },
+    { id: "knowledge", label: "5. Knowledge Base", path: "tenant-setup.html" },
+    { id: "inbox", label: "6. Unified Inbox", path: "tenant-console.html" },
   ];
 
   function currentPath() {
