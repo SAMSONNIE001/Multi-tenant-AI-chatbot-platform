@@ -195,11 +195,62 @@
       return channel.note || channel.health_status || "-";
     }
 
+    function _findChannelAccount(rows, types) {
+      const wanted = new Set(types.map((t) => String(t).toLowerCase()));
+      return (Array.isArray(rows) ? rows : []).find((row) => wanted.has(String(row.channel_type || "").toLowerCase())) || null;
+    }
+
+    async function _loadIntegrationStatus() {
+      try {
+        const direct = await request("/api/v1/tenant/integrations/status");
+        return { ...direct, _source: "tenant_integrations_status" };
+      } catch (err) {
+        const accounts = await request("/api/v1/admin/channels/accounts");
+        const bots = await request("/api/v1/tenant/bots");
+        const rows = Array.isArray(accounts) ? accounts : [];
+        const botRows = Array.isArray(bots) ? bots : [];
+        const wa = _findChannelAccount(rows, ["whatsapp"]);
+        const fb = _findChannelAccount(rows, ["facebook", "messenger"]);
+        const ig = _findChannelAccount(rows, ["instagram"]);
+        const enabled = (row) => !!(row && row.is_active !== false);
+        return {
+          _source: "fallback_accounts",
+          website_live_chat: {
+            enabled: botRows.length > 0,
+            status_label: botRows.length > 0 ? "Enabled" : "Not Configured",
+            note: `${botRows.length} active bot(s)`,
+          },
+          whatsapp_business: {
+            enabled: enabled(wa),
+            status_label: enabled(wa) ? "Enabled" : "Not Connected",
+            note: wa ? `account ${wa.id}` : "No WhatsApp account configured",
+          },
+          facebook_messenger: {
+            enabled: enabled(fb),
+            status_label: enabled(fb) ? "Enabled" : "Not Connected",
+            note: fb ? `account ${fb.id}` : "No Facebook account configured",
+          },
+          instagram: {
+            enabled: enabled(ig),
+            status_label: enabled(ig) ? "Enabled" : "Coming Soon",
+            note: ig ? `account ${ig.id}` : "Coming soon",
+          },
+          telegram: {
+            enabled: false,
+            supported: false,
+            status_label: "Coming Soon",
+            note: "Coming soon",
+          },
+          _fallback_error: String(err),
+        };
+      }
+    }
+
     async function syncChannelIntegrations() {
       const sync = $("integrationSync");
       if (sync) sync.textContent = "Syncing configured channels from backend...";
       try {
-        const data = await request("/api/v1/tenant/integrations/status");
+        const data = await _loadIntegrationStatus();
         state.integrationStatus = data;
         const website = data.website_live_chat || {};
         const whatsapp = data.whatsapp_business || {};
@@ -209,21 +260,22 @@
         _setIntegrationState("intWebsiteState", !!website.enabled, website.status_label || "Enabled", "Not Configured");
         _setIntegrationState("intWhatsappState", !!whatsapp.enabled, whatsapp.status_label || "Enabled", "Not Connected");
         _setIntegrationState("intMessengerState", !!messenger.enabled, messenger.status_label || "Enabled", "Not Connected");
-        _setIntegrationState("intInstagramState", !!instagram.enabled, instagram.status_label || "Enabled", "Not Connected");
+        _setIntegrationState("intInstagramState", !!instagram.enabled, instagram.status_label || "Enabled", "Coming Soon");
         _setIntegrationMeta("intWebsiteMeta", _integrationDetail(website));
         _setIntegrationMeta("intWhatsappMeta", _integrationDetail(whatsapp));
         _setIntegrationMeta("intMessengerMeta", _integrationDetail(messenger));
         _setIntegrationMeta("intInstagramMeta", _integrationDetail(instagram));
-        if (sync) sync.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
+        const suffix = data._source === "fallback_accounts" ? " (fallback)" : "";
+        if (sync) sync.textContent = `Last sync: ${new Date().toLocaleTimeString()}${suffix}`;
       } catch (_) {
-        _setIntegrationState("intWebsiteState", false, "Enabled", "Unavailable");
-        _setIntegrationState("intWhatsappState", false, "Enabled", "Unavailable");
-        _setIntegrationState("intMessengerState", false, "Enabled", "Unavailable");
-        _setIntegrationState("intInstagramState", false, "Enabled", "Unavailable");
-        _setIntegrationMeta("intWebsiteMeta", "Unavailable");
-        _setIntegrationMeta("intWhatsappMeta", "Unavailable");
-        _setIntegrationMeta("intMessengerMeta", "Unavailable");
-        _setIntegrationMeta("intInstagramMeta", "Unavailable");
+        _setIntegrationState("intWebsiteState", false, "Enabled", "Check Setup");
+        _setIntegrationState("intWhatsappState", false, "Enabled", "Check Setup");
+        _setIntegrationState("intMessengerState", false, "Enabled", "Check Setup");
+        _setIntegrationState("intInstagramState", false, "Enabled", "Coming Soon");
+        _setIntegrationMeta("intWebsiteMeta", "Unable to load");
+        _setIntegrationMeta("intWhatsappMeta", "Unable to load");
+        _setIntegrationMeta("intMessengerMeta", "Unable to load");
+        _setIntegrationMeta("intInstagramMeta", "Coming soon");
         if (sync) sync.textContent = "Could not sync channel status";
       }
     }
