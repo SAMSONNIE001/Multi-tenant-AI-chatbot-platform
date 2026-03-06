@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const KEY = "sb_onboarding_flow_v1";
 
   const steps = [
@@ -118,16 +118,7 @@
     ensureStyles();
     const state = readState();
     const nowId = steps[current].id;
-
-    // Strict progression: user cannot access later steps until prior ones are completed.
-    const blockedAt = steps.findIndex((step, idx) => idx < current && !state[step.id]);
-    if (blockedAt >= 0) {
-      const required = steps[blockedAt];
-      if (required && required.path) {
-        window.location.replace(`./${required.path}`);
-        return;
-      }
-    }
+    // Keep journey as guidance only; do not force-redirect page navigation.
 
     const container = document.createElement("section");
     container.className = "sb-flow";
@@ -210,3 +201,9 @@
     mountFlow();
   }
 })();
+
+
+
+
+
+

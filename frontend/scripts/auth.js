@@ -1,4 +1,4 @@
-const $ = (id) => document.getElementById(id);
+﻿const $ = (id) => document.getElementById(id);
 const TOKEN_KEY = "tenant_console_token";
 const SESSION_EXPIRED_KEY = "tenant_console_session_expired";
 
@@ -173,6 +173,7 @@ $("btnEnvLocal").onclick = () => {
 (function bootstrap() {
   const savedBase = localStorage.getItem("tenant_console_api_base");
   const savedStaging = localStorage.getItem("tenant_console_staging_api_base");
+  const defaultStagingBase = "https://multi-tenant-ai-chatbot-platform-staging.up.railway.app";
   const host = String(window.location.hostname || "").toLowerCase();
   const isProdHost = (host === "www.staunchbot.com" || host === "staunchbot.com");
   const hostedDefaultBase = isProdHost ? "https://api.staunchbot.com" : "";
@@ -180,7 +181,7 @@ $("btnEnvLocal").onclick = () => {
   if (hostedDefaultBase && (!savedBase || /^https?:\/\/localhost(:\d+)?/i.test(savedBase))) {
     $("apiBase").value = hostedDefaultBase;
   }
-  if (savedStaging) $("stagingApiBase").value = savedStaging;
+  $("stagingApiBase").value = savedStaging || defaultStagingBase;
   if (isProdHost) {
     const panel = $("connectionPanel");
     if (panel) panel.style.display = "none";
@@ -196,3 +197,4 @@ $("btnEnvLocal").onclick = () => {
     $("outLogin").textContent = "Sign in to continue.";
   }
 })();
+

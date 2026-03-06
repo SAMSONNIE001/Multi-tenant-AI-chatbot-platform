@@ -1,4 +1,4 @@
-const $ = (id) => document.getElementById(id);
+﻿const $ = (id) => document.getElementById(id);
 const TOKEN_KEY = "tenant_console_token";
 const SESSION_EXPIRED_KEY = "tenant_console_session_expired";
 
@@ -335,6 +335,7 @@ if (btnNavSignOut) {
   }
   const savedBase = localStorage.getItem("tenant_console_api_base");
   const savedStaging = localStorage.getItem("tenant_console_staging_api_base");
+  const defaultStagingBase = "https://multi-tenant-ai-chatbot-platform-staging.up.railway.app";
   const host = String(window.location.hostname || "").toLowerCase();
   const hostedDefaultBase = (host === "www.staunchbot.com" || host === "staunchbot.com") ? "https://api.staunchbot.com" : "";
   if (savedToken) {
@@ -345,7 +346,7 @@ if (btnNavSignOut) {
   if (hostedDefaultBase && (!savedBase || /^https?:\/\/localhost(:\d+)?/i.test(savedBase))) {
     $("apiBase").value = hostedDefaultBase;
   }
-  if (savedStaging) $("stagingApiBase").value = savedStaging;
+  $("stagingApiBase").value = savedStaging || defaultStagingBase;
   if (sessionStorage.getItem(SESSION_EXPIRED_KEY) === "1") {
     $("outLogin").textContent = "Session expired. Please sign in again.";
     sessionStorage.removeItem(SESSION_EXPIRED_KEY);
@@ -361,3 +362,4 @@ if (btnNavSignOut) {
     $("outChecks").textContent = "Sign in to run release checks.";
   }
 })();
+

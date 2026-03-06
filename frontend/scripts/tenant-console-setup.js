@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
     const tcSetup = window.TenantConsole;
     const {
       $,
@@ -630,6 +630,7 @@
       }
       const savedBase = localStorage.getItem("tenant_console_api_base");
       const savedStaging = localStorage.getItem("tenant_console_staging_api_base");
+      const defaultStagingBase = "https://multi-tenant-ai-chatbot-platform-staging.up.railway.app";
       const savedPane = localStorage.getItem("tenant_console_active_pane");
       const savedAdvanced = localStorage.getItem("tenant_console_advanced");
       const savedRoleMode = localStorage.getItem("tenant_console_role_mode");
@@ -649,7 +650,7 @@
       if (hostedDefaultBase && (!savedBase || /^https?:\/\/localhost(:\d+)?/i.test(savedBase))) {
         $("apiBase").value = hostedDefaultBase;
       }
-      if (savedStaging) $("stagingApiBase").value = savedStaging;
+      $("stagingApiBase").value = savedStaging || defaultStagingBase;
       if (savedRoleMode && roleModeEl && ["operator", "admin"].includes(savedRoleMode)) {
         roleModeEl.value = savedRoleMode;
       }
@@ -687,3 +688,4 @@
       setQueueAutoRefresh();
     })();
 })();
+
