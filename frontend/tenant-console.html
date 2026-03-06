@@ -581,9 +581,9 @@
     <div class="topnav">
       <div class="links">
         <a id="navDashboard" href="./dashboard.html">Dashboard</a>
-        <a id="navOps" href="./tenant-console.html">Daily Ops</a>
+        <a id="navOps" href="./tenant-console.html">Unified Inbox</a>
         <a href="./integrations.html">Integrations</a>
-        <a id="navSetup" href="./tenant-setup.html">Setup</a>
+        <a id="navSetup" href="./tenant-setup.html">Knowledge Base (Dev)</a>
         <a id="navRelease" href="./release-checklist.html">Release</a>
       </div>
       <div class="meta">
@@ -592,11 +592,11 @@
       </div>
     </div>
     <div class="header">
-      <h1>Daily Operations Console</h1>
-      <p>Operate queue, quality checks, and escalation controls from one place.</p>
+      <h1>Unified Inbox And Operations</h1>
+      <p>Manage all customer conversations in one queue, assign agents, send replies, and monitor SLA in real time.</p>
       <p class="small">Build: customer-profiles + escalation-ops (2026-03-01)</p>
       <p class="small"><a href="./tenant-setup.html">Open Setup/Admin Console</a></p>
-      <p class="small">Use Setup for onboarding/configuration and Release for promotion checks.</p>
+      <p class="small">Use this page for daily support handling. Use Setup for onboarding/configuration and Release for promotion checks.</p>
     </div>
 
     <div class="console-toolbar">
@@ -780,7 +780,8 @@
       </section>
 
       <section class="card" data-pane="daily">
-        <h2>Inbox Queue</h2>
+        <h2>Unified Inbox</h2>
+        <div class="small">Function: central queue for all incoming customer messages across connected channels.</div>
         <div class="row">
           <label>Status Filter</label>
           <select id="hfStatus">
@@ -1103,6 +1104,7 @@
   <script src="./scripts/tenant-console-ops.js?v=20260304"></script>
   <script src="./scripts/tenant-console-qa.js?v=20260304"></script>
   <script src="./scripts/tenant-console-setup.js?v=20260304"></script>
+  <script src="./scripts/debug-panels.js"></script>
 </body>
 </html>
 

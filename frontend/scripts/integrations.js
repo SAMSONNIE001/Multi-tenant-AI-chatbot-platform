@@ -8,6 +8,17 @@ function pretty(v) {
   try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
 }
 
+function cleanError(e) {
+  const raw = String(e || "Request failed");
+  if (raw.includes("401")) return "Session expired. Please sign in again.";
+  if (raw.includes("403")) return "You do not have permission to perform this action.";
+  if (raw.includes("404")) return "Requested resource was not found.";
+  if (raw.includes("409") && raw.includes("Provide tenant_id")) return "This email belongs to multiple tenants. Enter Tenant ID and try again.";
+  if (raw.includes("422")) return "Some fields are invalid. Check your inputs and try again.";
+  if (raw.includes("500")) return "Server error. Please try again in a moment.";
+  return raw.replace(/^\d+\s+/, "").slice(0, 220);
+}
+
 function toast(msg, kind = "ok", ms = 2600) {
   const stack = $("toastStack");
   if (!stack) return;
@@ -236,13 +247,14 @@ async function loadStatus() {
       integrationRow("Instagram", status.instagram || {}),
       integrationRow("Telegram", status.telegram || {}),
     ].join("");
-    out.textContent = pretty(status);
+    out.textContent = `Integration status updated at ${new Date().toLocaleTimeString()}.`;
     await loadAccounts();
     toast("Integration status refreshed", "ok");
     return status;
   } catch (e) {
-    setErrorPanel(String(e));
-    out.textContent = String(e);
+    const msg = cleanError(e);
+    setErrorPanel(msg);
+    out.textContent = msg;
     toast("Failed to load integration status", "err");
     throw e;
   } finally {
@@ -261,12 +273,13 @@ async function loadHealth() {
       const data = await api(`/api/v1/admin/channels/accounts/${encodeURIComponent(row.id)}/health`);
       health.push(data);
     }
-    out.textContent = pretty({ count: health.length, items: health });
+    out.textContent = `Health checks completed for ${health.length} channel(s).`;
     toast("Channel health refreshed", "ok");
     await loadStatus();
   } catch (e) {
-    setErrorPanel(String(e));
-    out.textContent = String(e);
+    const msg = cleanError(e);
+    setErrorPanel(msg);
+    out.textContent = msg;
     toast("Failed to load channel health", "err");
   } finally {
     setLoading("btnLoadHealth", false);
@@ -313,12 +326,13 @@ async function saveWhatsApp() {
         }),
       });
     }
-    out.textContent = pretty({ saved: true, account: data });
+    out.textContent = `WhatsApp saved successfully${data && data.id ? ` (Account ID: ${data.id})` : ""}.`;
     toast("WhatsApp saved", "ok");
     await loadStatus();
   } catch (e) {
-    setErrorPanel(String(e));
-    out.textContent = String(e);
+    const msg = cleanError(e);
+    setErrorPanel(msg);
+    out.textContent = msg;
     toast("Failed to save WhatsApp", "err");
   } finally {
     setLoading("btnSaveWhatsApp", false);
@@ -365,12 +379,13 @@ async function saveFacebook() {
         }),
       });
     }
-    out.textContent = pretty({ saved: true, account: data });
+    out.textContent = `Facebook Messenger saved successfully${data && data.id ? ` (Account ID: ${data.id})` : ""}.`;
     toast("Facebook saved", "ok");
     await loadStatus();
   } catch (e) {
-    setErrorPanel(String(e));
-    out.textContent = String(e);
+    const msg = cleanError(e);
+    setErrorPanel(msg);
+    out.textContent = msg;
     toast("Failed to save Facebook", "err");
   } finally {
     setLoading("btnSaveFacebook", false);
@@ -389,12 +404,13 @@ async function disableChannel(accountId, outId, label) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_active: false }),
     });
-    out.textContent = pretty({ disconnected: true, account: data.id });
+    out.textContent = `${label} disconnected successfully.`;
     toast(`${label} disconnected`, "ok");
     await loadStatus();
   } catch (e) {
-    setErrorPanel(String(e));
-    out.textContent = String(e);
+    const msg = cleanError(e);
+    setErrorPanel(msg);
+    out.textContent = msg;
     toast(`Failed to disconnect ${label}`, "err");
   } finally {
     setLoading(btnId, false);
@@ -434,7 +450,8 @@ async function testInbound(kind) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      out.textContent = pretty({ tested: "whatsapp", webhook_result: res });
+      const evtId = res && (res.event_id || res.id);
+      out.textContent = `WhatsApp test event accepted${evtId ? ` (Event ID: ${evtId})` : ""}.`;
       setTestBadge(badgeId, true, `Pass ${new Date().toLocaleTimeString()}`);
     } else {
       const fb = rows.find((a) => {
@@ -458,14 +475,16 @@ async function testInbound(kind) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      out.textContent = pretty({ tested: "facebook", webhook_result: res });
+      const evtId = res && (res.event_id || res.id);
+      out.textContent = `Facebook test event accepted${evtId ? ` (Event ID: ${evtId})` : ""}.`;
       setTestBadge(badgeId, true, `Pass ${new Date().toLocaleTimeString()}`);
     }
     toast(`${kind} test event accepted`, "ok");
     await loadStatus();
   } catch (e) {
-    setErrorPanel(String(e));
-    out.textContent = String(e);
+    const msg = cleanError(e);
+    setErrorPanel(msg);
+    out.textContent = msg;
     setTestBadge(badgeId, false, `Fail ${new Date().toLocaleTimeString()}`);
     toast(`${kind} test failed`, "err");
   } finally {
@@ -493,13 +512,14 @@ async function login() {
     $("lgTenantIdRow").style.display = "none";
     $("lgTenantId").value = "";
     const me = await api("/api/v1/auth/me");
-    $("navUserBadge").textContent = `Current User: ${me.email} | role=${me.role} | tenant=${me.tenant_id}`;
+    $("navUserBadge").textContent = `Current User: ${me.email}`;
     out.textContent = `Login successful for ${body.email}.`;
     toast("Logged in", "ok");
     await loadStatus();
   } catch (e) {
-    const msg = String(e);
-    if (msg.includes("409") && msg.includes("Provide tenant_id")) {
+    const raw = String(e || "");
+    const msg = cleanError(e);
+    if (raw.includes("409") && raw.includes("Provide tenant_id")) {
       $("lgTenantIdRow").style.display = "grid";
       $("lgTenantId").focus();
     }
@@ -527,10 +547,14 @@ $("btnLoadBots").onclick = async () => {
   out.textContent = "Loading bots...";
   try {
     const bots = await api("/api/v1/tenant/bots");
-    out.textContent = pretty({ count: Array.isArray(bots) ? bots.length : 0, bots });
+    const count = Array.isArray(bots) ? bots.length : 0;
+    out.textContent = count > 0
+      ? `${count} bot(s) available for website live chat.`
+      : "No bots found. Create a bot in setup before enabling website live chat.";
   } catch (e) {
-    setErrorPanel(String(e));
-    out.textContent = String(e);
+    const msg = cleanError(e);
+    setErrorPanel(msg);
+    out.textContent = msg;
     toast("Failed to load bots", "err");
   }
 };
@@ -589,7 +613,7 @@ $("btnNavSignOut").onclick = () => {
   }
   try {
     const me = await api("/api/v1/auth/me");
-    $("navUserBadge").textContent = `Current User: ${me.email} | role=${me.role} | tenant=${me.tenant_id}`;
+    $("navUserBadge").textContent = `Current User: ${me.email}`;
   } catch (_) {}
   setTestBadge("waTestBadge", false, "No Test Yet");
   setTestBadge("fbTestBadge", false, "No Test Yet");

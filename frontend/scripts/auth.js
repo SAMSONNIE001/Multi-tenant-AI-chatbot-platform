@@ -6,6 +6,17 @@ function pretty(v) {
   try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
 }
 
+function cleanError(e) {
+  const raw = String(e || "Request failed");
+  if (raw.includes("401")) return "Invalid email or password.";
+  if (raw.includes("403")) return "You do not have permission to perform this action.";
+  if (raw.includes("404")) return "Requested resource was not found.";
+  if (raw.includes("409") && raw.includes("Provide tenant_id")) return "This email belongs to multiple tenants. Enter Tenant ID and try again.";
+  if (raw.includes("422")) return "Some fields are invalid. Check your inputs and try again.";
+  if (raw.includes("500")) return "Server error. Please try again in a moment.";
+  return raw.replace(/^\d+\s+/, "").slice(0, 220);
+}
+
 function getApiBase() {
   return $("apiBase").value.trim().replace(/\/+$/, "");
 }
@@ -68,8 +79,9 @@ $("btnLogin").onclick = async () => {
     setToken(data.access_token);
     window.location.href = nextPath();
   } catch (e) {
-    const msg = String(e);
-    if (msg.includes("409") && msg.includes("Provide tenant_id")) {
+    const raw = String(e || "");
+    const msg = cleanError(e);
+    if (raw.includes("409") && raw.includes("Provide tenant_id")) {
       $("lgTenantIdRow").style.display = "grid";
       $("lgTenantId").focus();
     }
@@ -101,7 +113,7 @@ $("btnOnboardCreate").onclick = async () => {
     setToken(data.access_token);
     window.location.href = nextPath();
   } catch (e) {
-    out.textContent = String(e);
+    out.textContent = cleanError(e);
   }
 };
 
@@ -119,7 +131,7 @@ $("btnForgotPassword").onclick = async () => {
     });
     out.textContent = data.message || "If the account exists, reset email has been sent.";
   } catch (e) {
-    out.textContent = String(e);
+    out.textContent = cleanError(e);
   }
 };
 
@@ -138,7 +150,7 @@ $("btnResetPassword").onclick = async () => {
     });
     out.textContent = data.message || "Password reset successful.";
   } catch (e) {
-    out.textContent = String(e);
+    out.textContent = cleanError(e);
   }
 };
 

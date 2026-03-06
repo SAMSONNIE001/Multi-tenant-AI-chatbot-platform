@@ -360,6 +360,38 @@
       border-color: #fecaca;
       color: #991b1b;
     }
+    .dev-note {
+      margin: 0 0 10px;
+      font-size: 12px;
+      color: #475569;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .kb-columns {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    .kb-col {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #fcfdff;
+      padding: 8px 10px;
+    }
+    .kb-col h3 {
+      margin: 0 0 6px;
+      font-size: 12px;
+      color: #0f172a;
+    }
+    .kb-col ul {
+      margin: 0;
+      padding-left: 16px;
+      font-size: 12px;
+      color: #334155;
+    }
     .topnav {
       display: flex;
       align-items: center;
@@ -483,7 +515,7 @@
         <a id="navDashboard" href="./dashboard.html">Dashboard</a>
         <a id="navOps" href="./tenant-console.html">Daily Ops</a>
         <a href="./integrations.html">Integrations</a>
-        <a id="navSetup" href="./tenant-setup.html">Setup</a>
+        <a id="navSetup" href="./tenant-setup.html">Knowledge Base (Dev)</a>
         <a id="navRelease" href="./release-checklist.html">Release</a>
       </div>
       <div class="meta">
@@ -651,7 +683,34 @@
       </section>
 
       <section class="card" data-pane="setup">
-        <h2>Knowledge Upload + Reindex</h2>
+        <h2>Knowledge Base (Development)</h2>
+        <p class="dev-note">This module is still under active build. Upload and reindex are working. Full library management, source controls, and sync jobs are in progress.</p>
+        <div class="kb-columns">
+          <div class="kb-col">
+            <h3>Available now</h3>
+            <ul>
+              <li>Manual document upload</li>
+              <li>Document status check</li>
+              <li>Single document reindex</li>
+            </ul>
+          </div>
+          <div class="kb-col">
+            <h3>In progress</h3>
+            <ul>
+              <li>Folder and source grouping</li>
+              <li>Document version history</li>
+              <li>Bulk reindex and retries</li>
+            </ul>
+          </div>
+          <div class="kb-col">
+            <h3>Next milestones</h3>
+            <ul>
+              <li>Search and filter library</li>
+              <li>Scheduled sync jobs</li>
+              <li>Per-channel knowledge routing</li>
+            </ul>
+          </div>
+        </div>
         <div class="row">
           <label>Upload file (.txt, .md, .json, .pdf, .docx)</label>
           <input id="kgFile" type="file" />
@@ -1014,6 +1073,7 @@
   <script src="./scripts/tenant-console-ops.js?v=20260304"></script>
   <script src="./scripts/tenant-console-qa.js?v=20260304"></script>
   <script src="./scripts/tenant-console-setup.js?v=20260304"></script>
+  <script src="./scripts/debug-panels.js"></script>
 </body>
 </html>
 

@@ -94,11 +94,12 @@
     button.alt { background: #5d6b81; }
     .out {
       margin-top: 8px;
-      background: #0f1a2c;
+      background: #f8fbff;
+      border: 1px solid #dbe5f2;
       border-radius: 8px;
-      color: #cde0ff;
-      min-height: 56px;
-      padding: 8px;
+      color: #2b3a4f;
+      min-height: 44px;
+      padding: 9px 10px;
       white-space: pre-wrap;
       font-size: 12px;
     }
@@ -134,7 +135,7 @@
       <h2>Sign In</h2>
       <p class="muted">Use your existing tenant admin/support account.</p>
       <div class="row"><label>Email</label><input id="lgEmail" placeholder="admin@example.com" /></div>
-      <div class="row"><label>Password</label><input id="lgPassword" placeholder="Enter password" /></div>
+      <div class="row"><label>Password</label><input id="lgPassword" type="password" placeholder="Enter password" /></div>
       <div class="row" id="lgTenantIdRow" style="display:none;">
         <label>Tenant ID</label><input id="lgTenantId" placeholder="t_..." />
       </div>
@@ -149,7 +150,7 @@
         <div id="outForgotPassword" class="out"></div>
         <div class="row" style="margin-top:10px;"><label>Reset Token</label><input id="fpResetToken" placeholder="Paste reset token" /></div>
         <div class="row"><label>Reset Code</label><input id="fpCode" placeholder="6-digit code" /></div>
-        <div class="row"><label>New Password</label><input id="fpNewPassword" placeholder="Enter new password" /></div>
+        <div class="row"><label>New Password</label><input id="fpNewPassword" type="password" placeholder="Enter new password" /></div>
         <button id="btnResetPassword" class="alt" type="button">Reset Password</button>
         <div id="outResetPassword" class="out"></div>
       </details>
@@ -160,7 +161,7 @@
       <p class="muted">Create a new tenant and sign in automatically.</p>
       <div class="row"><label>Company / Tenant Name</label><input id="obTenantName" placeholder="Acme Support Ltd" /></div>
       <div class="row"><label>Admin Email</label><input id="obAdminEmail" placeholder="admin@acme.com" /></div>
-      <div class="row"><label>Admin Password</label><input id="obAdminPassword" placeholder="Create a strong password" /></div>
+      <div class="row"><label>Admin Password</label><input id="obAdminPassword" type="password" placeholder="Create a strong password" /></div>
       <div class="row"><label>Bot Name</label><input id="obBotName" value="Main Website Bot" /></div>
       <div class="row"><label>Allowed Origins (comma-separated)</label><input id="obAllowedOrigins" value="https://www.staunchbot.com,https://staunchbot.com" /></div>
       <button id="btnOnboardCreate" class="alt" type="button">Create Account And Sign In</button>
@@ -180,5 +181,6 @@
   </div>
 
   <script src="./scripts/auth.js"></script>
+  <script src="./scripts/debug-panels.js"></script>
 </body>
 </html>

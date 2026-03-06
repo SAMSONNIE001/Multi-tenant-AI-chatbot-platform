@@ -39,6 +39,17 @@
     } = tcSetup;
     const state = tcSetup.state;
 
+    function cleanError(e) {
+      const raw = String(e || "Request failed");
+      if (raw.includes("401")) return "Session expired. Please sign in again.";
+      if (raw.includes("403")) return "You do not have permission to perform this action.";
+      if (raw.includes("404")) return "Requested resource was not found.";
+      if (raw.includes("409") && raw.includes("Provide tenant_id")) return "This email belongs to multiple tenants. Enter Tenant ID and try again.";
+      if (raw.includes("422")) return "Some fields are invalid. Check your inputs and try again.";
+      if (raw.includes("500")) return "Server error. Please try again in a moment.";
+      return raw.replace(/^\d+\s+/, "").slice(0, 220);
+    }
+
     $("saveToken").onclick = () => {
       saveSessionToken($("accessToken").value);
       localStorage.setItem("tenant_console_api_base", $("apiBase").value);
@@ -56,7 +67,7 @@
     const btnOnboard = $("btnOnboard");
     if (btnOnboard) btnOnboard.onclick = async () => {
       const out = $("outOnboard");
-      out.textContent = "Running...";
+      out.textContent = "Creating tenant workspace...";
       try {
         const body = {
           tenant_name: $("obTenantName").value.trim(),
@@ -71,7 +82,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        out.textContent = pretty(data);
+        out.textContent = `Tenant created successfully${data?.tenant?.id ? ` (ID: ${data.tenant.id})` : ""}.`;
         if (data && data.access_token) {
           setToken(data.access_token);
           saveSessionToken(data.access_token);
@@ -84,7 +95,7 @@
 
     $("btnLogin").onclick = async () => {
       const out = $("outLogin");
-      out.textContent = "Running...";
+      out.textContent = "Signing in...";
       try {
         const body = {
           email: $("lgEmail").value.trim(),
@@ -99,7 +110,7 @@
         });
         $("lgTenantIdRow").style.display = "none";
         $("lgTenantId").value = "";
-        out.textContent = pretty(data);
+        out.textContent = `Signed in successfully as ${body.email}.`;
         if (data && data.access_token) {
           setToken(data.access_token);
           saveSessionToken(data.access_token);
@@ -107,12 +118,12 @@
           await populateChannelSetupFields();
         }
       } catch (e) {
-        const msg = String(e);
+        const msg = String(e || "");
         if (msg.includes("409") && msg.includes("Provide tenant_id")) {
           $("lgTenantIdRow").style.display = "grid";
           $("lgTenantId").focus();
         }
-        out.textContent = String(e);
+        out.textContent = cleanError(e);
       }
     };
 
@@ -156,7 +167,7 @@
           await populateChannelSetupFields();
           out.textContent = "Integration status reloaded.";
         } catch (e) {
-          out.textContent = String(e);
+          out.textContent = cleanError(e);
         }
       };
     }
@@ -200,11 +211,11 @@
                 phone_number_id: phoneNumberId,
               }),
             });
-          out.textContent = pretty({ saved: "whatsapp", account_id: data.id, status: "ok" });
+          out.textContent = `WhatsApp channel saved${data?.id ? ` (Account ID: ${data.id})` : ""}.`;
           await syncChannelIntegrations();
           await populateChannelSetupFields();
         } catch (e) {
-          out.textContent = String(e);
+          out.textContent = cleanError(e);
         }
       };
     }
@@ -248,11 +259,11 @@
                 page_id: pageId,
               }),
             });
-          out.textContent = pretty({ saved: "facebook_messenger", account_id: data.id, status: "ok" });
+          out.textContent = `Facebook Messenger channel saved${data?.id ? ` (Account ID: ${data.id})` : ""}.`;
           await syncChannelIntegrations();
           await populateChannelSetupFields();
         } catch (e) {
-          out.textContent = String(e);
+          out.textContent = cleanError(e);
         }
       };
     }
@@ -354,7 +365,7 @@
         const data = await request(`/api/v1/admin/auth/security-events?${qs.toString()}`);
         out.textContent = pretty(data);
       } catch (e) {
-        out.textContent = String(e);
+        out.textContent = cleanError(e);
       }
     };
 
