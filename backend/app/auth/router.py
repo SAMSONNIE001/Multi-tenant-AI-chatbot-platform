@@ -13,6 +13,7 @@ from app.tenants.models import Tenant
 from app.auth.login_guard import clear_failures, is_locked, register_failure
 from app.auth.models import AuthSecurityEvent, PasswordResetToken, RefreshToken, User, UserProfilePreference
 from app.auth.schemas import (
+    DeleteAccountResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
@@ -378,6 +379,62 @@ def me(current_user: User = Depends(get_current_user)):
         email=current_user.email,
         role=current_user.role,
     )
+
+
+@router.delete("/me", response_model=DeleteAccountResponse)
+def delete_my_account(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    now = datetime.now(timezone.utc)
+    # Revoke all refresh tokens for this user.
+    active = (
+        db.query(RefreshToken)
+        .filter(
+            RefreshToken.user_id == current_user.id,
+            RefreshToken.tenant_id == current_user.tenant_id,
+            RefreshToken.revoked_at.is_(None),
+        )
+        .all()
+    )
+    for token in active:
+        token.revoked_at = now
+        db.add(token)
+
+    # Remove user preference rows.
+    (
+        db.query(UserProfilePreference)
+        .filter(
+            UserProfilePreference.user_id == current_user.id,
+            UserProfilePreference.tenant_id == current_user.tenant_id,
+        )
+        .delete()
+    )
+
+    # Remove password reset tokens tied to this user.
+    (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.user_id == current_user.id,
+            PasswordResetToken.tenant_id == current_user.tenant_id,
+        )
+        .delete()
+    )
+
+    # Delete user account.
+    row = (
+        db.query(User)
+        .filter(
+            User.id == current_user.id,
+            User.tenant_id == current_user.tenant_id,
+        )
+        .first()
+    )
+    if row:
+        db.delete(row)
+
+    db.commit()
+    return DeleteAccountResponse(ok=True, message="Account deleted successfully.")
 
 
 @router.get("/preferences", response_model=UserPreferenceResponse)

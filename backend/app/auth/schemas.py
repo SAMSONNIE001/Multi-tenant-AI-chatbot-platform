@@ -82,3 +82,8 @@ class ResetPasswordRequest(BaseModel):
 class ResetPasswordResponse(BaseModel):
     ok: bool = True
     message: str
+
+
+class DeleteAccountResponse(BaseModel):
+    ok: bool = True
+    message: str

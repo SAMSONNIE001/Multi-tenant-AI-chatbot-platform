@@ -43,6 +43,31 @@ function signOut() {
   window.location.href = "./auth.html?auth_required=1&next=settings.html";
 }
 
+async function deleteAccount() {
+  setStatus("outDelete", "Deleting account...");
+  try {
+    const email = ($("acEmail") && $("acEmail").value || "").trim().toLowerCase();
+    const confirmEmail = ($("deleteConfirmEmail") && $("deleteConfirmEmail").value || "").trim().toLowerCase();
+    if (!email || !confirmEmail || email !== confirmEmail) {
+      throw new Error("Type your exact account email to confirm account deletion.");
+    }
+    const ok = window.confirm("This action is permanent and cannot be undone. Delete your account?");
+    if (!ok) {
+      setStatus("outDelete", "Account deletion canceled.");
+      return;
+    }
+    await api("/api/v1/auth/me", { method: "DELETE" });
+    sessionStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+    setStatus("outDelete", "Account deleted. Redirecting to sign in...");
+    setTimeout(() => {
+      window.location.href = "./auth.html";
+    }, 1200);
+  } catch (e) {
+    setStatus("outDelete", cleanError(e));
+  }
+}
+
 async function loadLimits() {
   setStatus("outLimits", "Loading usage limits...");
   try {
@@ -152,8 +177,10 @@ async function applyPasswordReset() {
   $("btnSaveRetention").onclick = () => saveRetention();
   if ($("btnForgotPassword")) $("btnForgotPassword").onclick = () => sendPasswordReset();
   if ($("btnResetPassword")) $("btnResetPassword").onclick = () => applyPasswordReset();
+  if ($("btnDeleteAccount")) $("btnDeleteAccount").onclick = () => deleteAccount();
   setStatus("outSettings", "Loading account context...");
   setStatus("outSecurity", "Use this section to update account password securely.");
+  setStatus("outDelete", "Danger zone: account deletion is permanent.");
   try {
     const me = await api("/api/v1/auth/me");
     $("navUserBadge").textContent = `Current User: ${me.email || "-"}`;
