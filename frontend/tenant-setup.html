@@ -410,6 +410,70 @@
     .advanced-only {
       display: none;
     }
+    .integration-strip {
+      margin-top: 10px;
+      background: var(--sb-panel);
+      border: 1px solid var(--sb-line);
+      border-radius: 14px;
+      box-shadow: var(--sb-shadow);
+      padding: 12px;
+    }
+    .integration-strip h2 {
+      margin: 0 0 4px;
+      font-size: 18px;
+    }
+    .integration-strip .small {
+      margin-bottom: 8px;
+    }
+    .integration-grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    }
+    .int-item {
+      border: 1px solid #e0e8f1;
+      border-radius: 10px;
+      background: #fcfdff;
+      padding: 8px 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+    }
+    .int-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #24314a;
+    }
+    .icon-img {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      border: 1px solid #d8e2ef;
+      background: #fff;
+      padding: 2px;
+    }
+    .state {
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid;
+      line-height: 1;
+    }
+    .state.enabled {
+      color: #1d7e4d;
+      border-color: #b9e6cc;
+      background: #eaf9f0;
+    }
+    .state.disabled {
+      color: #6c7a90;
+      border-color: #dbe2ed;
+      background: #f2f5fa;
+    }
   </style>
 </head>
 <body>
@@ -418,6 +482,7 @@
       <div class="links">
         <a id="navDashboard" href="./dashboard.html">Dashboard</a>
         <a id="navOps" href="./tenant-console.html">Daily Ops</a>
+        <a href="./integrations.html">Integrations</a>
         <a id="navSetup" href="./tenant-setup.html">Setup</a>
         <a id="navRelease" href="./release-checklist.html">Release</a>
       </div>
@@ -454,6 +519,49 @@
         </label>
       </div>
     </div>
+
+    <section class="integration-strip" data-pane="setup qa daily">
+      <h2>Channel Integrations</h2>
+      <div class="small" id="integrationSync">Syncing configured channels from backend...</div>
+      <div class="integration-grid">
+        <div class="int-item">
+          <div class="int-label">
+            <img class="icon-img" src="https://cdn.simpleicons.org/webflow/146EF5" alt="Website Chat" />
+            <div><div>Website Live Chat</div><div class="small" id="intWebsiteMeta">-</div></div>
+          </div>
+          <span class="state disabled" id="intWebsiteState">Checking...</span>
+        </div>
+        <div class="int-item">
+          <div class="int-label">
+            <img class="icon-img" src="https://cdn.simpleicons.org/whatsapp/25D366" alt="WhatsApp" />
+            <div><div>WhatsApp Business</div><div class="small" id="intWhatsappMeta">-</div></div>
+          </div>
+          <span class="state disabled" id="intWhatsappState">Checking...</span>
+        </div>
+        <div class="int-item">
+          <div class="int-label">
+            <img class="icon-img" src="https://cdn.simpleicons.org/facebookmessenger/00B2FF" alt="Messenger" />
+            <div><div>Facebook Messenger</div><div class="small" id="intMessengerMeta">-</div></div>
+          </div>
+          <span class="state disabled" id="intMessengerState">Checking...</span>
+        </div>
+        <div class="int-item">
+          <div class="int-label">
+            <img class="icon-img" src="https://cdn.simpleicons.org/instagram/E4405F" alt="Instagram" />
+            <div><div>Instagram</div><div class="small" id="intInstagramMeta">-</div></div>
+          </div>
+          <span class="state disabled" id="intInstagramState">Checking...</span>
+        </div>
+        <div class="int-item">
+          <div class="int-label"><img class="icon-img" src="https://cdn.simpleicons.org/x/000000" alt="X" /> X (Twitter)</div>
+          <span class="state disabled">Not Connected</span>
+        </div>
+        <div class="int-item">
+          <div class="int-label"><img class="icon-img" src="https://cdn.simpleicons.org/telegram/26A5E4" alt="Telegram" /> Telegram</div>
+          <span class="state disabled">Coming Soon</span>
+        </div>
+      </div>
+    </section>
 
     <div class="grid">
       <section class="card" data-pane="setup qa">

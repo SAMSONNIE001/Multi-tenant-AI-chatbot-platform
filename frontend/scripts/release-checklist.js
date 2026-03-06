@@ -78,6 +78,13 @@ function setStamp(id, text) {
   if (el) el.textContent = text || "not run";
 }
 
+function setMiniIntegration(id, ok, stamp, pending = false) {
+  setBadge(id, ok, pending);
+  const stampId = `${id}Stamp`;
+  const el = $(stampId);
+  if (el) el.textContent = stamp || "not checked";
+}
+
 function renderUser(me) {
   const txt = me
     ? `Current User: ${me.email || "-"} | role=${me.role || "-"} | tenant=${me.tenant_id || "-"}`
@@ -187,12 +194,36 @@ async function runChecks() {
   setBadge("chkKnowledge", !!result.checks.knowledge.ok);
   setStamp("stampKnowledge", runAt);
 
+  try {
+    const integrations = await api("/api/v1/tenant/integrations/status");
+    const website = !!(integrations?.website_live_chat?.enabled);
+    const whatsapp = !!(integrations?.whatsapp_business?.enabled);
+    const messenger = !!(integrations?.facebook_messenger?.enabled);
+    const instagram = !!(integrations?.instagram?.enabled);
+    const statusNote = `website=${website} whatsapp=${whatsapp} messenger=${messenger} instagram=${instagram}`;
+    const ready = website && (whatsapp || messenger);
+    result.checks.integrations = { ok: ready, detail: statusNote, raw: integrations };
+    setMiniIntegration("miniWebsite", website, runAt);
+    setMiniIntegration("miniWhatsapp", whatsapp, runAt);
+    setMiniIntegration("miniMessenger", messenger, runAt);
+    setMiniIntegration("miniInstagram", instagram, runAt);
+  } catch (e) {
+    result.checks.integrations = { ok: false, error: String(e) };
+    setMiniIntegration("miniWebsite", false, "failed");
+    setMiniIntegration("miniWhatsapp", false, "failed");
+    setMiniIntegration("miniMessenger", false, "failed");
+    setMiniIntegration("miniInstagram", false, "failed");
+  }
+  setBadge("chkIntegrations", !!result.checks.integrations.ok);
+  setStamp("stampIntegrations", runAt);
+
   result.gate_pass = [
     result.checks.health?.ok,
     result.checks.auth_me?.ok,
     result.checks.handoff_metrics?.ok,
     result.checks.bots?.ok,
     result.checks.knowledge?.ok,
+    result.checks.integrations?.ok,
   ].every(Boolean);
 
   out.textContent = pretty(result);
@@ -273,10 +304,12 @@ $("clearToken").onclick = () => {
 
 const navDashboard = $("navDashboard");
 const navOps = $("navOps");
+const navIntegrations = $("navIntegrations");
 const navSetup = $("navSetup");
 const navRelease = $("navRelease");
 if (navDashboard) navDashboard.classList.remove("active");
 if (navOps) navOps.classList.remove("active");
+if (navIntegrations) navIntegrations.classList.remove("active");
 if (navSetup) navSetup.classList.remove("active");
 if (navRelease) navRelease.classList.add("active");
 
@@ -311,6 +344,10 @@ if (btnNavSignOut) {
   }
 
   renderManualChecks();
+  setMiniIntegration("miniWebsite", false, "not checked", true);
+  setMiniIntegration("miniWhatsapp", false, "not checked", true);
+  setMiniIntegration("miniMessenger", false, "not checked", true);
+  setMiniIntegration("miniInstagram", false, "not checked", true);
   refreshUser().catch(() => {});
 
   try {

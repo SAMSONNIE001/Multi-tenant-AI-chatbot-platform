@@ -214,6 +214,30 @@
       font-size: 11px;
       text-align: right;
     }
+    .integration-mini {
+      margin-top: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .mini-row {
+      display: grid;
+      grid-template-columns: minmax(140px, 1fr) minmax(90px, 110px) minmax(140px, 1fr);
+      gap: 8px;
+      align-items: center;
+      border-bottom: 1px solid #eef2f7;
+      padding: 9px 10px;
+      font-size: 12px;
+      background: #fff;
+    }
+    .mini-row:last-child {
+      border-bottom: 0;
+    }
+    .mini-stamp {
+      color: #64748b;
+      font-size: 11px;
+      text-align: right;
+    }
   </style>
 </head>
 <body>
@@ -222,6 +246,7 @@
       <div class="links">
         <a id="navDashboard" href="./dashboard.html">Dashboard</a>
         <a id="navOps" href="./tenant-console.html">Daily Ops</a>
+        <a id="navIntegrations" href="./integrations.html">Integrations</a>
         <a id="navSetup" href="./tenant-setup.html">Setup</a>
         <a id="navRelease" href="./release-checklist.html">Release</a>
       </div>
@@ -271,6 +296,11 @@
             <div id="stampKnowledge" class="stamp">not run</div>
           </div>
           <div class="item">
+            <div>Integration Readiness</div>
+            <span id="chkIntegrations" class="badge pending">pending</span>
+            <div id="stampIntegrations" class="stamp">not run</div>
+          </div>
+          <div class="item">
             <div>Manual: Prod Deploy Complete</div>
             <span id="chkProdDeploy" class="badge pending">pending</span>
             <div class="stamp"><button id="btnMarkDeploy" class="alt" type="button">Mark</button></div>
@@ -279,6 +309,28 @@
             <div>Manual: Prod Smoke Complete</div>
             <span id="chkProdSmoke" class="badge pending">pending</span>
             <div class="stamp"><button id="btnMarkSmoke" class="alt" type="button">Mark</button></div>
+          </div>
+        </div>
+        <div class="integration-mini">
+          <div class="mini-row">
+            <div>Website Live Chat</div>
+            <span id="miniWebsite" class="badge pending">pending</span>
+            <div id="miniWebsiteStamp" class="mini-stamp">not checked</div>
+          </div>
+          <div class="mini-row">
+            <div>WhatsApp Business</div>
+            <span id="miniWhatsapp" class="badge pending">pending</span>
+            <div id="miniWhatsappStamp" class="mini-stamp">not checked</div>
+          </div>
+          <div class="mini-row">
+            <div>Facebook Messenger</div>
+            <span id="miniMessenger" class="badge pending">pending</span>
+            <div id="miniMessengerStamp" class="mini-stamp">not checked</div>
+          </div>
+          <div class="mini-row">
+            <div>Instagram</div>
+            <span id="miniInstagram" class="badge pending">pending</span>
+            <div id="miniInstagramStamp" class="mini-stamp">not checked</div>
           </div>
         </div>
         <div id="outChecks" class="out"></div>
