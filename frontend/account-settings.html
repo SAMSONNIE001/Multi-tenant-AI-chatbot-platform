@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StaunchBot Account Settings</title>
+  <style>
+    :root { --bg:#eef2f8; --panel:#fff; --line:#d7e0eb; --ink:#0f1b2d; --muted:#5d6b80; --nav-top:#1e2f4e; --nav-bottom:#2c4e77; --nav-text:#d9e6ff; --accent:#2f7de1; --shadow:0 10px 26px rgba(15,27,45,.08); }
+    * { box-sizing:border-box; } body{ margin:0; font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif; color:var(--ink); background:radial-gradient(900px 240px at 12% -10%, #dbe8ff 0%, transparent 65%),radial-gradient(900px 240px at 85% -15%, #d8f1ee 0%, transparent 70%),var(--bg);}
+    .app{ max-width:1240px; margin:18px auto; padding:0 12px; display:grid; grid-template-columns:220px 1fr; gap:14px; min-height:calc(100vh - 36px);}
+    .sidebar{ background:linear-gradient(180deg,var(--nav-top),var(--nav-bottom)); border-radius:16px; padding:16px 12px; color:var(--nav-text); box-shadow:var(--shadow); display:grid; grid-template-rows:auto 1fr auto; gap:14px; }
+    .brand{ display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:10px; background:rgba(255,255,255,.1); font-weight:700; } .brand-badge{ width:22px; height:22px; border-radius:50%; display:inline-grid; place-items:center; background:#fff; color:#204272; font-size:12px; font-weight:800;}
+    .nav-list{ display:grid; gap:6px; align-content:start; } .nav-link{ text-decoration:none; color:var(--nav-text); font-size:13px; padding:9px 10px; border-radius:10px; border:1px solid transparent; display:flex; align-items:center;}
+    .nav-link.active{ background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.25); color:#fff; } .nav-link:hover{ background:rgba(255,255,255,.09); }
+    .sidebar-foot button{ width:100%; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.12); color:#fff; border-radius:10px; padding:9px 10px; cursor:pointer; font-weight:600; }
+    .main{ display:grid; gap:12px; align-content:start; } .topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:#f5f8fc; border:1px solid var(--line); border-radius:12px; padding:9px 12px; }
+    .badge{ display:inline-flex; align-items:center; border:1px solid #d3dceb; background:#fff; color:#67758b; border-radius:999px; padding:6px 10px; font-size:12px; }
+    .grid{ display:grid; gap:12px; grid-template-columns:1fr 1fr; } .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); padding:14px; }
+    h1,h2{ margin:0 0 8px; letter-spacing:-.01em; } .muted{ color:var(--muted); font-size:13px; }
+    .row{ display:grid; gap:6px; margin-top:10px; } label{ font-size:12px; color:#5d6b80; font-weight:600; } input{ width:100%; border:1px solid #cbd7e6; border-radius:8px; padding:9px 10px; font-size:13px; background:#fff; }
+    button{ border:0; border-radius:8px; padding:8px 12px; cursor:pointer; font-weight:600; font-size:12px; background:var(--accent); color:#fff; } button.alt{ background:#5d6b81; }
+    .status{ margin-top:10px; font-size:12px; color:#334155; background:#f8fbff; border:1px solid #dbe5f2; border-radius:8px; padding:9px 10px; min-height:38px; white-space:pre-wrap; }
+    @media (max-width:1080px){ .app{grid-template-columns:1fr;} .grid{grid-template-columns:1fr;} .nav-list{grid-template-columns:repeat(2,minmax(120px,1fr));} }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-badge">SB</span><span>StaunchBot</span></div>
+      <nav class="nav-list">
+        <a class="nav-link" href="./dashboard.html">Dashboard</a>
+        <a class="nav-link" href="./tenant-console.html">Unified Inbox</a>
+        <a class="nav-link" href="./integrations.html">Integrations</a>
+        <a class="nav-link" href="./tenant-setup.html">Knowledge Base</a>
+        <a class="nav-link" href="./profile.html">Profile</a>
+        <a class="nav-link active" href="./account-settings.html">Account Settings</a>
+        <a class="nav-link" href="./settings.html">Company Settings</a>
+      </nav>
+      <div class="sidebar-foot"><button id="btnNavSignOut" type="button">Sign out</button></div>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <strong>Account Settings</strong>
+        <span id="navUserBadge" class="badge">Current User: not authenticated</span>
+      </div>
+      <section class="panel">
+        <h1>Identity</h1>
+        <div class="muted">Your authenticated workspace identity.</div>
+        <div class="row"><label>Email</label><input id="acEmail" readonly /></div>
+        <div class="row"><label>Tenant ID</label><input id="acTenantId" readonly /></div>
+        <div class="row"><label>Role</label><input id="acRole" readonly /></div>
+      </section>
+      <div class="grid">
+        <section class="panel">
+          <h2>Security</h2>
+          <div class="muted">Request a password reset email and complete reset using token + code.</div>
+          <div class="row"><label>Tenant ID (optional)</label><input id="fpTenantId" placeholder="Enter tenant ID if required" /></div>
+          <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
+          <div class="row"><label>Reset Token</label><input id="fpResetToken" placeholder="Paste reset token" /></div>
+          <div class="row"><label>Reset Code</label><input id="fpCode" placeholder="6-digit code" /></div>
+          <div class="row"><label>New Password</label><input id="fpNewPassword" type="password" placeholder="Enter new password" /></div>
+          <button id="btnResetPassword" type="button">Reset Password</button>
+          <div id="outSecurity" class="status"></div>
+        </section>
+        <section class="panel">
+          <h2>Session</h2>
+          <div class="muted">Manage your current authenticated session.</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button id="btnSignOutHere" class="alt" type="button">Sign Out</button>
+            <a href="./auth.html" style="align-self:center;font-size:12px;">Go to auth page</a>
+          </div>
+          <div id="outSession" class="status"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="./scripts/account-settings.js"></script>
+</body>
+</html>

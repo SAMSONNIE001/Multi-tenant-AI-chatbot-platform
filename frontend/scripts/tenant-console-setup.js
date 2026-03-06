@@ -36,6 +36,7 @@
       syncCurrentUser,
       renderCurrentUserBadge,
       syncChannelIntegrations,
+      isProdFrontendHost,
     } = tcSetup;
     const state = tcSetup.state;
 
@@ -588,8 +589,8 @@
     const navDashboard = $("navDashboard");
     const navOps = $("navOps");
     const navSetup = $("navSetup");
-    const navRelease = $("navRelease");
-    const path = (window.location.pathname || "").toLowerCase();
+      const navRelease = $("navRelease");
+      const path = (window.location.pathname || "").toLowerCase();
     if (path.includes("tenant-setup")) {
       if (navSetup) navSetup.classList.add("active");
     } else {
@@ -618,6 +619,7 @@
     }
 
     (function bootstrap() {
+      const prodFrontend = isProdFrontendHost();
       const savedToken = sessionStorage.getItem("tenant_console_token") || localStorage.getItem("tenant_console_token");
       if (!savedToken) {
         const page = (window.location.pathname || "").toLowerCase().includes("tenant-setup")
@@ -631,6 +633,10 @@
       const savedPane = localStorage.getItem("tenant_console_active_pane");
       const savedAdvanced = localStorage.getItem("tenant_console_advanced");
       const savedRoleMode = localStorage.getItem("tenant_console_role_mode");
+      const tabQa = $("tabQa");
+      if (prodFrontend && tabQa) tabQa.style.display = "none";
+      const releaseLink = $("navRelease");
+      if (prodFrontend && releaseLink) releaseLink.style.display = "none";
       if (savedToken) setToken(savedToken);
       if (savedToken) saveSessionToken(savedToken);
       const host = String(window.location.hostname || "").toLowerCase();
@@ -649,7 +655,9 @@
       $("hfEscalatedOnly").value = "false";
       if (!$("escSweepReason").value.trim()) $("escSweepReason").value = "scheduled SLA triage sweep";
       if (!$("cpMergeReason").value.trim()) $("cpMergeReason").value = "dedupe duplicate customer identities";
-      const allowedPanes = tabSetup ? ["daily", "qa", "setup"] : ["daily", "qa"];
+      const allowedPanes = tabSetup
+        ? (prodFrontend ? ["daily", "setup"] : ["daily", "qa", "setup"])
+        : (prodFrontend ? ["daily"] : ["daily", "qa"]);
       const onSetupPage = (window.location.pathname || "").toLowerCase().includes("tenant-setup");
       const defaultPane = onSetupPage && tabSetup ? "setup" : "daily";
       setActivePane(savedPane && allowedPanes.includes(savedPane) ? savedPane : defaultPane);

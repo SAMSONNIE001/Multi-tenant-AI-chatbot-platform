@@ -39,6 +39,11 @@
       }
     }
 
+    function isProdFrontendHost() {
+      const host = String(window.location.hostname || "").toLowerCase();
+      return host === "www.staunchbot.com" || host === "staunchbot.com";
+    }
+
     function nowIso() {
       return new Date().toISOString();
     }
@@ -75,11 +80,16 @@
     }
 
     function applyConsoleMode() {
+      const prodFrontend = isProdFrontendHost();
       const paneNodes = document.querySelectorAll("[data-pane]");
       paneNodes.forEach((node) => {
         const panes = String(node.getAttribute("data-pane") || "")
           .split(/\s+/)
           .filter(Boolean);
+        if (prodFrontend && panes.includes("qa")) {
+          node.style.display = "none";
+          return;
+        }
         node.style.display = panes.includes(activePane) ? "block" : "none";
       });
 
@@ -101,7 +111,12 @@
     }
 
     function setActivePane(pane) {
-      activePane = pane;
+      const prodFrontend = isProdFrontendHost();
+      if (prodFrontend && pane === "qa") {
+        activePane = document.getElementById("tabSetup") ? "setup" : "daily";
+      } else {
+        activePane = pane;
+      }
       const tabs = document.querySelectorAll(".tab-btn");
       tabs.forEach((btn) => btn.classList.remove("active"));
       const btn = document.querySelector(`.tab-btn[data-tab="${pane}"]`);
@@ -528,6 +543,7 @@
       pretty,
       getApiBase,
       isProdApiBase,
+      isProdFrontendHost,
       nowIso,
       preflightAgeMin,
       setChecklistBadge,

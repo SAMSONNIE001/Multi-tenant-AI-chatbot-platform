@@ -46,6 +46,9 @@ function nextPath() {
     "tenant-setup.html",
     "integrations.html",
     "release-checklist.html",
+    "profile.html",
+    "account-settings.html",
+    "settings.html",
   ]);
   return allowed.has(next) ? `./${next}` : "./dashboard.html";
 }
