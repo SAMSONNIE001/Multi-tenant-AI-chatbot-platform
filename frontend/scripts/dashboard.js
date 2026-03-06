@@ -1,4 +1,4 @@
-const $ = (id) => document.getElementById(id);
+﻿const $ = (id) => document.getElementById(id);
 const TOKEN_KEY = "tenant_console_token";
 const SESSION_EXPIRED_KEY = "tenant_console_session_expired";
 
@@ -108,13 +108,12 @@ function renderWhoamiLine(me) {
   const line = $("whoamiLine");
   const nav = $("navUserBadge");
   if (!me) {
-    line.textContent = "Current User: not authenticated";
-    if (nav) nav.textContent = "Current User: not authenticated";
+    line.textContent = "Session: Not signed in";
+    if (nav) nav.textContent = "Not signed in";
     return;
   }
-  const txt = `Current User: ${me.email || "-"} | role=${me.role || "-"} | tenant=${me.tenant_id || "-"}`;
-  line.textContent = txt;
-  if (nav) nav.textContent = txt;
+  line.textContent = "Session: Signed in";
+  if (nav) nav.textContent = "Signed in";
 }
 
 function setIntegrationState(id, enabled, enabledText = "Connected", disabledText = "Not Connected") {
@@ -490,3 +489,4 @@ if (btnOnboardCreate) {
   refreshIntegrationStatus().catch(() => {});
   refreshSnapshot().catch(() => {});
 })();
+
