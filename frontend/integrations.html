@@ -46,6 +46,11 @@
       display: grid;
       grid-template-rows: auto 1fr auto;
       gap: 14px;
+      position: sticky;
+      top: 18px;
+      align-self: start;
+      max-height: calc(100vh - 36px);
+      overflow: auto;
     }
     .brand {
       display: flex;
@@ -329,6 +334,7 @@
     }
     @media (max-width: 1080px) {
       .app { grid-template-columns: 1fr; }
+      .sidebar { position: static; max-height: none; overflow: visible; }
       .grid { grid-template-columns: 1fr; }
       .nav-list { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
     }
