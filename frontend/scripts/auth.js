@@ -171,12 +171,17 @@ $("btnEnvLocal").onclick = () => {
   const savedBase = localStorage.getItem("tenant_console_api_base");
   const savedStaging = localStorage.getItem("tenant_console_staging_api_base");
   const host = String(window.location.hostname || "").toLowerCase();
-  const hostedDefaultBase = (host === "www.staunchbot.com" || host === "staunchbot.com") ? "https://api.staunchbot.com" : "";
+  const isProdHost = (host === "www.staunchbot.com" || host === "staunchbot.com");
+  const hostedDefaultBase = isProdHost ? "https://api.staunchbot.com" : "";
   if (savedBase) $("apiBase").value = savedBase;
   if (hostedDefaultBase && (!savedBase || /^https?:\/\/localhost(:\d+)?/i.test(savedBase))) {
     $("apiBase").value = hostedDefaultBase;
   }
   if (savedStaging) $("stagingApiBase").value = savedStaging;
+  if (isProdHost) {
+    const panel = $("connectionPanel");
+    if (panel) panel.style.display = "none";
+  }
   const params = new URLSearchParams(window.location.search || "");
   const authRequired = params.get("auth_required");
   const resetToken = params.get("reset_token");

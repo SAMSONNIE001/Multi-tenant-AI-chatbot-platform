@@ -515,7 +515,7 @@
         <a id="navDashboard" href="./dashboard.html">Dashboard</a>
         <a id="navOps" href="./tenant-console.html">Daily Ops</a>
         <a href="./integrations.html">Integrations</a>
-        <a id="navSetup" href="./tenant-setup.html">Knowledge Base (Dev)</a>
+        <a id="navSetup" href="./tenant-setup.html">Knowledge Base</a>
         <a id="navRelease" href="./release-checklist.html">Release</a>
       </div>
       <div class="meta">
@@ -524,8 +524,8 @@
       </div>
     </div>
     <div class="header">
-      <h1>Setup And Administration Console</h1>
-      <p>Configure tenant access, bot settings, and knowledge controls.</p>
+      <h1>Knowledge Base Portal</h1>
+      <p>Set up, ingest, and maintain your tenant knowledge sources for live support responses.</p>
       <p class="small">Build: customer-profiles + escalation-ops (2026-03-01)</p>
       <p class="small"><a href="./tenant-console.html">Open Daily Ops Console</a></p>
       <p class="small">Use Daily Ops for queue handling and Release for promotion checks.</p>
@@ -533,9 +533,9 @@
 
     <div class="console-toolbar">
       <div class="tabbar">
-        <button id="tabDaily" class="tab-btn active" data-tab="daily">Daily Ops</button>
+        <button id="tabDaily" class="tab-btn active" data-tab="daily">Unified Inbox</button>
         <button id="tabQa" class="tab-btn" data-tab="qa">Staging QA</button>
-        <button id="tabSetup" class="tab-btn" data-tab="setup">Setup/Admin</button>
+        <button id="tabSetup" class="tab-btn" data-tab="setup">Knowledge Portal</button>
       </div>
       <div class="inline" style="align-items:center;">
         <div class="row" style="margin:0; min-width:140px;">
@@ -683,31 +683,31 @@
       </section>
 
       <section class="card" data-pane="setup">
-        <h2>Knowledge Base (Development)</h2>
-        <p class="dev-note">This module is still under active build. Upload and reindex are working. Full library management, source controls, and sync jobs are in progress.</p>
+        <h2>Knowledge Base Portal</h2>
+        <p class="dev-note">Manage your knowledge library here. Upload approved documents, monitor indexing, and reindex specific records when content changes.</p>
         <div class="kb-columns">
           <div class="kb-col">
-            <h3>Available now</h3>
+            <h3>Library intake</h3>
             <ul>
-              <li>Manual document upload</li>
-              <li>Document status check</li>
-              <li>Single document reindex</li>
+              <li>Upload docs per tenant knowledge base</li>
+              <li>Track indexing readiness status</li>
+              <li>Reindex individual records</li>
             </ul>
           </div>
           <div class="kb-col">
-            <h3>In progress</h3>
+            <h3>Content quality</h3>
             <ul>
-              <li>Folder and source grouping</li>
-              <li>Document version history</li>
-              <li>Bulk reindex and retries</li>
+              <li>Review and refresh stale content</li>
+              <li>Keep answer sources accurate</li>
+              <li>Re-run ingestion after major edits</li>
             </ul>
           </div>
           <div class="kb-col">
-            <h3>Next milestones</h3>
+            <h3>Governance</h3>
             <ul>
-              <li>Search and filter library</li>
-              <li>Scheduled sync jobs</li>
-              <li>Per-channel knowledge routing</li>
+              <li>Use approved and verified sources only</li>
+              <li>Enforce per-tenant data separation</li>
+              <li>Audit content update timelines</li>
             </ul>
           </div>
         </div>

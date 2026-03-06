@@ -1,6 +1,8 @@
 (() => {
   const KEY = "sb_debug_panels";
   const BTN_ID = "sbDebugToggle";
+  const host = String(window.location.hostname || "").toLowerCase();
+  const isProdHost = host === "www.staunchbot.com" || host === "staunchbot.com";
 
   function isEnabled() {
     return localStorage.getItem(KEY) === "1";
@@ -11,6 +13,7 @@
   }
 
   function ensureToggle() {
+    if (isProdHost) return;
     if (document.getElementById(BTN_ID)) return;
     const btn = document.createElement("button");
     btn.id = BTN_ID;
@@ -36,6 +39,9 @@
   }
 
   function apply() {
+    if (isProdHost) {
+      setEnabled(false);
+    }
     const enabled = isEnabled();
     document.documentElement.classList.toggle("sb-debug-panels", enabled);
     const panels = document.querySelectorAll(".out");
