@@ -33,6 +33,18 @@ class MeResponse(BaseModel):
     role: str
 
 
+class UserPreferenceResponse(BaseModel):
+    user_id: str
+    tenant_id: str
+    preferred_name: str | None = None
+    timezone: str | None = None
+
+
+class UserPreferenceUpdateRequest(BaseModel):
+    preferred_name: str | None = Field(default=None, max_length=120)
+    timezone: str | None = Field(default=None, max_length=64)
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str = Field(min_length=20)
 

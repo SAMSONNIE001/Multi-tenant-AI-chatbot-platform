@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.tenants.models import Tenant
 from app.auth.login_guard import clear_failures, is_locked, register_failure
-from app.auth.models import AuthSecurityEvent, PasswordResetToken, RefreshToken, User
+from app.auth.models import AuthSecurityEvent, PasswordResetToken, RefreshToken, User, UserPreference
 from app.auth.schemas import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
@@ -22,6 +22,8 @@ from app.auth.schemas import (
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
+    UserPreferenceResponse,
+    UserPreferenceUpdateRequest,
 )
 from app.auth.security import (
     JWTError,
@@ -373,6 +375,74 @@ def me(current_user: User = Depends(get_current_user)):
         tenant_id=current_user.tenant_id,
         email=current_user.email,
         role=current_user.role,
+    )
+
+
+@router.get("/preferences", response_model=UserPreferenceResponse)
+def get_preferences(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    row = (
+        db.query(UserPreference)
+        .filter(
+            UserPreference.user_id == current_user.id,
+            UserPreference.tenant_id == current_user.tenant_id,
+        )
+        .first()
+    )
+    if not row:
+        return UserPreferenceResponse(
+            user_id=current_user.id,
+            tenant_id=current_user.tenant_id,
+            preferred_name=None,
+            timezone=None,
+        )
+    return UserPreferenceResponse(
+        user_id=row.user_id,
+        tenant_id=row.tenant_id,
+        preferred_name=row.preferred_name,
+        timezone=row.timezone,
+    )
+
+
+@router.put("/preferences", response_model=UserPreferenceResponse)
+def put_preferences(
+    payload: UserPreferenceUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    row = (
+        db.query(UserPreference)
+        .filter(
+            UserPreference.user_id == current_user.id,
+            UserPreference.tenant_id == current_user.tenant_id,
+        )
+        .first()
+    )
+    now = datetime.now(timezone.utc)
+    if not row:
+        row = UserPreference(
+            user_id=current_user.id,
+            tenant_id=current_user.tenant_id,
+            preferred_name=(payload.preferred_name or None),
+            timezone=(payload.timezone or None),
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(row)
+    else:
+        row.preferred_name = payload.preferred_name or None
+        row.timezone = payload.timezone or None
+        row.updated_at = now
+        db.add(row)
+    db.commit()
+    db.refresh(row)
+    return UserPreferenceResponse(
+        user_id=row.user_id,
+        tenant_id=row.tenant_id,
+        preferred_name=row.preferred_name,
+        timezone=row.timezone,
     )
 
 

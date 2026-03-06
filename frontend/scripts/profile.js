@@ -43,26 +43,37 @@ function signOut() {
   window.location.href = "./auth.html?auth_required=1&next=profile.html";
 }
 
-function initPrefs(email) {
-  const key = `sb_profile_prefs:${email || "default"}`;
-  const raw = localStorage.getItem(key);
-  if (raw) {
+function initPrefs() {
+  $("btnSavePrefs").onclick = async () => {
+    setStatus("outPrefs", "Saving preferences...");
     try {
-      const p = JSON.parse(raw);
-      $("prefName").value = p.name || "";
-      $("prefTimezone").value = p.timezone || "";
-    } catch (_) {}
-  }
-  $("btnSavePrefs").onclick = () => {
-    const payload = { name: $("prefName").value.trim(), timezone: $("prefTimezone").value };
-    localStorage.setItem(key, JSON.stringify(payload));
-    setStatus("outPrefs", "Preferences saved.");
+      await api("/api/v1/auth/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          preferred_name: $("prefName").value.trim() || null,
+          timezone: $("prefTimezone").value || null,
+        }),
+      });
+      setStatus("outPrefs", "Preferences saved.");
+    } catch (e) {
+      setStatus("outPrefs", cleanError(e));
+    }
   };
-  $("btnResetPrefs").onclick = () => {
-    localStorage.removeItem(key);
-    $("prefName").value = "";
-    $("prefTimezone").value = "";
-    setStatus("outPrefs", "Preferences reset.");
+  $("btnResetPrefs").onclick = async () => {
+    setStatus("outPrefs", "Resetting preferences...");
+    try {
+      await api("/api/v1/auth/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preferred_name: null, timezone: null }),
+      });
+      $("prefName").value = "";
+      $("prefTimezone").value = "";
+      setStatus("outPrefs", "Preferences reset.");
+    } catch (e) {
+      setStatus("outPrefs", cleanError(e));
+    }
   };
 }
 
@@ -86,7 +97,13 @@ function initPrefs(email) {
     $("pfUserId").textContent = me.id || "-";
     $("navUserBadge").textContent = `Current User: ${me.email || "-"}`;
     setStatus("outProfile", "Profile loaded.");
-    initPrefs(me.email || "default");
+    initPrefs();
+
+    try {
+      const pref = await api("/api/v1/auth/preferences");
+      $("prefName").value = pref?.preferred_name || "";
+      $("prefTimezone").value = pref?.timezone || "";
+    } catch (_) {}
 
     let bots = 0;
     let docs = 0;
