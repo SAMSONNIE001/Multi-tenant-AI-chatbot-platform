@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -13,9 +13,11 @@
     .brand { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:10px; background:rgba(255,255,255,.1); font-weight:700; }
     .brand-badge { width:22px; height:22px; border-radius:50%; display:inline-grid; place-items:center; background:#fff; color:#204272; font-size:12px; font-weight:800; }
     .nav-list { display:grid; gap:6px; align-content:start; }
-    .nav-link { text-decoration:none; color:var(--nav-text); font-size:13px; padding:9px 10px; border-radius:10px; border:1px solid transparent; display:flex; align-items:center; }
-    .nav-link.active { background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.25); color:#fff; }
-    .nav-link:hover { background:rgba(255,255,255,.09); }
+    .nav-link { text-decoration:none; color:var(--nav-text); font-size:14px; font-weight:600; padding:10px 11px; border-radius:10px; border:1px solid transparent; display:flex; align-items:center; gap:10px; transform:scale(1); transition:transform .16s ease, background-color .16s ease, box-shadow .16s ease, border-color .16s ease; }
+    .nav-link.active { background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.25); color:#fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.18); }
+    .nav-link:hover { background:rgba(255,255,255,.09); transform:scale(0.985); box-shadow:0 8px 16px rgba(8,20,41,.18); }
+.nav-link .nav-ico { display:inline-grid; place-items:center; width:19px; min-width:19px; font-size:17px; line-height:1; filter:drop-shadow(0 1px 0 rgba(255,255,255,.35)) drop-shadow(0 2px 3px rgba(0,0,0,.28)); text-shadow:0 -1px 0 rgba(255,255,255,.45),0 1px 0 rgba(0,0,0,.26); transform:translateZ(0); }
+.nav-link:focus-visible { outline:2px solid rgba(255,255,255,.55); outline-offset:1px; }
     .sidebar-foot button { width:100%; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.12); color:#fff; border-radius:10px; padding:9px 10px; cursor:pointer; font-weight:600; }
     .main { display:grid; gap:12px; align-content:start; }
     .topbar { display:flex; align-items:center; justify-content:space-between; gap:10px; background:#f5f8fc; border:1px solid var(--line); border-radius:12px; padding:9px 12px; }
@@ -49,12 +51,12 @@
     <aside class="sidebar">
       <div class="brand"><span class="brand-badge">SB</span><span>StaunchBot</span></div>
       <nav class="nav-list">
-        <a class="nav-link" href="./dashboard.html">🏠 Dashboard</a>
-        <a class="nav-link active" href="./profile.html">👤 Profile</a>
-        <a class="nav-link" href="./settings.html">⚙ Settings</a>
-        <a class="nav-link" href="./integrations.html">🔌 Integrations</a>
-        <a class="nav-link" href="./tenant-setup.html">📚 Knowledge Base</a>
-        <a class="nav-link" href="./tenant-console.html">💬 Unified Inbox</a>
+        <a class="nav-link" href="./dashboard.html"><span class="nav-ico">&#x1F3E0;</span><span>Dashboard</span></a>
+        <a class="nav-link active" href="./profile.html"><span class="nav-ico">&#x1F464;</span><span>Profile</span></a>
+        <a class="nav-link" href="./settings.html"><span class="nav-ico">&#x2699;&#xFE0F;</span><span>Settings</span></a>
+        <a class="nav-link" href="./integrations.html"><span class="nav-ico">&#x1F50C;</span><span>Integrations</span></a>
+        <a class="nav-link" href="./tenant-setup.html"><span class="nav-ico">&#x1F4DA;</span><span>Knowledge Base</span></a>
+        <a class="nav-link" href="./tenant-console.html"><span class="nav-ico">&#x1F4AC;</span><span>Unified Inbox</span></a>
       </nav>
       <div class="sidebar-foot"><button id="btnNavSignOut" type="button">Sign out</button></div>
     </aside>
@@ -113,3 +115,5 @@
   <script src="./scripts/onboarding-flow.js"></script>
 </body>
 </html>
+
+
