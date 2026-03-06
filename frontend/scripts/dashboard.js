@@ -51,6 +51,28 @@ function setHeroKpis(values) {
   $("kpiNewTickets").textContent = String(v.newTickets ?? "-");
 }
 
+function getNextPathFromQuery() {
+  const params = new URLSearchParams(window.location.search || "");
+  const next = String(params.get("next") || "").trim();
+  if (!next) return "";
+  const allowed = new Set([
+    "tenant-console.html",
+    "tenant-setup.html",
+    "integrations.html",
+    "release-checklist.html",
+  ]);
+  return allowed.has(next) ? `./${next}` : "";
+}
+
+function redirectToNextIfPresent() {
+  const nextPath = getNextPathFromQuery();
+  if (nextPath) {
+    window.location.href = nextPath;
+    return true;
+  }
+  return false;
+}
+
 async function api(path, options = {}) {
   const headers = Object.assign({}, options.headers || {});
   const token = getToken();
@@ -288,6 +310,7 @@ $("btnLogin").onclick = async () => {
     $("lgTenantIdRow").style.display = "none";
     $("lgTenantId").value = "";
     out.textContent = `Login successful for ${body.email}.`;
+    if (redirectToNextIfPresent()) return;
     await refreshSnapshot();
     await refreshIntegrationStatus();
   } catch (e) {
@@ -415,6 +438,7 @@ if (btnOnboardCreate) {
       $("lgEmail").value = body.admin_email;
       $("lgPassword").value = body.admin_password;
       out.textContent = `Account created.\nTenant: ${data?.tenant?.id || "-"}\nAdmin: ${data?.admin?.email || body.admin_email}`;
+      if (redirectToNextIfPresent()) return;
       await refreshSnapshot();
       await refreshIntegrationStatus();
     } catch (e) {
@@ -444,7 +468,15 @@ if (btnOnboardCreate) {
   }
   const params = new URLSearchParams(window.location.search || "");
   const resetToken = params.get("reset_token");
+  const authRequired = params.get("auth_required");
+  const nextPath = getNextPathFromQuery();
   if (resetToken && $("fpResetToken")) $("fpResetToken").value = resetToken;
+  if (authRequired === "1" && !savedToken) {
+    const outLogin = $("outLogin");
+    if (outLogin) outLogin.textContent = nextPath
+      ? `Sign in to continue to ${nextPath.replace("./", "")}.`
+      : "Sign in to continue.";
+  }
   setHeroKpis(null);
   setAuthState(!!savedToken);
   refreshIntegrationStatus().catch(() => {});
