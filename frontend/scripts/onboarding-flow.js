@@ -119,8 +119,16 @@
     ensureStyles();
     const state = readState();
     const nowId = steps[current].id;
-    state[nowId] = true;
-    writeState(state);
+
+    // Strict progression: user cannot access later steps until prior ones are completed.
+    const blockedAt = steps.findIndex((step, idx) => idx < current && !state[step.id]);
+    if (blockedAt >= 0) {
+      const required = steps[blockedAt];
+      if (required && required.path) {
+        window.location.replace(`./${required.path}`);
+        return;
+      }
+    }
 
     const container = document.createElement("section");
     container.className = "sb-flow";
@@ -160,6 +168,18 @@
       };
       actions.appendChild(btn);
     } else {
+      const doneBtn = document.createElement("button");
+      doneBtn.className = "sb-flow-next";
+      doneBtn.type = "button";
+      doneBtn.textContent = "Mark Journey Complete";
+      doneBtn.onclick = () => {
+        const latest = readState();
+        latest[nowId] = true;
+        writeState(latest);
+        window.location.reload();
+      };
+      actions.appendChild(doneBtn);
+
       const done = document.createElement("div");
       done.className = "sb-flow-sub";
       done.textContent = "Journey complete. Your workspace is ready for daily operations.";
