@@ -269,8 +269,7 @@ def tenant_bots(
     return rows
 
 
-@router.get("/integrations/status", response_model=TenantIntegrationsStatusResponse)
-def tenant_integrations_status(
+def _tenant_integrations_status_payload(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -325,6 +324,32 @@ def tenant_integrations_status(
             unsupported_note="Telegram channel routing is not implemented in this backend.",
         ),
     )
+
+
+@router.get("/integrations/status", response_model=TenantIntegrationsStatusResponse)
+def tenant_integrations_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return _tenant_integrations_status_payload(db=db, current_user=current_user)
+
+
+# Backward/edge compatibility aliases: keep these active to avoid route mismatch issues
+# during deployment transitions or proxy normalization differences.
+@router.get("/integrations", response_model=TenantIntegrationsStatusResponse)
+def tenant_integrations_status_alias(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return _tenant_integrations_status_payload(db=db, current_user=current_user)
+
+
+@router.get("/integrations/status/", response_model=TenantIntegrationsStatusResponse, include_in_schema=False)
+def tenant_integrations_status_trailing_slash(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return _tenant_integrations_status_payload(db=db, current_user=current_user)
 
 
 @router.post("/bots")
