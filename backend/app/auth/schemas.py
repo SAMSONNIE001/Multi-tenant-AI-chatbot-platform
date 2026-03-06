@@ -38,11 +38,21 @@ class UserPreferenceResponse(BaseModel):
     tenant_id: str
     preferred_name: str | None = None
     timezone: str | None = None
+    bot_name: str | None = None
+    profile_image_data: str | None = None
 
 
 class UserPreferenceUpdateRequest(BaseModel):
     preferred_name: str | None = Field(default=None, max_length=120)
     timezone: str | None = Field(default=None, max_length=64)
+    bot_name: str | None = Field(default=None, max_length=255)
+
+
+class ProfileImageUploadResponse(BaseModel):
+    ok: bool = True
+    user_id: str
+    tenant_id: str
+    profile_image_data: str | None = None
 
 
 class RefreshRequest(BaseModel):

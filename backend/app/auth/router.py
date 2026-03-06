@@ -1,16 +1,17 @@
 import logging
 import secrets
+import base64
 from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import get_db
 from app.tenants.models import Tenant
 from app.auth.login_guard import clear_failures, is_locked, register_failure
-from app.auth.models import AuthSecurityEvent, PasswordResetToken, RefreshToken, User, UserPreference
+from app.auth.models import AuthSecurityEvent, PasswordResetToken, RefreshToken, User, UserProfilePreference
 from app.auth.schemas import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
@@ -22,6 +23,7 @@ from app.auth.schemas import (
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
+    ProfileImageUploadResponse,
     UserPreferenceResponse,
     UserPreferenceUpdateRequest,
 )
@@ -384,10 +386,10 @@ def get_preferences(
     current_user: User = Depends(get_current_user),
 ):
     row = (
-        db.query(UserPreference)
+        db.query(UserProfilePreference)
         .filter(
-            UserPreference.user_id == current_user.id,
-            UserPreference.tenant_id == current_user.tenant_id,
+            UserProfilePreference.user_id == current_user.id,
+            UserProfilePreference.tenant_id == current_user.tenant_id,
         )
         .first()
     )
@@ -397,12 +399,16 @@ def get_preferences(
             tenant_id=current_user.tenant_id,
             preferred_name=None,
             timezone=None,
+            bot_name=None,
+            profile_image_data=None,
         )
     return UserPreferenceResponse(
         user_id=row.user_id,
         tenant_id=row.tenant_id,
         preferred_name=row.preferred_name,
         timezone=row.timezone,
+        bot_name=row.bot_name,
+        profile_image_data=row.profile_image_data,
     )
 
 
@@ -413,20 +419,21 @@ def put_preferences(
     current_user: User = Depends(get_current_user),
 ):
     row = (
-        db.query(UserPreference)
+        db.query(UserProfilePreference)
         .filter(
-            UserPreference.user_id == current_user.id,
-            UserPreference.tenant_id == current_user.tenant_id,
+            UserProfilePreference.user_id == current_user.id,
+            UserProfilePreference.tenant_id == current_user.tenant_id,
         )
         .first()
     )
     now = datetime.now(timezone.utc)
     if not row:
-        row = UserPreference(
+        row = UserProfilePreference(
             user_id=current_user.id,
             tenant_id=current_user.tenant_id,
             preferred_name=(payload.preferred_name or None),
             timezone=(payload.timezone or None),
+            bot_name=(payload.bot_name or None),
             created_at=now,
             updated_at=now,
         )
@@ -434,6 +441,7 @@ def put_preferences(
     else:
         row.preferred_name = payload.preferred_name or None
         row.timezone = payload.timezone or None
+        row.bot_name = payload.bot_name or None
         row.updated_at = now
         db.add(row)
     db.commit()
@@ -443,6 +451,59 @@ def put_preferences(
         tenant_id=row.tenant_id,
         preferred_name=row.preferred_name,
         timezone=row.timezone,
+        bot_name=row.bot_name,
+        profile_image_data=row.profile_image_data,
+    )
+
+
+@router.post("/preferences/profile-image", response_model=ProfileImageUploadResponse)
+async def upload_profile_image(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    content_type = str(file.content_type or "").lower()
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=422, detail="Only image uploads are allowed")
+
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=422, detail="Uploaded file is empty")
+    # Keep payload bounded for DB storage.
+    if len(raw) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=422, detail="Image too large. Max 2MB.")
+
+    encoded = base64.b64encode(raw).decode("ascii")
+    data_url = f"data:{content_type};base64,{encoded}"
+
+    now = datetime.now(timezone.utc)
+    row = (
+        db.query(UserProfilePreference)
+        .filter(
+            UserProfilePreference.user_id == current_user.id,
+            UserProfilePreference.tenant_id == current_user.tenant_id,
+        )
+        .first()
+    )
+    if not row:
+        row = UserProfilePreference(
+            user_id=current_user.id,
+            tenant_id=current_user.tenant_id,
+            profile_image_data=data_url,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(row)
+    else:
+        row.profile_image_data = data_url
+        row.updated_at = now
+        db.add(row)
+    db.commit()
+    return ProfileImageUploadResponse(
+        ok=True,
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        profile_image_data=data_url,
     )
 
 

@@ -29,6 +29,15 @@
     .row strong { font-weight:600; color:#334155; }
     .status { margin-top:10px; font-size:12px; color:#334155; background:#f8fbff; border:1px solid #dbe5f2; border-radius:8px; padding:9px 10px; min-height:38px; }
     .prefs { margin-top:10px; display:grid; gap:8px; }
+    .avatar-wrap { display:flex; align-items:center; gap:12px; margin-top:10px; }
+    .avatar {
+      width:72px;
+      height:72px;
+      border-radius:50%;
+      border:1px solid #dbe5f2;
+      background:#f1f5f9;
+      object-fit:cover;
+    }
     input,select { width:100%; border:1px solid #cbd7e6; border-radius:8px; padding:9px 10px; font-size:13px; background:#fff; }
     button { border:0; border-radius:8px; padding:8px 12px; cursor:pointer; font-weight:600; font-size:12px; background:var(--accent); color:#fff; }
     button.alt { background:#5d6b81; }
@@ -58,6 +67,13 @@
       <section class="panel">
         <h1>User Profile</h1>
         <div class="muted">View your account identity and workspace context.</div>
+        <div class="avatar-wrap">
+          <img id="pfAvatar" class="avatar" alt="Profile Picture" />
+          <div>
+            <input id="pfAvatarFile" type="file" accept="image/*" />
+            <div style="margin-top:8px;"><button id="btnUploadAvatar" type="button">Upload Profile Picture</button></div>
+          </div>
+        </div>
         <div class="kv">
           <div class="row"><strong>Display Name</strong><span id="pfDisplayName">-</span></div>
           <div class="row"><strong>Email</strong><span id="pfEmail">-</span></div>
@@ -83,6 +99,7 @@
           <div class="prefs">
             <label>Preferred Name <input id="prefName" placeholder="Enter preferred name" /></label>
             <label>Timezone <select id="prefTimezone"><option value="">Auto</option><option value="UTC">UTC</option><option value="Europe/London">Europe/London</option><option value="America/New_York">America/New_York</option><option value="Africa/Lagos">Africa/Lagos</option></select></label>
+            <label>Bot Name <input id="prefBotName" placeholder="Set your primary bot name" /></label>
             <div style="display:flex;gap:8px;">
               <button id="btnSavePrefs" type="button">Save Preferences</button>
               <button id="btnResetPrefs" class="alt" type="button">Reset</button>

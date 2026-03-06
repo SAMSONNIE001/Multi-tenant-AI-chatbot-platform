@@ -18,6 +18,18 @@ function setStatus(id, msg) {
   if (el) el.textContent = msg;
 }
 
+function avatarFallback() {
+  return "data:image/svg+xml;utf8," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="100%" height="100%" fill="#e2e8f0"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#64748b" font-family="Arial" font-size="24">SB</text></svg>'
+  );
+}
+
+function setAvatar(src) {
+  const img = $("pfAvatar");
+  if (!img) return;
+  img.src = src || avatarFallback();
+}
+
 function cleanError(e) {
   const raw = String(e || "Request failed");
   if (raw.includes("401")) return "Session expired. Please sign in again.";
@@ -47,14 +59,30 @@ function initPrefs() {
   $("btnSavePrefs").onclick = async () => {
     setStatus("outPrefs", "Saving preferences...");
     try {
+      const botName = $("prefBotName").value.trim() || null;
       await api("/api/v1/auth/preferences", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           preferred_name: $("prefName").value.trim() || null,
           timezone: $("prefTimezone").value || null,
+          bot_name: botName,
         }),
       });
+      if (botName) {
+        try {
+          const bots = await api("/api/v1/tenant/bots");
+          if (Array.isArray(bots) && bots.length && bots[0].id) {
+            await api(`/api/v1/tenant/bots/${encodeURIComponent(bots[0].id)}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: botName }),
+            });
+          }
+        } catch (_) {
+          // Preference save succeeds even if bot patch is not permitted for this role.
+        }
+      }
       setStatus("outPrefs", "Preferences saved.");
     } catch (e) {
       setStatus("outPrefs", cleanError(e));
@@ -66,13 +94,45 @@ function initPrefs() {
       await api("/api/v1/auth/preferences", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ preferred_name: null, timezone: null }),
+        body: JSON.stringify({ preferred_name: null, timezone: null, bot_name: null }),
       });
       $("prefName").value = "";
       $("prefTimezone").value = "";
+      $("prefBotName").value = "";
       setStatus("outPrefs", "Preferences reset.");
     } catch (e) {
       setStatus("outPrefs", cleanError(e));
+    }
+  };
+
+  $("btnUploadAvatar").onclick = async () => {
+    const input = $("pfAvatarFile");
+    const file = input && input.files && input.files[0];
+    if (!file) {
+      setStatus("outProfile", "Pick an image file first.");
+      return;
+    }
+    setStatus("outProfile", "Uploading profile picture...");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const token = getToken();
+      const headers = {};
+      if (token) headers.Authorization = `Bearer ${token.replace(/^Bearer\s+/i, "")}`;
+      const res = await fetch(`${getApiBase()}/api/v1/auth/preferences/profile-image`, {
+        method: "POST",
+        headers,
+        body: fd,
+      });
+      const text = await res.text();
+      let data = text;
+      try { data = JSON.parse(text); } catch (_) {}
+      if (!res.ok) throw new Error(`${res.status} ${typeof data === "string" ? data : JSON.stringify(data)}`);
+      setAvatar(data.profile_image_data || "");
+      if (input) input.value = "";
+      setStatus("outProfile", "Profile picture updated.");
+    } catch (e) {
+      setStatus("outProfile", cleanError(e));
     }
   };
 }
@@ -96,6 +156,7 @@ function initPrefs() {
     $("pfTenantId").textContent = me.tenant_id || "-";
     $("pfUserId").textContent = me.id || "-";
     $("navUserBadge").textContent = `Current User: ${me.email || "-"}`;
+    setAvatar("");
     setStatus("outProfile", "Profile loaded.");
     initPrefs();
 
@@ -103,6 +164,8 @@ function initPrefs() {
       const pref = await api("/api/v1/auth/preferences");
       $("prefName").value = pref?.preferred_name || "";
       $("prefTimezone").value = pref?.timezone || "";
+      $("prefBotName").value = pref?.bot_name || "";
+      setAvatar(pref?.profile_image_data || "");
     } catch (_) {}
 
     let bots = 0;
