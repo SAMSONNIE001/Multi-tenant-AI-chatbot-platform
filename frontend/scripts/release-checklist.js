@@ -132,6 +132,10 @@ async function refreshUser() {
 
 async function runChecks() {
   const out = $("outChecks");
+  if (!getToken()) {
+    out.textContent = "Sign in to run release checks.";
+    return;
+  }
   out.textContent = "Running release checks...";
   const runAt = new Date().toLocaleString();
   const result = {
@@ -349,12 +353,7 @@ if (btnNavSignOut) {
   setMiniIntegration("miniMessenger", false, "not checked", true);
   setMiniIntegration("miniInstagram", false, "not checked", true);
   refreshUser().catch(() => {});
-
-  try {
-    const raw = localStorage.getItem("tenant_release_last_check");
-    const parsed = JSON.parse(raw || "null");
-    if (parsed && typeof parsed === "object") {
-      $("outChecks").textContent = pretty(parsed);
-    }
-  } catch (_) {}
+  if (!savedToken) {
+    $("outChecks").textContent = "Sign in to run release checks.";
+  }
 })();

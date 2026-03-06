@@ -645,9 +645,14 @@
       syncCurrentUser().catch(() => {});
       syncChannelIntegrations().catch(() => {});
       populateChannelSetupFields().catch(() => {});
-      loadOpsAudit();
-      runPreflightChecks(true).catch(() => {});
-      renderReleaseSnapshot();
+      if (savedToken) {
+        loadOpsAudit();
+        runPreflightChecks(true).catch(() => {});
+        renderReleaseSnapshot();
+      } else {
+        const outLogin = $("outLogin");
+        if (outLogin) outLogin.textContent = "Sign in to load tenant operations.";
+      }
       setQueueAutoRefresh();
     })();
 })();

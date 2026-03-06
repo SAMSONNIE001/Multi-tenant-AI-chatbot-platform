@@ -198,6 +198,18 @@
     async function syncChannelIntegrations() {
       const sync = $("integrationSync");
       if (sync) sync.textContent = "Syncing configured channels from backend...";
+      if (!getToken()) {
+        _setIntegrationState("intWebsiteState", false, "Enabled", "Sign In Required");
+        _setIntegrationState("intWhatsappState", false, "Enabled", "Sign In Required");
+        _setIntegrationState("intMessengerState", false, "Enabled", "Sign In Required");
+        _setIntegrationState("intInstagramState", false, "Enabled", "Coming Soon");
+        _setIntegrationMeta("intWebsiteMeta", "Sign in to view live status");
+        _setIntegrationMeta("intWhatsappMeta", "Sign in to view live status");
+        _setIntegrationMeta("intMessengerMeta", "Sign in to view live status");
+        _setIntegrationMeta("intInstagramMeta", "Coming soon");
+        if (sync) sync.textContent = "Sign in required";
+        return;
+      }
       try {
         const data = await request("/api/v1/tenant/integrations/status");
         state.integrationStatus = data;

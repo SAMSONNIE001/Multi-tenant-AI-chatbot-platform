@@ -57,6 +57,10 @@ function setToken(token) {
   $("accessToken").value = token || "";
 }
 
+function isAuthed() {
+  return !!getToken();
+}
+
 function saveSessionToken(token) {
   if (token && String(token).trim()) {
     sessionStorage.setItem(TOKEN_KEY, String(token).trim());
@@ -215,6 +219,11 @@ async function loadStatus() {
   const out = $("outStatus");
   const grid = $("statusGrid");
   setErrorPanel("");
+  if (!isAuthed()) {
+    out.textContent = "Sign in to load integration status.";
+    grid.innerHTML = "";
+    return null;
+  }
   out.textContent = "Loading integration status...";
   grid.innerHTML = `<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>`;
   setLoading("btnLoadStatus", true, "Loading...");
@@ -569,11 +578,16 @@ $("btnNavSignOut").onclick = () => {
     sessionStorage.removeItem(SESSION_EXPIRED_KEY);
     toast("Session expired. Sign in again.", "warn", 3200);
   }
+  if (!savedToken) {
+    $("outSession").textContent = "Sign in to start managing integrations.";
+    $("outStatus").textContent = "Sign in to load integration status.";
+    $("statusGrid").innerHTML = "";
+  }
   try {
     const me = await api("/api/v1/auth/me");
     $("navUserBadge").textContent = `Current User: ${me.email} | role=${me.role} | tenant=${me.tenant_id}`;
   } catch (_) {}
   setTestBadge("waTestBadge", false, "No Test Yet");
   setTestBadge("fbTestBadge", false, "No Test Yet");
-  loadStatus().catch(() => {});
+  if (savedToken) loadStatus().catch(() => {});
 })();
