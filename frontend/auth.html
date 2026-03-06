@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StaunchBot Auth</title>
+  <style>
+    :root {
+      --bg: #eef2f8;
+      --panel: #ffffff;
+      --line: #d7e0eb;
+      --ink: #0f1b2d;
+      --muted: #5d6b80;
+      --nav-top: #1e2f4e;
+      --nav-bottom: #2c4e77;
+      --accent: #2f7de1;
+      --shadow: 0 10px 26px rgba(15, 27, 45, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 240px at 12% -10%, #dbe8ff 0%, transparent 65%),
+        radial-gradient(900px 240px at 85% -15%, #d8f1ee 0%, transparent 70%),
+        var(--bg);
+    }
+    .wrap {
+      max-width: 1120px;
+      margin: 24px auto;
+      padding: 0 12px;
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr 1fr;
+    }
+    .hero {
+      grid-column: 1 / -1;
+      background: linear-gradient(180deg, var(--nav-top), var(--nav-bottom));
+      color: #d9e6ff;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .hero h1 {
+      margin: 0 0 6px;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0 0 10px;
+    }
+    .row {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    label {
+      font-size: 12px;
+      color: #5d6b80;
+      font-weight: 600;
+    }
+    input {
+      width: 100%;
+      border: 1px solid #cbd7e6;
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 13px;
+      background: #fff;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 12px;
+      background: var(--accent);
+      color: #fff;
+    }
+    button.alt { background: #5d6b81; }
+    .out {
+      margin-top: 8px;
+      background: #0f1a2c;
+      border-radius: 8px;
+      color: #cde0ff;
+      min-height: 56px;
+      padding: 8px;
+      white-space: pre-wrap;
+      font-size: 12px;
+    }
+    details {
+      margin-top: 10px;
+      border: 1px solid #dbe4ee;
+      border-radius: 10px;
+      background: #fbfdff;
+      padding: 8px;
+    }
+    summary {
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      color: #33435b;
+    }
+    .full {
+      grid-column: 1 / -1;
+    }
+    @media (max-width: 920px) {
+      .wrap { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>StaunchBot Authentication</h1>
+      <p class="muted" id="authInfoLine" style="color:#d6e4ff;margin:0;">Sign in to access dashboard and operations pages.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Sign In</h2>
+      <p class="muted">Use your existing tenant admin/support account.</p>
+      <div class="row"><label>Email</label><input id="lgEmail" placeholder="admin@example.com" /></div>
+      <div class="row"><label>Password</label><input id="lgPassword" placeholder="Enter password" /></div>
+      <div class="row" id="lgTenantIdRow" style="display:none;">
+        <label>Tenant ID</label><input id="lgTenantId" placeholder="t_..." />
+      </div>
+      <button id="btnLogin" type="button">Login</button>
+      <div id="outLogin" class="out"></div>
+
+      <details>
+        <summary>Forgot Password</summary>
+        <div class="row" style="margin-top:10px;"><label>Account Email</label><input id="fpEmail" placeholder="admin@example.com" /></div>
+        <div class="row"><label>Tenant ID (optional)</label><input id="fpTenantId" placeholder="t_..." /></div>
+        <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
+        <div id="outForgotPassword" class="out"></div>
+        <div class="row" style="margin-top:10px;"><label>Reset Token</label><input id="fpResetToken" placeholder="Paste reset token" /></div>
+        <div class="row"><label>Reset Code</label><input id="fpCode" placeholder="6-digit code" /></div>
+        <div class="row"><label>New Password</label><input id="fpNewPassword" placeholder="Enter new password" /></div>
+        <button id="btnResetPassword" class="alt" type="button">Reset Password</button>
+        <div id="outResetPassword" class="out"></div>
+      </details>
+    </section>
+
+    <section class="panel">
+      <h2>Create Account</h2>
+      <p class="muted">Create a new tenant and sign in automatically.</p>
+      <div class="row"><label>Company / Tenant Name</label><input id="obTenantName" placeholder="Acme Support Ltd" /></div>
+      <div class="row"><label>Admin Email</label><input id="obAdminEmail" placeholder="admin@acme.com" /></div>
+      <div class="row"><label>Admin Password</label><input id="obAdminPassword" placeholder="Create a strong password" /></div>
+      <div class="row"><label>Bot Name</label><input id="obBotName" value="Main Website Bot" /></div>
+      <div class="row"><label>Allowed Origins (comma-separated)</label><input id="obAllowedOrigins" value="https://www.staunchbot.com,https://staunchbot.com" /></div>
+      <button id="btnOnboardCreate" class="alt" type="button">Create Account And Sign In</button>
+      <div id="outOnboardCreate" class="out"></div>
+    </section>
+
+    <section class="panel full">
+      <h2>Connection Settings</h2>
+      <div class="row"><label>API Base</label><input id="apiBase" value="http://localhost:8000" /></div>
+      <div class="row"><label>Staging API Base</label><input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" /></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="btnEnvProd" class="alt" type="button">Use Prod</button>
+        <button id="btnEnvStaging" class="alt" type="button">Use Staging</button>
+        <button id="btnEnvLocal" class="alt" type="button">Use Local</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="./scripts/auth.js"></script>
+</body>
+</html>

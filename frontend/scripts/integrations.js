@@ -563,7 +563,7 @@ $("btnNavSignOut").onclick = () => {
 (async function bootstrap() {
   const savedToken = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
   if (!savedToken) {
-    window.location.replace("./dashboard.html?auth_required=1&next=integrations.html");
+    window.location.replace("./auth.html?auth_required=1&next=integrations.html");
     return;
   }
   const savedBase = localStorage.getItem("tenant_console_api_base");

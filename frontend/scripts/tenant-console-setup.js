@@ -612,7 +612,7 @@
         const page = (window.location.pathname || "").toLowerCase().includes("tenant-setup")
           ? "tenant-setup.html"
           : "tenant-console.html";
-        window.location.replace(`./dashboard.html?auth_required=1&next=${encodeURIComponent(page)}`);
+        window.location.replace(`./auth.html?auth_required=1&next=${encodeURIComponent(page)}`);
         return;
       }
       const savedBase = localStorage.getItem("tenant_console_api_base");
