@@ -74,12 +74,6 @@ function setIntegrationState(id, enabled, enabledText = "Connected", disabledTex
   el.textContent = enabled ? enabledText : disabledText;
 }
 
-function setIntegrationSwitch(id, enabled) {
-  const el = $(id);
-  if (!el) return;
-  el.className = enabled ? "switch on" : "switch";
-}
-
 function setIntegrationMeta(id, text) {
   const el = $(id);
   if (!el) return;
@@ -104,6 +98,30 @@ function describeIntegration(channel) {
   return channel.note || channel.health_status || "-";
 }
 
+function renderInboxPreview(metrics) {
+  const box = $("inboxPreview");
+  if (!box) return;
+  const totals = (metrics && metrics.totals) || {};
+  const rows = [
+    ["Open Queue", totals.unresolved_tickets ?? 0, "Live unresolved tickets"],
+    ["Escalated", totals.escalated_tickets ?? 0, "Tickets currently escalated"],
+    ["Resolved", totals.resolved_tickets ?? 0, "Resolved in current reporting window"],
+  ];
+  box.innerHTML = rows
+    .map(
+      ([title, value, note]) => `
+      <div class="ticket-row">
+        <div>
+          <strong>${title}</strong>
+          <div class="tiny">${note}</div>
+        </div>
+        <span class="tiny">${value}</span>
+      </div>
+    `
+    )
+    .join("");
+}
+
 async function refreshIntegrationStatus() {
   const sync = $("integrationSync");
   if (sync) sync.textContent = "Syncing...";
@@ -115,19 +133,15 @@ async function refreshIntegrationStatus() {
     const instagram = data.instagram || {};
 
     setIntegrationState("intWebsiteState", !!website.enabled, website.status_label || "Enabled", "Not Configured");
-    setIntegrationSwitch("intWebsiteSwitch", !!website.enabled);
     setIntegrationMeta("intWebsiteMeta", describeIntegration(website));
 
     setIntegrationState("intWhatsappState", !!whatsapp.enabled, whatsapp.status_label || "Enabled", "Not Connected");
-    setIntegrationSwitch("intWhatsappSwitch", !!whatsapp.enabled);
     setIntegrationMeta("intWhatsappMeta", describeIntegration(whatsapp));
 
     setIntegrationState("intMessengerState", !!messenger.enabled, messenger.status_label || "Enabled", "Not Connected");
-    setIntegrationSwitch("intMessengerSwitch", !!messenger.enabled);
     setIntegrationMeta("intMessengerMeta", describeIntegration(messenger));
 
     setIntegrationState("intInstagramState", !!instagram.enabled, instagram.status_label || "Enabled", "Not Connected");
-    setIntegrationSwitch("intInstagramSwitch", !!instagram.enabled);
     setIntegrationMeta("intInstagramMeta", describeIntegration(instagram));
 
     if (sync) sync.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
@@ -136,10 +150,6 @@ async function refreshIntegrationStatus() {
     setIntegrationState("intWhatsappState", false, "Enabled", "Unavailable");
     setIntegrationState("intMessengerState", false, "Enabled", "Unavailable");
     setIntegrationState("intInstagramState", false, "Enabled", "Unavailable");
-    setIntegrationSwitch("intWebsiteSwitch", false);
-    setIntegrationSwitch("intWhatsappSwitch", false);
-    setIntegrationSwitch("intMessengerSwitch", false);
-    setIntegrationSwitch("intInstagramSwitch", false);
     setIntegrationMeta("intWebsiteMeta", "Unavailable");
     setIntegrationMeta("intWhatsappMeta", "Unavailable");
     setIntegrationMeta("intMessengerMeta", "Unavailable");
@@ -181,6 +191,7 @@ async function refreshSnapshot() {
       `Handoffs: ${totals.unresolved_tickets ?? 0} unresolved, ${totals.escalated_tickets ?? 0} escalated`,
       `Knowledge: ${knowledge.document_count || 0} docs / ${knowledge.chunk_count || 0} chunks`,
     ].join("\n");
+    renderInboxPreview(metrics);
     await refreshIntegrationStatus();
   } catch (e) {
     const msg = String(e);
@@ -191,6 +202,7 @@ async function refreshSnapshot() {
     }
     grid.style.display = "none";
     grid.innerHTML = "";
+    renderInboxPreview({ totals: { unresolved_tickets: 0, escalated_tickets: 0, resolved_tickets: 0 } });
     await refreshIntegrationStatus();
   }
 }

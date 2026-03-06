@@ -283,7 +283,7 @@
       background: #fcfdff;
       padding: 8px 10px;
       display: grid;
-      grid-template-columns: 1fr auto auto;
+      grid-template-columns: 1fr auto;
       align-items: center;
       gap: 8px;
       font-size: 12px;
@@ -324,33 +324,6 @@
       color: #6c7a90;
       border-color: #dbe2ed;
       background: #f2f5fa;
-    }
-
-    .switch {
-      width: 34px;
-      height: 18px;
-      border-radius: 999px;
-      background: #ccd7e7;
-      position: relative;
-    }
-
-    .switch::after {
-      content: "";
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #fff;
-    }
-
-    .switch.on {
-      background: #79c49a;
-    }
-
-    .switch.on::after {
-      left: 18px;
     }
 
     .row, .inline { display: grid; gap: 6px; margin-bottom: 10px; }
@@ -440,6 +413,7 @@
       <nav class="nav-list">
         <a id="navDashboard" class="nav-link active" href="./dashboard.html">Dashboard</a>
         <a id="navOps" class="nav-link" href="./tenant-console.html">Unified Inbox</a>
+        <a class="nav-link" href="./integrations.html">Integrations</a>
         <a id="navSetup" class="nav-link" href="./tenant-setup.html">Knowledge Base</a>
         <a id="navRelease" class="nav-link" href="./release-checklist.html">Release</a>
       </nav>
@@ -476,27 +450,13 @@
             <h2>Unified Inbox</h2>
             <button id="btnRefreshAll" class="small-btn">Refresh Snapshot</button>
           </div>
-          <div class="ticket-list">
+          <div id="inboxPreview" class="ticket-list">
             <div class="ticket-row">
               <div>
-                <strong>Order Issue</strong>
-                <div class="tiny">John Davis</div>
+                <strong>Live Queue Preview</strong>
+                <div class="tiny">No customer personal details are shown on this dashboard.</div>
               </div>
-              <span class="tiny">Assigned: Sarah</span>
-            </div>
-            <div class="ticket-row active">
-              <div>
-                <strong>Billing Question</strong>
-                <div class="tiny">Lisa Chen</div>
-              </div>
-              <span class="tiny">SLA: 1h left</span>
-            </div>
-            <div class="ticket-row">
-              <div>
-                <strong>Tech Support</strong>
-                <div class="tiny">Mark Wilson</div>
-              </div>
-              <span class="tiny">Waiting on customer</span>
+              <span class="tiny">Refresh to load live counts</span>
             </div>
           </div>
 
@@ -506,16 +466,16 @@
 
         <section class="panel">
           <div class="card-title">
-            <h2>Active Ticket</h2>
-            <span class="tiny">Assigned to You</span>
+            <h2>Support Workflow</h2>
+            <span class="tiny">PII-safe dashboard mode</span>
           </div>
           <div class="conversation">
-            <div class="msg"><strong>Customer:</strong> I cannot access my account.</div>
-            <div class="msg ai"><strong>AI Summary:</strong> User likely has invalid password.</div>
-            <div class="msg">Recommend sending password reset link and verification code.</div>
+            <div class="msg"><strong>Live Queue:</strong> Open customer tickets are tracked in Daily Ops.</div>
+            <div class="msg ai"><strong>AI Assist:</strong> Suggested actions are available in the handoff console.</div>
+            <div class="msg">Use "Unified Inbox" page for thread-level actions and agent replies.</div>
             <div class="action-row">
-              <button class="small-btn">Send Reply</button>
-              <button class="small-btn alt" type="button">Add Note</button>
+              <a href="./tenant-console.html" style="text-decoration:none;"><button class="small-btn" type="button">Open Daily Ops</button></a>
+              <a href="./tenant-console.html" style="text-decoration:none;"><button class="small-btn alt" type="button">Open Handoff Queue</button></a>
             </div>
           </div>
         </section>
@@ -529,32 +489,26 @@
             <div class="int-row">
               <div class="int-app"><img class="icon-img" src="https://cdn.simpleicons.org/webflow/146EF5" alt="Website Chat" /><div><div>Website Live Chat</div><div class="tiny" id="intWebsiteMeta">-</div></div></div>
               <span class="state disabled" id="intWebsiteState">Checking...</span>
-              <span class="switch" id="intWebsiteSwitch"></span>
             </div>
             <div class="int-row">
               <div class="int-app"><img class="icon-img" src="https://cdn.simpleicons.org/whatsapp/25D366" alt="WhatsApp" /><div><div>WhatsApp Business</div><div class="tiny" id="intWhatsappMeta">-</div></div></div>
               <span class="state disabled" id="intWhatsappState">Checking...</span>
-              <span class="switch" id="intWhatsappSwitch"></span>
             </div>
             <div class="int-row">
               <div class="int-app"><img class="icon-img" src="https://cdn.simpleicons.org/facebookmessenger/00B2FF" alt="Messenger" /><div><div>Facebook Messenger</div><div class="tiny" id="intMessengerMeta">-</div></div></div>
               <span class="state disabled" id="intMessengerState">Checking...</span>
-              <span class="switch" id="intMessengerSwitch"></span>
             </div>
             <div class="int-row">
               <div class="int-app"><img class="icon-img" src="https://cdn.simpleicons.org/instagram/E4405F" alt="Instagram" /><div><div>Instagram</div><div class="tiny" id="intInstagramMeta">-</div></div></div>
               <span class="state disabled" id="intInstagramState">Checking...</span>
-              <span class="switch" id="intInstagramSwitch"></span>
             </div>
             <div class="int-row">
               <div class="int-app"><img class="icon-img" src="https://cdn.simpleicons.org/x/000000" alt="X" /> X (Twitter)</div>
               <span class="state disabled">Not Connected</span>
-              <span class="switch"></span>
             </div>
             <div class="int-row">
               <div class="int-app"><img class="icon-img" src="https://cdn.simpleicons.org/telegram/26A5E4" alt="Telegram" /> Telegram</div>
               <span class="state disabled">Not Supported</span>
-              <span class="switch"></span>
             </div>
           </div>
         </section>

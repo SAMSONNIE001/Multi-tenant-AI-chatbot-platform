@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StaunchBot Integrations</title>
+  <style>
+    :root {
+      --bg: #eef2f8;
+      --panel: #ffffff;
+      --line: #d7e0eb;
+      --ink: #0f1b2d;
+      --muted: #5d6b80;
+      --nav-top: #1e2f4e;
+      --nav-bottom: #2c4e77;
+      --nav-text: #d9e6ff;
+      --accent: #2f7de1;
+      --radius: 14px;
+      --shadow: 0 10px 26px rgba(15, 27, 45, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 240px at 12% -10%, #dbe8ff 0%, transparent 65%),
+        radial-gradient(900px 240px at 85% -15%, #d8f1ee 0%, transparent 70%),
+        var(--bg);
+    }
+    .app {
+      max-width: 1240px;
+      margin: 18px auto;
+      padding: 0 12px;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 14px;
+      min-height: calc(100vh - 36px);
+    }
+    .sidebar {
+      background: linear-gradient(180deg, var(--nav-top), var(--nav-bottom));
+      border-radius: 16px;
+      padding: 16px 12px;
+      color: var(--nav-text);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .brand-badge {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: inline-grid;
+      place-items: center;
+      background: #ffffff;
+      color: #204272;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .nav-list {
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--nav-text);
+      font-size: 13px;
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+    }
+    .nav-link.active {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+    }
+    .nav-link:hover {
+      background: rgba(255, 255, 255, 0.09);
+    }
+    .sidebar-foot button {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border-radius: 10px;
+      padding: 9px 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .main {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: #f5f8fc;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 9px 12px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #d3dceb;
+      background: #fff;
+      color: #67758b;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .panel h1, .panel h2 {
+      margin: 0 0 8px;
+      letter-spacing: -0.01em;
+    }
+    .muted { color: var(--muted); font-size: 13px; }
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr 1fr;
+    }
+    .row {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .inline {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    label {
+      font-size: 12px;
+      color: #5d6b80;
+      font-weight: 600;
+    }
+    input {
+      width: 100%;
+      border: 1px solid #cbd7e6;
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 13px;
+      background: #fff;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+      background: var(--accent);
+      color: #fff;
+    }
+    button.alt { background: #5d6b81; }
+    .out {
+      margin-top: 8px;
+      background: #0f1a2c;
+      border-radius: 8px;
+      color: #cde0ff;
+      min-height: 56px;
+      padding: 8px;
+      white-space: pre-wrap;
+      font-size: 12px;
+    }
+    .status-grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 8px;
+    }
+    .status-card {
+      border: 1px solid #dde6f1;
+      border-radius: 10px;
+      background: #fbfdff;
+      padding: 10px;
+      display: grid;
+      gap: 6px;
+    }
+    .status-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .state {
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid;
+    }
+    .state.enabled {
+      color: #1d7e4d;
+      border-color: #b9e6cc;
+      background: #eaf9f0;
+    }
+    .state.disabled {
+      color: #6c7a90;
+      border-color: #dbe2ed;
+      background: #f2f5fa;
+    }
+    @media (max-width: 1080px) {
+      .app { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+      .nav-list { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-badge">SB</span>
+        <span>StaunchBot</span>
+      </div>
+      <nav class="nav-list">
+        <a id="navDashboard" class="nav-link" href="./dashboard.html">Dashboard</a>
+        <a id="navOps" class="nav-link" href="./tenant-console.html">Unified Inbox</a>
+        <a class="nav-link active" href="./integrations.html">Integrations</a>
+        <a id="navSetup" class="nav-link" href="./tenant-setup.html">Knowledge Base</a>
+        <a id="navRelease" class="nav-link" href="./release-checklist.html">Release</a>
+      </nav>
+      <div class="sidebar-foot">
+        <button id="btnNavSignOut" type="button">Sign out</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <strong>Integrations Management</strong>
+        <span id="navUserBadge" class="badge">Current User: not authenticated</span>
+      </div>
+
+      <section class="panel">
+        <h1>Channel Integrations</h1>
+        <div class="muted">Connect, validate, and monitor website chat, WhatsApp, and Facebook Messenger.</div>
+        <div style="margin-top:10px;" class="inline">
+          <button id="btnLoadStatus" type="button">Reload Status</button>
+          <button id="btnLoadHealth" class="alt" type="button">Refresh Health</button>
+        </div>
+        <div id="statusGrid" class="status-grid"></div>
+        <div id="outStatus" class="out"></div>
+      </section>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Session</h2>
+          <div class="row">
+            <label for="apiBase">API Base</label>
+            <input id="apiBase" value="http://localhost:8000" />
+          </div>
+          <div class="inline">
+            <button id="btnEnvProd" class="alt" type="button">Use Prod</button>
+            <button id="btnEnvLocal" class="alt" type="button">Use Local</button>
+          </div>
+          <div class="row"><label>Email</label><input id="lgEmail" placeholder="admin@example.com" /></div>
+          <div class="row"><label>Password</label><input id="lgPassword" placeholder="Enter password" /></div>
+          <div class="row" id="lgTenantIdRow" style="display:none;">
+            <label>Tenant ID</label><input id="lgTenantId" placeholder="t_..." />
+          </div>
+          <button id="btnLogin" type="button">Login</button>
+          <div class="row" style="margin-top:10px;">
+            <label>Access Token</label>
+            <input id="accessToken" placeholder="Bearer token (auto-set after login)" />
+          </div>
+          <div class="inline">
+            <button id="saveToken" class="alt" type="button">Save Token</button>
+            <button id="clearToken" class="alt" type="button">Clear Token</button>
+          </div>
+          <div id="outSession" class="out"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Website Chat</h2>
+          <div class="muted">Managed via tenant bots. Ensure at least one active bot is available.</div>
+          <div class="inline" style="margin-top:10px;">
+            <button id="btnLoadBots" type="button">Load Bots</button>
+            <button id="btnOpenOps" class="alt" type="button">Open Daily Ops</button>
+          </div>
+          <div id="outWebsite" class="out"></div>
+        </section>
+
+        <section class="panel">
+          <h2>WhatsApp Business</h2>
+          <div class="row"><label>Name</label><input id="waName" placeholder="WhatsApp Main" /></div>
+          <div class="row"><label>Access Token</label><input id="waAccessToken" placeholder="EAAB..." /></div>
+          <div class="row"><label>Phone Number ID</label><input id="waPhoneNumberId" placeholder="1234567890" /></div>
+          <div class="row"><label>App Secret (optional)</label><input id="waAppSecret" placeholder="Meta app secret" /></div>
+          <div class="inline">
+            <button id="btnSaveWhatsApp" type="button">Save / Update</button>
+            <button id="btnDisableWhatsApp" class="alt" type="button">Disconnect</button>
+          </div>
+          <div class="inline">
+            <button id="btnTestWhatsApp" class="alt" type="button">Send Test Inbound Event</button>
+          </div>
+          <div id="outWhatsApp" class="out"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Facebook Messenger</h2>
+          <div class="row"><label>Name</label><input id="fbName" placeholder="Facebook Main" /></div>
+          <div class="row"><label>Page Access Token</label><input id="fbAccessToken" placeholder="EAAB..." /></div>
+          <div class="row"><label>Page ID</label><input id="fbPageId" placeholder="112233445566778" /></div>
+          <div class="row"><label>App Secret (optional)</label><input id="fbAppSecret" placeholder="Meta app secret" /></div>
+          <div class="inline">
+            <button id="btnSaveFacebook" type="button">Save / Update</button>
+            <button id="btnDisableFacebook" class="alt" type="button">Disconnect</button>
+          </div>
+          <div class="inline">
+            <button id="btnTestFacebook" class="alt" type="button">Send Test Inbound Event</button>
+          </div>
+          <div id="outFacebook" class="out"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="./scripts/integrations.js"></script>
+</body>
+</html>
