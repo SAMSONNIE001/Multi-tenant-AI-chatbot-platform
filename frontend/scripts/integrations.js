@@ -8,6 +8,43 @@ function pretty(v) {
   try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
 }
 
+function toast(msg, kind = "ok", ms = 2600) {
+  const stack = $("toastStack");
+  if (!stack) return;
+  const node = document.createElement("div");
+  node.className = `toast ${kind}`;
+  node.textContent = msg;
+  stack.appendChild(node);
+  setTimeout(() => {
+    if (node.parentNode) node.parentNode.removeChild(node);
+  }, ms);
+}
+
+function setErrorPanel(msg) {
+  const panel = $("errorPanel");
+  if (!panel) return;
+  if (!msg) {
+    panel.style.display = "none";
+    panel.textContent = "";
+    return;
+  }
+  panel.style.display = "block";
+  panel.textContent = msg;
+}
+
+function setLoading(buttonId, on, text = "Working...") {
+  const btn = $(buttonId);
+  if (!btn) return;
+  if (on) {
+    btn.dataset.prev = btn.textContent || "";
+    btn.disabled = true;
+    btn.textContent = text;
+  } else {
+    btn.disabled = false;
+    btn.textContent = btn.dataset.prev || btn.textContent;
+  }
+}
+
 function getApiBase() {
   return $("apiBase").value.trim().replace(/\/+$/, "");
 }
@@ -34,6 +71,66 @@ function shortDate(v) {
   const d = new Date(v);
   if (Number.isNaN(d.getTime())) return String(v);
   return d.toLocaleString();
+}
+
+function clearFieldError(id) {
+  const el = $(id);
+  if (el) el.textContent = "";
+}
+
+function setFieldError(id, msg) {
+  const el = $(id);
+  if (el) el.textContent = msg || "";
+}
+
+function toggleTokenInput(inputId, btnId) {
+  const input = $(inputId);
+  const btn = $(btnId);
+  if (!input || !btn) return;
+  const asPassword = input.getAttribute("type") !== "password";
+  input.setAttribute("type", asPassword ? "password" : "text");
+  btn.textContent = asPassword ? "Show" : "Hide";
+}
+
+function setTestBadge(id, ok, label) {
+  const el = $(id);
+  if (!el) return;
+  el.className = `state ${ok ? "enabled" : "disabled"}`;
+  el.textContent = label;
+}
+
+function validateWhatsAppForm() {
+  clearFieldError("waAccessTokenErr");
+  clearFieldError("waPhoneNumberIdErr");
+  let ok = true;
+  const token = $("waAccessToken").value.trim();
+  const phone = $("waPhoneNumberId").value.trim();
+  if (!token || token.length < 8) {
+    setFieldError("waAccessTokenErr", "Token must be at least 8 characters.");
+    ok = false;
+  }
+  if (!phone || phone.length < 3) {
+    setFieldError("waPhoneNumberIdErr", "Phone Number ID is required.");
+    ok = false;
+  }
+  return ok;
+}
+
+function validateFacebookForm() {
+  clearFieldError("fbAccessTokenErr");
+  clearFieldError("fbPageIdErr");
+  let ok = true;
+  const token = $("fbAccessToken").value.trim();
+  const page = $("fbPageId").value.trim();
+  if (!token || token.length < 8) {
+    setFieldError("fbAccessTokenErr", "Page token must be at least 8 characters.");
+    ok = false;
+  }
+  if (!page || page.length < 3) {
+    setFieldError("fbPageIdErr", "Page ID is required.");
+    ok = false;
+  }
+  return ok;
 }
 
 async function api(path, options = {}) {
@@ -113,10 +210,13 @@ async function loadAccounts() {
 
 async function loadStatus() {
   const out = $("outStatus");
+  const grid = $("statusGrid");
+  setErrorPanel("");
   out.textContent = "Loading integration status...";
+  grid.innerHTML = `<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>`;
+  setLoading("btnLoadStatus", true, "Loading...");
   try {
     const status = await api("/api/v1/tenant/integrations/status");
-    const grid = $("statusGrid");
     grid.innerHTML = [
       integrationRow("Website Live Chat", status.website_live_chat || {}),
       integrationRow("WhatsApp Business", status.whatsapp_business || {}),
@@ -126,16 +226,22 @@ async function loadStatus() {
     ].join("");
     out.textContent = pretty(status);
     await loadAccounts();
+    toast("Integration status refreshed", "ok");
     return status;
   } catch (e) {
+    setErrorPanel(String(e));
     out.textContent = String(e);
+    toast("Failed to load integration status", "err");
     throw e;
+  } finally {
+    setLoading("btnLoadStatus", false);
   }
 }
 
 async function loadHealth() {
   const out = $("outStatus");
   out.textContent = "Loading channel health...";
+  setLoading("btnLoadHealth", true, "Loading...");
   try {
     const rows = await loadAccounts();
     const health = [];
@@ -144,23 +250,30 @@ async function loadHealth() {
       health.push(data);
     }
     out.textContent = pretty({ count: health.length, items: health });
+    toast("Channel health refreshed", "ok");
     await loadStatus();
   } catch (e) {
+    setErrorPanel(String(e));
     out.textContent = String(e);
+    toast("Failed to load channel health", "err");
+  } finally {
+    setLoading("btnLoadHealth", false);
   }
 }
 
 async function saveWhatsApp() {
   const out = $("outWhatsApp");
   out.textContent = "Saving WhatsApp...";
+  if (!validateWhatsAppForm()) {
+    toast("Fix WhatsApp validation errors", "warn");
+    return;
+  }
+  setLoading("btnSaveWhatsApp", true, "Saving...");
   try {
     const name = $("waName").value.trim() || "WhatsApp Main";
     const accessToken = $("waAccessToken").value.trim();
     const phoneNumberId = $("waPhoneNumberId").value.trim();
     const appSecret = $("waAppSecret").value.trim();
-    if (!accessToken || accessToken.length < 8) throw new Error("Provide valid WhatsApp access token.");
-    if (!phoneNumberId || phoneNumberId.length < 3) throw new Error("Provide valid WhatsApp phone number ID.");
-
     const accountId = $("btnSaveWhatsApp").getAttribute("data-account-id") || "";
     let data;
     if (accountId) {
@@ -189,23 +302,30 @@ async function saveWhatsApp() {
       });
     }
     out.textContent = pretty({ saved: true, account: data });
+    toast("WhatsApp saved", "ok");
     await loadStatus();
   } catch (e) {
+    setErrorPanel(String(e));
     out.textContent = String(e);
+    toast("Failed to save WhatsApp", "err");
+  } finally {
+    setLoading("btnSaveWhatsApp", false);
   }
 }
 
 async function saveFacebook() {
   const out = $("outFacebook");
   out.textContent = "Saving Facebook...";
+  if (!validateFacebookForm()) {
+    toast("Fix Facebook validation errors", "warn");
+    return;
+  }
+  setLoading("btnSaveFacebook", true, "Saving...");
   try {
     const name = $("fbName").value.trim() || "Facebook Main";
     const accessToken = $("fbAccessToken").value.trim();
     const pageId = $("fbPageId").value.trim();
     const appSecret = $("fbAppSecret").value.trim();
-    if (!accessToken || accessToken.length < 8) throw new Error("Provide valid Facebook page token.");
-    if (!pageId || pageId.length < 3) throw new Error("Provide valid Facebook page ID.");
-
     const accountId = $("btnSaveFacebook").getAttribute("data-account-id") || "";
     let data;
     if (accountId) {
@@ -234,15 +354,22 @@ async function saveFacebook() {
       });
     }
     out.textContent = pretty({ saved: true, account: data });
+    toast("Facebook saved", "ok");
     await loadStatus();
   } catch (e) {
+    setErrorPanel(String(e));
     out.textContent = String(e);
+    toast("Failed to save Facebook", "err");
+  } finally {
+    setLoading("btnSaveFacebook", false);
   }
 }
 
 async function disableChannel(accountId, outId, label) {
   const out = $(outId);
   out.textContent = `Disconnecting ${label}...`;
+  const btnId = label === "WhatsApp" ? "btnDisableWhatsApp" : "btnDisableFacebook";
+  setLoading(btnId, true, "Disconnecting...");
   try {
     if (!accountId) throw new Error(`No ${label} account configured.`);
     const data = await api(`/api/v1/admin/channels/accounts/${encodeURIComponent(accountId)}`, {
@@ -251,15 +378,23 @@ async function disableChannel(accountId, outId, label) {
       body: JSON.stringify({ is_active: false }),
     });
     out.textContent = pretty({ disconnected: true, account: data.id });
+    toast(`${label} disconnected`, "ok");
     await loadStatus();
   } catch (e) {
+    setErrorPanel(String(e));
     out.textContent = String(e);
+    toast(`Failed to disconnect ${label}`, "err");
+  } finally {
+    setLoading(btnId, false);
   }
 }
 
 async function testInbound(kind) {
   const out = kind === "whatsapp" ? $("outWhatsApp") : $("outFacebook");
   out.textContent = `Sending ${kind} test inbound event...`;
+  const btnId = kind === "whatsapp" ? "btnTestWhatsApp" : "btnTestFacebook";
+  const badgeId = kind === "whatsapp" ? "waTestBadge" : "fbTestBadge";
+  setLoading(btnId, true, "Testing...");
   try {
     const rows = await loadAccounts();
     if (kind === "whatsapp") {
@@ -288,6 +423,7 @@ async function testInbound(kind) {
         body: JSON.stringify(payload),
       });
       out.textContent = pretty({ tested: "whatsapp", webhook_result: res });
+      setTestBadge(badgeId, true, `Pass ${new Date().toLocaleTimeString()}`);
     } else {
       const fb = rows.find((a) => {
         const t = String(a.channel_type || "").toLowerCase();
@@ -311,16 +447,24 @@ async function testInbound(kind) {
         body: JSON.stringify(payload),
       });
       out.textContent = pretty({ tested: "facebook", webhook_result: res });
+      setTestBadge(badgeId, true, `Pass ${new Date().toLocaleTimeString()}`);
     }
+    toast(`${kind} test event accepted`, "ok");
     await loadStatus();
   } catch (e) {
+    setErrorPanel(String(e));
     out.textContent = String(e);
+    setTestBadge(badgeId, false, `Fail ${new Date().toLocaleTimeString()}`);
+    toast(`${kind} test failed`, "err");
+  } finally {
+    setLoading(btnId, false);
   }
 }
 
 async function login() {
   const out = $("outSession");
   out.textContent = "Logging in...";
+  setLoading("btnLogin", true, "Logging...");
   try {
     const body = { email: $("lgEmail").value.trim(), password: $("lgPassword").value };
     const tenantId = $("lgTenantId").value.trim();
@@ -339,6 +483,7 @@ async function login() {
     const me = await api("/api/v1/auth/me");
     $("navUserBadge").textContent = `Current User: ${me.email} | role=${me.role} | tenant=${me.tenant_id}`;
     out.textContent = `Login successful for ${body.email}.`;
+    toast("Logged in", "ok");
     await loadStatus();
   } catch (e) {
     const msg = String(e);
@@ -346,7 +491,11 @@ async function login() {
       $("lgTenantIdRow").style.display = "grid";
       $("lgTenantId").focus();
     }
+    setErrorPanel(msg);
     out.textContent = msg;
+    toast("Login failed", "err");
+  } finally {
+    setLoading("btnLogin", false);
   }
 }
 
@@ -359,6 +508,8 @@ $("btnDisableFacebook").onclick = () => disableChannel($("btnDisableFacebook").g
 $("btnTestWhatsApp").onclick = () => testInbound("whatsapp");
 $("btnTestFacebook").onclick = () => testInbound("facebook");
 $("btnLogin").onclick = () => login();
+$("btnToggleWaToken").onclick = () => toggleTokenInput("waAccessToken", "btnToggleWaToken");
+$("btnToggleFbToken").onclick = () => toggleTokenInput("fbAccessToken", "btnToggleFbToken");
 $("btnLoadBots").onclick = async () => {
   const out = $("outWebsite");
   out.textContent = "Loading bots...";
@@ -366,7 +517,9 @@ $("btnLoadBots").onclick = async () => {
     const bots = await api("/api/v1/tenant/bots");
     out.textContent = pretty({ count: Array.isArray(bots) ? bots.length : 0, bots });
   } catch (e) {
+    setErrorPanel(String(e));
     out.textContent = String(e);
+    toast("Failed to load bots", "err");
   }
 };
 $("btnOpenOps").onclick = () => { window.location.href = "./tenant-console.html"; };
@@ -411,10 +564,13 @@ $("btnNavSignOut").onclick = () => {
   if (sessionStorage.getItem(SESSION_EXPIRED_KEY) === "1") {
     $("outSession").textContent = "Session expired. Please sign in again.";
     sessionStorage.removeItem(SESSION_EXPIRED_KEY);
+    toast("Session expired. Sign in again.", "warn", 3200);
   }
   try {
     const me = await api("/api/v1/auth/me");
     $("navUserBadge").textContent = `Current User: ${me.email} | role=${me.role} | tenant=${me.tenant_id}`;
   } catch (_) {}
+  setTestBadge("waTestBadge", false, "No Test Yet");
+  setTestBadge("fbTestBadge", false, "No Test Yet");
   loadStatus().catch(() => {});
 })();
