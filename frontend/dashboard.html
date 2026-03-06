@@ -187,6 +187,15 @@
     .kpi-box.red { background: #db6257; }
     .kpi-box.green { background: #46a16e; }
     .kpi-box.indigo { background: #5f7de6; }
+    .auth-banner {
+      margin-top: 10px;
+      border: 1px solid #cbd7e6;
+      border-radius: 10px;
+      background: #f8fbff;
+      color: #33435b;
+      font-size: 13px;
+      padding: 10px 12px;
+    }
 
     .grid {
       display: grid;
@@ -435,12 +444,13 @@
         <h1>Operations Dashboard</h1>
         <p class="muted" style="margin:6px 0 0;">Live service posture, active tickets, and channel integrations in one view.</p>
         <div class="tiny" id="whoamiLine" style="margin-top:6px;">Current User: not authenticated</div>
+        <div id="authBanner" class="auth-banner">Sign in to load live tenant metrics and integration activity.</div>
         <div class="kpi-strip">
-          <div class="kpi-box blue"><span>Open Tickets</span><b>12</b></div>
-          <div class="kpi-box orange"><span>Pending Customer</span><b>8</b></div>
-          <div class="kpi-box red"><span>SLA Breaches</span><b>2</b></div>
-          <div class="kpi-box green"><span>Resolved Today</span><b>24</b></div>
-          <div class="kpi-box indigo"><span>New Tickets</span><b>7</b></div>
+          <div class="kpi-box blue"><span>Open Tickets</span><b id="kpiOpenTickets">-</b></div>
+          <div class="kpi-box orange"><span>Pending Customer</span><b id="kpiPendingCustomer">-</b></div>
+          <div class="kpi-box red"><span>SLA Breaches</span><b id="kpiSlaBreaches">-</b></div>
+          <div class="kpi-box green"><span>Resolved Today</span><b id="kpiResolvedToday">-</b></div>
+          <div class="kpi-box indigo"><span>New Tickets</span><b id="kpiNewTickets">-</b></div>
         </div>
       </section>
 
@@ -557,6 +567,34 @@
               <button id="btnResetPassword" class="alt" type="button">Reset Password</button>
             </div>
             <div id="outResetPassword" class="out"></div>
+          </details>
+
+          <details>
+            <summary>Create Account (New Tenant)</summary>
+            <div class="row" style="margin-top:10px;">
+              <label>Company / Tenant Name</label>
+              <input id="obTenantName" value="" placeholder="Acme Support Ltd" />
+            </div>
+            <div class="row">
+              <label>Admin Email</label>
+              <input id="obAdminEmail" value="" placeholder="admin@acme.com" />
+            </div>
+            <div class="row">
+              <label>Admin Password</label>
+              <input id="obAdminPassword" value="" placeholder="Create a strong password" />
+            </div>
+            <div class="row">
+              <label>Bot Name</label>
+              <input id="obBotName" value="Main Website Bot" />
+            </div>
+            <div class="row">
+              <label>Allowed Origins (comma-separated)</label>
+              <input id="obAllowedOrigins" value="https://www.staunchbot.com,https://staunchbot.com" />
+            </div>
+            <div class="inline" style="grid-template-columns:1fr;">
+              <button id="btnOnboardCreate" class="alt" type="button">Create Account And Sign In</button>
+            </div>
+            <div id="outOnboardCreate" class="out"></div>
           </details>
 
           <details>

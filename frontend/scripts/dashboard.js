@@ -27,6 +27,30 @@ function saveSessionToken(token) {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+function parseOrigins(s) {
+  return String(s || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function setAuthState(isAuthed) {
+  const banner = $("authBanner");
+  if (!banner) return;
+  banner.textContent = isAuthed
+    ? "Authenticated. Dashboard shows your live tenant metrics."
+    : "Sign in to load live tenant metrics and integration activity.";
+}
+
+function setHeroKpis(values) {
+  const v = values || {};
+  $("kpiOpenTickets").textContent = String(v.open ?? "-");
+  $("kpiPendingCustomer").textContent = String(v.pending ?? "-");
+  $("kpiSlaBreaches").textContent = String(v.breaches ?? "-");
+  $("kpiResolvedToday").textContent = String(v.resolvedToday ?? "-");
+  $("kpiNewTickets").textContent = String(v.newTickets ?? "-");
+}
+
 async function api(path, options = {}) {
   const headers = Object.assign({}, options.headers || {});
   const token = getToken();
@@ -125,6 +149,18 @@ function renderInboxPreview(metrics) {
 async function refreshIntegrationStatus() {
   const sync = $("integrationSync");
   if (sync) sync.textContent = "Syncing...";
+  if (!getToken()) {
+    setIntegrationState("intWebsiteState", false, "Enabled", "Sign In Required");
+    setIntegrationState("intWhatsappState", false, "Enabled", "Sign In Required");
+    setIntegrationState("intMessengerState", false, "Enabled", "Sign In Required");
+    setIntegrationState("intInstagramState", false, "Enabled", "Coming Soon");
+    setIntegrationMeta("intWebsiteMeta", "Sign in to view live status");
+    setIntegrationMeta("intWhatsappMeta", "Sign in to view live status");
+    setIntegrationMeta("intMessengerMeta", "Sign in to view live status");
+    setIntegrationMeta("intInstagramMeta", "Coming soon");
+    if (sync) sync.textContent = "Sign in required";
+    return;
+  }
   try {
     const data = await api("/api/v1/tenant/integrations/status");
     const website = data.website_live_chat || {};
@@ -162,6 +198,17 @@ async function refreshSnapshot() {
   const out = $("outSnapshot");
   out.textContent = "Refreshing...";
   const grid = $("kpiGrid");
+  if (!getToken()) {
+    renderWhoamiLine(null);
+    setAuthState(false);
+    setHeroKpis(null);
+    grid.style.display = "none";
+    grid.innerHTML = "";
+    out.textContent = "Sign in to load tenant snapshot.";
+    renderInboxPreview({ totals: { unresolved_tickets: 0, escalated_tickets: 0, resolved_tickets: 0 } });
+    await refreshIntegrationStatus();
+    return;
+  }
   try {
     const me = await api("/api/v1/auth/me");
     const bots = await api("/api/v1/tenant/bots");
@@ -185,6 +232,16 @@ async function refreshSnapshot() {
       .join("");
 
     const totals = metrics?.totals || {};
+    const today = new Date().toISOString().slice(0, 10);
+    const todayRow = Array.isArray(metrics?.daily) ? metrics.daily.find((d) => d.day === today) : null;
+    setAuthState(true);
+    setHeroKpis({
+      open: totals.unresolved_tickets ?? 0,
+      pending: totals.unresolved_tickets ?? 0,
+      breaches: metrics?.window_24h?.breached_tickets ?? 0,
+      resolvedToday: todayRow?.tickets ?? 0,
+      newTickets: metrics?.window_24h?.total_tickets ?? 0,
+    });
     out.textContent = [
       `Snapshot updated ${new Date().toLocaleString()}`,
       `Tenant ${me.tenant_id || "-"} (${me.role || "-"})`,
@@ -202,6 +259,8 @@ async function refreshSnapshot() {
     }
     grid.style.display = "none";
     grid.innerHTML = "";
+    setAuthState(false);
+    setHeroKpis(null);
     renderInboxPreview({ totals: { unresolved_tickets: 0, escalated_tickets: 0, resolved_tickets: 0 } });
     await refreshIntegrationStatus();
   }
@@ -257,6 +316,8 @@ $("clearToken").onclick = () => {
   $("outSnapshot").textContent = "Signed out. Login to load tenant snapshot.";
   $("kpiGrid").style.display = "none";
   $("kpiGrid").innerHTML = "";
+  setAuthState(false);
+  setHeroKpis(null);
   refreshIntegrationStatus().catch(() => {});
 };
 const btnForgotPassword = $("btnForgotPassword");
@@ -319,7 +380,46 @@ if (btnNavSignOut) {
     $("outSnapshot").textContent = "Signed out. Login to load tenant snapshot.";
     $("kpiGrid").style.display = "none";
     $("kpiGrid").innerHTML = "";
+    setAuthState(false);
+    setHeroKpis(null);
     refreshIntegrationStatus().catch(() => {});
+  };
+}
+
+const btnOnboardCreate = $("btnOnboardCreate");
+if (btnOnboardCreate) {
+  btnOnboardCreate.onclick = async () => {
+    const out = $("outOnboardCreate");
+    out.textContent = "Creating account...";
+    try {
+      const body = {
+        tenant_name: $("obTenantName").value.trim(),
+        admin_email: $("obAdminEmail").value.trim(),
+        admin_password: $("obAdminPassword").value,
+        compliance_level: "standard",
+        bot_name: $("obBotName").value.trim() || "Main Website Bot",
+        allowed_origins: parseOrigins($("obAllowedOrigins").value),
+      };
+      if (!body.tenant_name || !body.admin_email || !body.admin_password) {
+        throw new Error("Provide tenant name, admin email, and password.");
+      }
+      const data = await api("/api/v1/tenant/onboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (data && data.access_token) {
+        setToken(data.access_token);
+        saveSessionToken(data.access_token);
+      }
+      $("lgEmail").value = body.admin_email;
+      $("lgPassword").value = body.admin_password;
+      out.textContent = `Account created.\nTenant: ${data?.tenant?.id || "-"}\nAdmin: ${data?.admin?.email || body.admin_email}`;
+      await refreshSnapshot();
+      await refreshIntegrationStatus();
+    } catch (e) {
+      out.textContent = String(e);
+    }
   };
 }
 
@@ -345,6 +445,8 @@ if (btnNavSignOut) {
   const params = new URLSearchParams(window.location.search || "");
   const resetToken = params.get("reset_token");
   if (resetToken && $("fpResetToken")) $("fpResetToken").value = resetToken;
+  setHeroKpis(null);
+  setAuthState(!!savedToken);
   refreshIntegrationStatus().catch(() => {});
   refreshSnapshot().catch(() => {});
 })();
