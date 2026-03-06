@@ -36,10 +36,14 @@ function parseOrigins(s) {
 
 function setAuthState(isAuthed) {
   const banner = $("authBanner");
+  const signInPanel = $("signInPanel");
   if (!banner) return;
   banner.textContent = isAuthed
     ? "Authenticated. Dashboard shows your live tenant metrics."
     : "Sign in to load live tenant metrics and integration activity.";
+  if (signInPanel) {
+    signInPanel.style.display = isAuthed ? "none" : "block";
+  }
 }
 
 function setHeroKpis(values) {
