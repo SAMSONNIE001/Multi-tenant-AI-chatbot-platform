@@ -85,34 +85,6 @@ function setMiniIntegration(id, ok, stamp, pending = false) {
   if (el) el.textContent = stamp || "not checked";
 }
 
-function findChannelAccount(rows, types) {
-  const wanted = new Set(types.map((t) => String(t).toLowerCase()));
-  return (Array.isArray(rows) ? rows : []).find((row) => wanted.has(String(row.channel_type || "").toLowerCase())) || null;
-}
-
-async function loadIntegrationStatusForRelease() {
-  try {
-    const direct = await api("/api/v1/tenant/integrations/status");
-    return { ...direct, _source: "tenant_integrations_status" };
-  } catch (_) {
-    const accounts = await api("/api/v1/admin/channels/accounts");
-    const bots = await api("/api/v1/tenant/bots");
-    const rows = Array.isArray(accounts) ? accounts : [];
-    const botRows = Array.isArray(bots) ? bots : [];
-    const wa = findChannelAccount(rows, ["whatsapp"]);
-    const fb = findChannelAccount(rows, ["facebook", "messenger"]);
-    const ig = findChannelAccount(rows, ["instagram"]);
-    const enabled = (row) => !!(row && row.is_active !== false);
-    return {
-      _source: "fallback_accounts",
-      website_live_chat: { enabled: botRows.length > 0 },
-      whatsapp_business: { enabled: enabled(wa) },
-      facebook_messenger: { enabled: enabled(fb) },
-      instagram: { enabled: enabled(ig) },
-    };
-  }
-}
-
 function renderUser(me) {
   const txt = me
     ? `Current User: ${me.email || "-"} | role=${me.role || "-"} | tenant=${me.tenant_id || "-"}`
@@ -223,7 +195,7 @@ async function runChecks() {
   setStamp("stampKnowledge", runAt);
 
   try {
-    const integrations = await loadIntegrationStatusForRelease();
+    const integrations = await api("/api/v1/tenant/integrations/status");
     const website = !!(integrations?.website_live_chat?.enabled);
     const whatsapp = !!(integrations?.whatsapp_business?.enabled);
     const messenger = !!(integrations?.facebook_messenger?.enabled);

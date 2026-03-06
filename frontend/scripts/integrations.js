@@ -174,11 +174,6 @@ function integrationRow(title, payload) {
   `;
 }
 
-function findChannelAccount(rows, types) {
-  const wanted = new Set(types.map((t) => String(t).toLowerCase()));
-  return (Array.isArray(rows) ? rows : []).find((row) => wanted.has(String(row.channel_type || "").toLowerCase())) || null;
-}
-
 function applyChannelDefaults(accounts) {
   const wa = accounts.find((a) => String(a.channel_type || "").toLowerCase() === "whatsapp");
   const fb = accounts.find((a) => {
@@ -216,54 +211,6 @@ async function loadAccounts() {
   return accountCache;
 }
 
-async function loadIntegrationStatus() {
-  try {
-    const direct = await api("/api/v1/tenant/integrations/status");
-    return { ...direct, _source: "tenant_integrations_status" };
-  } catch (err) {
-    const rows = await loadAccounts();
-    const bots = await api("/api/v1/tenant/bots");
-    const botRows = Array.isArray(bots) ? bots : [];
-    const wa = findChannelAccount(rows, ["whatsapp"]);
-    const fb = findChannelAccount(rows, ["facebook", "messenger"]);
-    const ig = findChannelAccount(rows, ["instagram"]);
-    const enabled = (row) => !!(row && row.is_active !== false);
-    return {
-      _source: "fallback_accounts",
-      website_live_chat: {
-        enabled: botRows.length > 0,
-        status_label: botRows.length > 0 ? "Enabled" : "Not Configured",
-        note: `${botRows.length} active bot(s)`,
-      },
-      whatsapp_business: {
-        enabled: enabled(wa),
-        status_label: enabled(wa) ? "Enabled" : "Not Connected",
-        note: wa ? `account ${wa.id}` : "No WhatsApp account configured",
-        account_id: wa ? wa.id : null,
-      },
-      facebook_messenger: {
-        enabled: enabled(fb),
-        status_label: enabled(fb) ? "Enabled" : "Not Connected",
-        note: fb ? `account ${fb.id}` : "No Facebook account configured",
-        account_id: fb ? fb.id : null,
-      },
-      instagram: {
-        enabled: enabled(ig),
-        status_label: enabled(ig) ? "Enabled" : "Coming Soon",
-        note: ig ? `account ${ig.id}` : "Coming soon",
-        account_id: ig ? ig.id : null,
-      },
-      telegram: {
-        enabled: false,
-        supported: false,
-        status_label: "Coming Soon",
-        note: "Coming soon",
-      },
-      _fallback_error: String(err),
-    };
-  }
-}
-
 async function loadStatus() {
   const out = $("outStatus");
   const grid = $("statusGrid");
@@ -272,7 +219,7 @@ async function loadStatus() {
   grid.innerHTML = `<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>`;
   setLoading("btnLoadStatus", true, "Loading...");
   try {
-    const status = await loadIntegrationStatus();
+    const status = await api("/api/v1/tenant/integrations/status");
     grid.innerHTML = [
       integrationRow("Website Live Chat", status.website_live_chat || {}),
       integrationRow("WhatsApp Business", status.whatsapp_business || {}),
@@ -282,8 +229,7 @@ async function loadStatus() {
     ].join("");
     out.textContent = pretty(status);
     await loadAccounts();
-    const sourceMsg = status._source === "fallback_accounts" ? " (fallback mode)" : "";
-    toast(`Integration status refreshed${sourceMsg}`, "ok");
+    toast("Integration status refreshed", "ok");
     return status;
   } catch (e) {
     setErrorPanel(String(e));
