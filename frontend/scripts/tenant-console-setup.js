@@ -633,7 +633,11 @@
       const savedPane = localStorage.getItem("tenant_console_active_pane");
       const savedAdvanced = localStorage.getItem("tenant_console_advanced");
       const savedRoleMode = localStorage.getItem("tenant_console_role_mode");
+      const onSetupPage = (window.location.pathname || "").toLowerCase().includes("tenant-setup");
+      const tabDaily = $("tabDaily");
       const tabQa = $("tabQa");
+      if (onSetupPage && tabDaily) tabDaily.style.display = "none";
+      if (onSetupPage && tabQa) tabQa.style.display = "none";
       if (prodFrontend && tabQa) tabQa.style.display = "none";
       const releaseLink = $("navRelease");
       if (prodFrontend && releaseLink) releaseLink.style.display = "none";
@@ -655,10 +659,11 @@
       $("hfEscalatedOnly").value = "false";
       if (!$("escSweepReason").value.trim()) $("escSweepReason").value = "scheduled SLA triage sweep";
       if (!$("cpMergeReason").value.trim()) $("cpMergeReason").value = "dedupe duplicate customer identities";
-      const allowedPanes = tabSetup
-        ? (prodFrontend ? ["daily", "setup"] : ["daily", "qa", "setup"])
-        : (prodFrontend ? ["daily"] : ["daily", "qa"]);
-      const onSetupPage = (window.location.pathname || "").toLowerCase().includes("tenant-setup");
+      const allowedPanes = onSetupPage
+        ? ["setup"]
+        : (tabSetup
+          ? (prodFrontend ? ["daily", "setup"] : ["daily", "qa", "setup"])
+          : (prodFrontend ? ["daily"] : ["daily", "qa"]));
       const defaultPane = onSetupPage && tabSetup ? "setup" : "daily";
       setActivePane(savedPane && allowedPanes.includes(savedPane) ? savedPane : defaultPane);
       applyQaAvailability();
