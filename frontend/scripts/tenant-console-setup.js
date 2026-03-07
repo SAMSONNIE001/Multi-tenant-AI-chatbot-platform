@@ -51,6 +51,10 @@
       return raw.replace(/^\d+\s+/, "").slice(0, 220);
     }
 
+    function pluralize(count, one, many) {
+      return `${count} ${count === 1 ? one : many}`;
+    }
+
     $("saveToken").onclick = () => {
       saveSessionToken($("accessToken").value);
       localStorage.setItem("tenant_console_api_base", $("apiBase").value);
@@ -272,36 +276,41 @@
     const btnBots = $("btnBots");
     if (btnBots) btnBots.onclick = async () => {
       const out = $("outBots");
-      out.textContent = "Loading...";
+      out.textContent = "Loading bots...";
       try {
         const data = await request("/api/v1/tenant/bots");
-        out.textContent = pretty(data);
+        const bots = Array.isArray(data) ? data : [];
+        out.textContent = bots.length
+          ? `${pluralize(bots.length, "bot", "bots")} available for this workspace.`
+          : "No bots found yet. Create your first bot to continue.";
         if (Array.isArray(data) && data.length && data[0].id) {
           $("botId").value = data[0].id;
         }
       } catch (e) {
-        out.textContent = String(e);
+        out.textContent = cleanError(e);
       }
     };
 
     const btnSnippet = $("btnSnippet");
     if (btnSnippet) btnSnippet.onclick = async () => {
       const out = $("outSnippet");
-      out.textContent = "Loading...";
+      out.textContent = "Generating embed snippet...";
       try {
         const botId = $("botId").value.trim();
         if (!botId) throw new Error("Provide bot id first.");
         const data = await request(`/api/v1/tenant/embed/snippet?bot_id=${encodeURIComponent(botId)}`);
-        out.textContent = data.snippet_html || pretty(data);
+        out.textContent = data.snippet_html
+          ? "Embed snippet generated. Copy the code and add it to your website."
+          : "Snippet generated successfully.";
       } catch (e) {
-        out.textContent = String(e);
+        out.textContent = cleanError(e);
       }
     };
 
     const btnUpload = $("btnUpload");
     if (btnUpload) btnUpload.onclick = async () => {
       const out = $("outUpload");
-      out.textContent = "Uploading...";
+      out.textContent = "Uploading document...";
       try {
         const file = $("kgFile").files[0];
         if (!file) throw new Error("Pick a file first.");
@@ -311,29 +320,34 @@
           method: "POST",
           body: fd,
         });
-        out.textContent = pretty(data);
+        const docId = data && data.document_id ? String(data.document_id) : "";
+        out.textContent = docId
+          ? `Upload complete. Document ID: ${docId}`
+          : "Upload complete. Document queued for indexing.";
         if (data && data.document_id) $("kgDocId").value = data.document_id;
       } catch (e) {
-        out.textContent = String(e);
+        out.textContent = cleanError(e);
       }
     };
 
     const btnStatus = $("btnStatus");
     if (btnStatus) btnStatus.onclick = async () => {
       const out = $("outStatus");
-      out.textContent = "Checking...";
+      out.textContent = "Checking knowledge base status...";
       try {
         const data = await request("/api/v1/tenant/knowledge/status");
-        out.textContent = pretty(data);
+        const docs = Number(data?.documents_total ?? data?.total_documents ?? 0);
+        const indexed = Number(data?.indexed_documents ?? data?.ready_documents ?? 0);
+        out.textContent = `Knowledge base status: ${pluralize(docs, "document", "documents")} total, ${indexed} indexed.`;
       } catch (e) {
-        out.textContent = String(e);
+        out.textContent = cleanError(e);
       }
     };
 
     const btnReindex = $("btnReindex");
     if (btnReindex) btnReindex.onclick = async () => {
       const out = $("outStatus");
-      out.textContent = "Reindexing...";
+      out.textContent = "Starting reindex job...";
       try {
         const docId = $("kgDocId").value.trim();
         if (!docId) throw new Error("Provide document id.");
@@ -342,9 +356,12 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ document_id: docId }),
         });
-        out.textContent = pretty(data);
+        const jobId = data?.job_id || data?.task_id || null;
+        out.textContent = jobId
+          ? `Reindex started for ${docId}. Job ID: ${jobId}`
+          : `Reindex started for ${docId}.`;
       } catch (e) {
-        out.textContent = String(e);
+        out.textContent = cleanError(e);
       }
     };
 
@@ -364,7 +381,8 @@
         if (eventType) qs.set("event_type", eventType);
         if (outcome) qs.set("outcome", outcome);
         const data = await request(`/api/v1/admin/auth/security-events?${qs.toString()}`);
-        out.textContent = pretty(data);
+        const count = Number(data?.count ?? 0);
+        out.textContent = `${pluralize(count, "security event", "security events")} loaded.`;
       } catch (e) {
         out.textContent = cleanError(e);
       }

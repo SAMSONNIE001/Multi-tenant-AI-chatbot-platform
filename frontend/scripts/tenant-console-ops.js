@@ -18,6 +18,16 @@
     } = tcOps;
     const state = tcOps.state;
 
+    function summarizeRequestError(error) {
+      const raw = String(error || "Request failed");
+      if (raw.includes("401")) return "Session expired. Please sign in again.";
+      if (raw.includes("403")) return "You do not have permission to perform this action.";
+      if (raw.includes("404")) return "The requested resource was not found.";
+      if (raw.includes("422")) return "Some details are invalid. Please review and try again.";
+      if (raw.includes("500")) return "Server error. Please try again in a moment.";
+      return "Request failed. Please try again.";
+    }
+
     function renderQueueTable(items) {
       const wrap = $("queueTableWrap");
       const body = $("queueTableBody");
@@ -505,14 +515,20 @@
         }
         items = sortQueueItems(items);
         state.lastQueueItems = items;
-        if (!silent) out.textContent = pretty({ ...data, items });
+        if (!silent) {
+          if (!items.length) {
+            out.textContent = "No conversations yet. New customer messages will appear here.";
+          } else {
+            out.textContent = `Showing ${items.length} conversation${items.length === 1 ? "" : "s"} in the inbox queue.`;
+          }
+        }
         renderQueueMetrics(items);
         renderQueueTable(items);
         if (items.length && items[0].id && !$("hfId").value.trim()) {
           $("hfId").value = items[0].id;
         }
       } catch (e) {
-        out.textContent = String(e);
+        out.textContent = summarizeRequestError(e);
         state.lastQueueItems = [];
         renderQueueMetrics([]);
         renderQueueTable([]);
@@ -686,7 +702,7 @@
           profiles_count: state.lastProfiles.length,
         });
       } catch (e) {
-        out.textContent = String(e);
+        out.textContent = summarizeRequestError(e);
       }
     }
 
