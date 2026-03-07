@@ -173,6 +173,48 @@
       font-size: 12px;
       min-width: 210px;
     }
+    .search-wrap {
+      position: relative;
+      min-width: 230px;
+    }
+    .search-input {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: #334155;
+      font-size: 12px;
+      outline: none;
+    }
+    .search-suggest {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      z-index: 40;
+      border: 1px solid #d3dceb;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 10px 20px rgba(15, 27, 45, 0.12);
+      display: none;
+      overflow: hidden;
+    }
+    .search-suggest.open { display: block; }
+    .search-item {
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid #eef2f7;
+      background: #fff;
+      color: #1f2f46;
+      text-align: left;
+      padding: 8px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .search-item:last-child { border-bottom: 0; }
+    .search-item:hover, .search-item.active {
+      background: #f2f7ff;
+      color: #0f1b2d;
+    }
 
     .panel {
       background: var(--panel);
@@ -464,7 +506,12 @@
       <div class="topbar">
         <strong>Dashboard</strong>
         <div style="display:flex;align-items:center;gap:8px;">
-          <div class="search-pill">Search...</div>
+          <div class="search-wrap">
+            <div class="search-pill">
+              <input id="dashboardSearchInput" class="search-input" type="search" placeholder="Search..." autocomplete="off" />
+            </div>
+            <div id="dashboardSearchSuggest" class="search-suggest" role="listbox" aria-label="Dashboard search suggestions"></div>
+          </div>
           <span id="navUserBadge" class="search-pill" style="min-width:0;">Not signed in</span>
         </div>
       </div>

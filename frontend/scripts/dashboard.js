@@ -34,6 +34,106 @@ function parseOrigins(s) {
     .filter(Boolean);
 }
 
+function initDashboardSearch() {
+  const input = $("dashboardSearchInput");
+  const suggest = $("dashboardSearchSuggest");
+  if (!input || !suggest) return;
+
+  const items = [
+    { label: "Dashboard", action: () => { window.location.href = "./dashboard.html"; } },
+    { label: "Profile", action: () => { window.location.href = "./profile.html"; } },
+    { label: "Settings", action: () => { window.location.href = "./settings.html"; } },
+    { label: "Integrations", action: () => { window.location.href = "./integrations.html"; } },
+    { label: "Knowledge Base", action: () => { window.location.href = "./tenant-setup.html"; } },
+    { label: "Unified Inbox", action: () => { window.location.href = "./tenant-console.html"; } },
+    { label: "Release", action: () => { window.location.href = "./release-checklist.html"; } },
+    { label: "Refresh Snapshot", action: () => { $("btnRefreshAll")?.click(); } },
+    { label: "Sign Out", action: () => { $("btnNavSignOut")?.click(); } },
+    { label: "Open Daily Ops", action: () => { window.location.href = "./tenant-console.html"; } },
+  ];
+
+  let filtered = items.slice();
+  let activeIndex = -1;
+
+  function closeSuggest() {
+    suggest.classList.remove("open");
+    suggest.innerHTML = "";
+    activeIndex = -1;
+  }
+
+  function doSelect(idx) {
+    if (idx < 0 || idx >= filtered.length) return;
+    const picked = filtered[idx];
+    input.value = picked.label;
+    closeSuggest();
+    picked.action();
+  }
+
+  function renderSuggest(list) {
+    filtered = list.slice(0, 8);
+    if (!filtered.length) {
+      closeSuggest();
+      return;
+    }
+    suggest.innerHTML = filtered
+      .map((it, i) => `<button type="button" class="search-item${i === activeIndex ? " active" : ""}" data-idx="${i}">${it.label}</button>`)
+      .join("");
+    suggest.classList.add("open");
+  }
+
+  function runFilter() {
+    const q = String(input.value || "").trim().toLowerCase();
+    activeIndex = -1;
+    if (!q) {
+      renderSuggest(items);
+      return;
+    }
+    renderSuggest(items.filter((it) => it.label.toLowerCase().includes(q)));
+  }
+
+  input.addEventListener("focus", runFilter);
+  input.addEventListener("input", runFilter);
+  input.addEventListener("keydown", (e) => {
+    if (!suggest.classList.contains("open")) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      activeIndex = Math.min(activeIndex + 1, filtered.length - 1);
+      renderSuggest(filtered);
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      activeIndex = Math.max(activeIndex - 1, 0);
+      renderSuggest(filtered);
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeIndex >= 0) {
+        doSelect(activeIndex);
+      } else if (filtered.length) {
+        doSelect(0);
+      }
+      return;
+    }
+    if (e.key === "Escape") {
+      closeSuggest();
+    }
+  });
+
+  suggest.addEventListener("click", (e) => {
+    const btn = e.target.closest(".search-item");
+    if (!btn) return;
+    const idx = Number(btn.getAttribute("data-idx"));
+    doSelect(idx);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (e.target === input || suggest.contains(e.target)) return;
+    closeSuggest();
+  });
+}
+
 function setAuthState(isAuthed) {
   const banner = $("authBanner");
   const signInPanel = $("signInPanel");
@@ -486,6 +586,7 @@ if (btnOnboardCreate) {
       : "Sign in to continue.";
   }
   setHeroKpis(null);
+  initDashboardSearch();
   setAuthState(!!savedToken);
   refreshIntegrationStatus().catch(() => {});
   refreshSnapshot().catch(() => {});
