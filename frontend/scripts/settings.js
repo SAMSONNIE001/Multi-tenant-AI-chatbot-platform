@@ -18,6 +18,45 @@ function setStatus(id, msg) {
   if (el) el.textContent = msg;
 }
 
+function passwordStrength(password) {
+  const p = String(password || "");
+  let score = 0;
+  if (p.length >= 8) score += 1;
+  if (/[a-z]/.test(p) && /[A-Z]/.test(p)) score += 1;
+  if (/\d/.test(p)) score += 1;
+  if (/[^A-Za-z0-9]/.test(p)) score += 1;
+  return Math.min(score, 4);
+}
+
+function renderPasswordStrength() {
+  const input = $("fpNewPassword");
+  const bar = $("pwStrengthBar");
+  const txt = $("pwStrengthText");
+  if (!input || !bar || !txt) return;
+  const score = passwordStrength(input.value || "");
+  const map = [
+    { width: "0%", label: "Password strength: -", color: "#d85b4c" },
+    { width: "25%", label: "Password strength: Weak", color: "#d85b4c" },
+    { width: "50%", label: "Password strength: Fair", color: "#df9b2e" },
+    { width: "75%", label: "Password strength: Good", color: "#2f7de1" },
+    { width: "100%", label: "Password strength: Strong", color: "#2f9d62" },
+  ];
+  const state = map[score];
+  bar.style.width = state.width;
+  bar.style.background = state.color;
+  txt.textContent = state.label;
+}
+
+function refreshSecurityActionsState() {
+  const btn = $("btnResetPassword");
+  if (!btn) return;
+  const token = ($("fpResetToken")?.value || "").trim();
+  const code = ($("fpCode")?.value || "").trim();
+  const pwd = ($("fpNewPassword")?.value || "");
+  const ready = !!token && !!code && passwordStrength(pwd) >= 2;
+  btn.disabled = !ready;
+}
+
 function cleanError(e) {
   const raw = String(e || "Request failed");
   if (raw.includes("401")) return "Session expired. Please sign in again.";
@@ -148,6 +187,9 @@ async function sendPasswordReset() {
 async function applyPasswordReset() {
   setStatus("outSecurity", "Resetting password...");
   try {
+    if (passwordStrength($("fpNewPassword").value || "") < 2) {
+      throw new Error("Use a stronger password before resetting.");
+    }
     const res = await api("/api/v1/auth/password/reset", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -158,6 +200,10 @@ async function applyPasswordReset() {
       }),
     });
     $("fpNewPassword").value = "";
+    $("fpResetToken").value = "";
+    $("fpCode").value = "";
+    renderPasswordStrength();
+    refreshSecurityActionsState();
     setStatus("outSecurity", res.message || "Password reset successful.");
   } catch (e) {
     setStatus("outSecurity", cleanError(e));
@@ -177,12 +223,31 @@ async function applyPasswordReset() {
   $("btnSaveRetention").onclick = () => saveRetention();
   if ($("btnForgotPassword")) $("btnForgotPassword").onclick = () => sendPasswordReset();
   if ($("btnResetPassword")) $("btnResetPassword").onclick = () => applyPasswordReset();
+  if ($("btnToggleNewPassword")) {
+    $("btnToggleNewPassword").onclick = () => {
+      const input = $("fpNewPassword");
+      if (!input) return;
+      const next = input.type === "password" ? "text" : "password";
+      input.type = next;
+      $("btnToggleNewPassword").textContent = next === "password" ? "Show" : "Hide";
+    };
+  }
   if ($("btnDeleteAccount")) $("btnDeleteAccount").onclick = () => deleteAccount();
+  ["fpResetToken", "fpCode", "fpNewPassword"].forEach((id) => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener("input", () => {
+      renderPasswordStrength();
+      refreshSecurityActionsState();
+    });
+  });
   setStatus("outSettings", "Loading account context...");
   setStatus("outSecurity", "Use this section to update account password securely.");
   setStatus("outDelete", "Danger zone: account deletion is permanent.");
   setStatus("outLimits", "");
   setStatus("outRetention", "");
+  renderPasswordStrength();
+  refreshSecurityActionsState();
   try {
     const me = await api("/api/v1/auth/me");
     const role = String(me.role || "").toLowerCase();

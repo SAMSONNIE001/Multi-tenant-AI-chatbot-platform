@@ -23,9 +23,19 @@
     button.danger{background:#b91c1c;}
     .status{margin-top:10px;font-size:12px;color:#334155;background:#f8fbff;border:1px solid #dbe5f2;border-radius:8px;padding:9px 10px;min-height:38px;white-space:pre-wrap;}
     .status:empty{display:none;}
+    .security-layout{display:grid;grid-template-columns:1.4fr .9fr;gap:12px;margin-top:10px;}
+    .security-block{border:1px solid #dbe5f2;border-radius:10px;background:#f8fbff;padding:10px;}
+    .security-steps{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 10px;}
+    .step-chip{font-size:11px;font-weight:700;border:1px solid #cfe0f6;background:#eef5ff;color:#25538f;border-radius:999px;padding:5px 9px;}
+    .field-inline{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;}
+    .helper{font-size:11px;color:#64748b;margin-top:6px;}
+    .password-meter{height:8px;border-radius:999px;background:#e2e8f0;overflow:hidden;margin-top:8px;}
+    .password-meter > div{height:100%;width:0;background:#d85b4c;transition:width .2s ease, background-color .2s ease;}
+    .security-list{margin:0;padding-left:18px;color:#334155;font-size:12px;display:grid;gap:6px;}
+    .security-list b{color:#0f1b2d;}
     .danger-panel{border-color:#fecaca;background:#fff1f2;}
     .danger-note{font-size:12px;color:#9f1239;}
-    @media (max-width:1080px){ .app{grid-template-columns:1fr;} .sidebar{position:static;max-height:none;overflow:visible;} .grid{grid-template-columns:1fr;} .nav-list{grid-template-columns:repeat(2,minmax(120px,1fr));} }
+    @media (max-width:1080px){ .app{grid-template-columns:1fr;} .sidebar{position:static;max-height:none;overflow:visible;} .grid{grid-template-columns:1fr;} .nav-list{grid-template-columns:repeat(2,minmax(120px,1fr));} .security-layout{grid-template-columns:1fr;} }
   </style>
 </head>
 <body>
@@ -65,14 +75,49 @@
       </section>
       <section class="panel">
         <h2>Account Security</h2>
-        <div class="muted">Use your current account to request password reset email and apply a new password.</div>
-        <div class="row"><label>Email</label><input id="acEmail" readonly /></div>
-        <div class="row"><label>Tenant ID (optional)</label><input id="fpTenantId" placeholder="Enter tenant ID if required" /></div>
-        <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
-        <div class="row"><label>Reset Token</label><input id="fpResetToken" placeholder="Paste reset token" /></div>
-        <div class="row"><label>Reset Code</label><input id="fpCode" placeholder="6-digit code" /></div>
-        <div class="row"><label>New Password</label><input id="fpNewPassword" type="password" placeholder="Enter new password" /></div>
-        <button id="btnResetPassword" type="button">Reset Password</button>
+        <div class="muted">Enterprise-style recovery flow with verification steps and password quality checks.</div>
+        <div class="security-layout">
+          <div class="security-block">
+            <div class="security-steps">
+              <span class="step-chip">1. Verify account</span>
+              <span class="step-chip">2. Request reset email</span>
+              <span class="step-chip">3. Confirm token + code</span>
+              <span class="step-chip">4. Set new password</span>
+            </div>
+            <div class="row"><label>Email</label><input id="acEmail" readonly /></div>
+            <div class="row"><label>Tenant ID (optional)</label><input id="fpTenantId" placeholder="Use only if your email belongs to multiple tenants" /></div>
+            <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
+            <div class="helper">We send a reset link/token and 6-digit code to your registered email.</div>
+            <div class="row"><label>Reset Token</label><input id="fpResetToken" placeholder="Paste reset token from email link" /></div>
+            <div class="row"><label>Reset Code</label><input id="fpCode" placeholder="Enter 6-digit code" /></div>
+            <div class="row">
+              <label>New Password</label>
+              <div class="field-inline">
+                <input id="fpNewPassword" type="password" placeholder="Minimum 8 characters" />
+                <button id="btnToggleNewPassword" class="alt" type="button">Show</button>
+              </div>
+              <div class="password-meter"><div id="pwStrengthBar"></div></div>
+              <div id="pwStrengthText" class="helper">Password strength: -</div>
+            </div>
+            <button id="btnResetPassword" type="button">Reset Password</button>
+          </div>
+          <aside class="security-block">
+            <h3 style="margin:0 0 8px;">Security Checklist</h3>
+            <ul class="security-list">
+              <li><b>Use a unique password</b> for this workspace.</li>
+              <li><b>Do not share reset tokens</b> in chat or email replies.</li>
+              <li><b>Complete reset quickly</b> before token expiry.</li>
+              <li><b>Sign out on shared devices</b> after updates.</li>
+            </ul>
+            <h3 style="margin:12px 0 8px;">Recommended Password Policy</h3>
+            <ul class="security-list">
+              <li>At least 8 characters</li>
+              <li>Uppercase + lowercase letters</li>
+              <li>At least one number</li>
+              <li>At least one special character</li>
+            </ul>
+          </aside>
+        </div>
         <div id="outSecurity" class="status"></div>
       </section>
       <div class="grid">
