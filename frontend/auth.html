@@ -69,6 +69,12 @@
       gap: 6px;
       margin-bottom: 10px;
     }
+    .field-error {
+      color: #b42318;
+      font-size: 12px;
+      font-weight: 600;
+      min-height: 14px;
+    }
     label {
       font-size: 12px;
       color: #5d6b80;
@@ -151,7 +157,11 @@
       <h2>Sign In</h2>
       <p class="muted">Use your existing tenant admin/support account.</p>
       <div class="row"><label>Email</label><input id="lgEmail" placeholder="Enter your work email" /></div>
-      <div class="row"><label>Password</label><input id="lgPassword" type="password" maxlength="72" placeholder="Enter password" autocomplete="current-password" /></div>
+      <div class="row">
+        <label>Password</label>
+        <input id="lgPassword" type="password" maxlength="72" placeholder="Enter password" autocomplete="current-password" />
+        <div id="lgPasswordError" class="field-error"></div>
+      </div>
       <label class="check"><input id="lgShowPassword" type="checkbox" /> Show password</label>
       <div class="row" id="lgTenantIdRow" style="display:none;">
         <label>Tenant ID (optional)</label><input id="lgTenantId" placeholder="Enter tenant ID if provided" />

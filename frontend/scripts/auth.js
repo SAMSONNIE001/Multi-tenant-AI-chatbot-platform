@@ -43,6 +43,12 @@ function cleanError(e) {
   return raw.replace(/^\d+\s+/, "").slice(0, 220);
 }
 
+function setLoginPasswordError(message) {
+  const el = $("lgPasswordError");
+  if (!el) return;
+  el.textContent = String(message || "").trim();
+}
+
 function isSafePasswordInput(value) {
   const text = String(value || "");
   const bytes = new TextEncoder().encode(text).length;
@@ -109,6 +115,7 @@ async function requestResetFromLoginContext() {
 $("btnLogin").onclick = async () => {
   const out = $("outLogin");
   out.textContent = "Signing in...";
+  setLoginPasswordError("");
   try {
     const password = $("lgPassword").value;
     const passwordCheck = isSafePasswordInput(password);
@@ -127,6 +134,7 @@ $("btnLogin").onclick = async () => {
     if (!data?.access_token) throw new Error("Login succeeded but access_token missing.");
     setToken(data.access_token);
     loginFailures = 0;
+    setLoginPasswordError("");
     window.location.href = nextPath();
   } catch (e) {
     const raw = String(e || "");
@@ -137,12 +145,13 @@ $("btnLogin").onclick = async () => {
     }
     if (raw.includes("401")) {
       loginFailures += 1;
-      notify(`Wrong password (${loginFailures}/${MAX_LOGIN_TRIALS}).`);
+      setLoginPasswordError("Invalid email or password.");
       if (loginFailures >= MAX_LOGIN_TRIALS) {
         notify("3 failed attempts reached. Sending reset link + code.");
         await requestResetFromLoginContext();
       }
     } else if (raw.includes("429")) {
+      setLoginPasswordError("Too many failed attempts. Reset your password to continue.");
       notify("Account temporarily blocked. Sending reset link + code.");
       await requestResetFromLoginContext();
     }
