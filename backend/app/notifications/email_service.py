@@ -148,15 +148,24 @@ def send_transactional_email(*, to_email: str, subject: str, text_body: str, htm
     )
 
 
-def send_welcome_email(*, to_email: str, tenant_name: str, login_url: str | None = None) -> bool:
+def send_welcome_email(
+    *,
+    to_email: str,
+    tenant_name: str,
+    login_url: str | None = None,
+    reset_url: str | None = None,
+) -> bool:
     subject = f"Welcome to {tenant_name}"
     lines = [
         f"Welcome to {tenant_name}.",
         "",
         "Your account has been created successfully.",
+        "For security reasons, we never send your password by email.",
     ]
     if login_url:
         lines.extend(["", f"Sign in: {login_url}"])
+    if reset_url:
+        lines.extend(["", f"Need to set or reset password: {reset_url}"])
     lines.extend(["", "If you did not expect this, please contact support."])
     text_body = "\n".join(lines)
     return send_transactional_email(

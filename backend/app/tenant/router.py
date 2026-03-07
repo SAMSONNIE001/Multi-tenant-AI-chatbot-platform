@@ -227,12 +227,16 @@ def tenant_onboard(
 
     db.commit()
     login_url = f"{str(settings.FRONTEND_PUBLIC_BASE_URL).rstrip('/')}/dashboard.html" if settings.FRONTEND_PUBLIC_BASE_URL else None
+    reset_url = f"{str(settings.FRONTEND_PUBLIC_BASE_URL).rstrip('/')}/auth.html" if settings.FRONTEND_PUBLIC_BASE_URL else None
     try:
-        send_welcome_email(
+        sent = send_welcome_email(
             to_email=admin.email,
             tenant_name=tenant.name or tenant.id,
             login_url=login_url,
+            reset_url=reset_url,
         )
+        if not sent:
+            logger.warning("Welcome email not sent for tenant=%s admin=%s (provider returned false)", tenant.id, admin.id)
     except Exception:
         logger.exception("Failed to dispatch welcome email for tenant=%s admin=%s", tenant.id, admin.id)
 

@@ -187,12 +187,16 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     login_url = f"{str(settings.FRONTEND_PUBLIC_BASE_URL).rstrip('/')}/dashboard.html" if settings.FRONTEND_PUBLIC_BASE_URL else None
+    reset_url = f"{str(settings.FRONTEND_PUBLIC_BASE_URL).rstrip('/')}/auth.html" if settings.FRONTEND_PUBLIC_BASE_URL else None
     try:
-        send_welcome_email(
+        sent = send_welcome_email(
             to_email=user.email,
             tenant_name=tenant.name or user.tenant_id,
             login_url=login_url,
+            reset_url=reset_url,
         )
+        if not sent:
+            logger.warning("Welcome email not sent for user=%s tenant=%s (provider returned false)", user.id, user.tenant_id)
     except Exception:
         logger.exception("Failed to dispatch welcome email for user=%s tenant=%s", user.id, user.tenant_id)
 
