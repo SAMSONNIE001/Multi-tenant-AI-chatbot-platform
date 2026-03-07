@@ -633,9 +633,19 @@
     const btnNavSignOut = $("btnNavSignOut");
     if (btnNavSignOut) {
       btnNavSignOut.onclick = () => {
+        btnNavSignOut.disabled = true;
+        btnNavSignOut.textContent = "Signing out...";
+        if (state.queueTimer) {
+          clearInterval(state.queueTimer);
+          state.queueTimer = null;
+        }
         clearConsoleSession();
-        $("outLogin").textContent = "Signed out.";
-        syncChannelIntegrations().catch(() => {});
+        const outLogin = $("outLogin");
+        if (outLogin) outLogin.textContent = "Signed out. Redirecting...";
+        const currentPage = (window.location.pathname || "").toLowerCase().includes("tenant-setup")
+          ? "tenant-setup.html"
+          : "tenant-console.html";
+        window.location.replace(`./auth.html?auth_required=1&next=${encodeURIComponent(currentPage)}`);
       };
     }
     $("toggleAdvanced").onchange = () => {

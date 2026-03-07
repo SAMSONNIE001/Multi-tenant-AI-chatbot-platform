@@ -502,6 +502,8 @@ if (navSetup) navSetup.classList.remove("active");
 const btnNavSignOut = $("btnNavSignOut");
 if (btnNavSignOut) {
   btnNavSignOut.onclick = () => {
+    btnNavSignOut.disabled = true;
+    btnNavSignOut.textContent = "Signing out...";
     saveSessionToken("");
     setToken("");
     renderWhoamiLine(null);
@@ -511,7 +513,7 @@ if (btnNavSignOut) {
     $("kpiGrid").innerHTML = "";
     setAuthState(false);
     setHeroKpis(null);
-    refreshIntegrationStatus().catch(() => {});
+    window.location.replace("./auth.html?auth_required=1&next=dashboard.html");
   };
 }
 
