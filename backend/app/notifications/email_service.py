@@ -15,8 +15,18 @@ def _html_from_text(text: str) -> str:
     return "<br/>".join(escape(line) for line in str(text or "").splitlines())
 
 
+def _normalize_zeptomail_api_key(raw_value: str | None) -> str:
+    token = str(raw_value or "").strip()
+    if not token:
+        return ""
+    prefix = "zoho-enczapikey "
+    if token.lower().startswith(prefix):
+        token = token[len(prefix):].strip()
+    return token
+
+
 def _send_via_zeptomail(*, to_email: str, subject: str, text_body: str, html_body: str | None = None) -> bool:
-    api_key = str(settings.ZEPTOMAIL_API_KEY or "").strip()
+    api_key = _normalize_zeptomail_api_key(settings.ZEPTOMAIL_API_KEY)
     if not api_key:
         logger.info("ZeptoMail email skipped (ZEPTOMAIL_API_KEY unset). to=%s", to_email)
         return False
