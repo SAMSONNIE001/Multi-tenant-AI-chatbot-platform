@@ -146,15 +146,6 @@ async function runChecks() {
   };
 
   try {
-    const healthRes = await fetch(`${getApiBase()}/health`);
-    result.checks.health = { ok: healthRes.ok, status: healthRes.status };
-  } catch (e) {
-    result.checks.health = { ok: false, error: String(e) };
-  }
-  setBadge("chkHealth", !!result.checks.health.ok);
-  setStamp("stampHealth", runAt);
-
-  try {
     const me = await api("/api/v1/auth/me");
     result.checks.auth_me = { ok: true, email: me.email || null, role: me.role || null };
   } catch (e) {
@@ -222,7 +213,6 @@ async function runChecks() {
   setStamp("stampIntegrations", runAt);
 
   result.gate_pass = [
-    result.checks.health?.ok,
     result.checks.auth_me?.ok,
     result.checks.handoff_metrics?.ok,
     result.checks.bots?.ok,

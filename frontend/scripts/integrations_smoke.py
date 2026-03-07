@@ -58,7 +58,7 @@ def run_smoke(api_base: str, token: str) -> dict[str, Any]:
         except Exception as exc:
             steps.append(Step(name=name, ok=False, detail=str(exc)))
 
-    step("health", lambda: client.call("/health")[0])
+    step("ready", lambda: client.call("/ready")[0])
     step("auth.me", lambda: client.call("/api/v1/auth/me")[1])
 
     def _status() -> str:

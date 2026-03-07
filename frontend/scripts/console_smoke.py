@@ -91,8 +91,8 @@ def run_smoke(api_base: str) -> dict[str, Any]:
             steps.append(StepResult(name=name, ok=False, detail=str(exc), critical=critical))
 
     step(
-        "health",
-        lambda: client.call("/health", expected_status=200)[1],
+        "ready",
+        lambda: client.call("/ready", expected_status=200)[1],
     )
 
     def _onboard() -> str:

@@ -206,11 +206,11 @@ function renderWhoamiLine(me) {
   const line = $("whoamiLine");
   const nav = $("navUserBadge");
   if (!me) {
-    line.textContent = "Session: Not signed in";
+    line.textContent = "Not signed in";
     if (nav) nav.textContent = "Not signed in";
     return;
   }
-  line.textContent = "Session: Signed in";
+  line.textContent = "Signed in";
   if (nav) nav.textContent = "Signed in";
 }
 

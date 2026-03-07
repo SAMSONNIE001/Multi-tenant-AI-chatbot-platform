@@ -262,30 +262,6 @@ async function loadStatus() {
   }
 }
 
-async function loadHealth() {
-  const out = $("outStatus");
-  out.textContent = "Loading channel health...";
-  setLoading("btnLoadHealth", true, "Loading...");
-  try {
-    const rows = await loadAccounts();
-    const health = [];
-    for (const row of rows) {
-      const data = await api(`/api/v1/admin/channels/accounts/${encodeURIComponent(row.id)}/health`);
-      health.push(data);
-    }
-    out.textContent = `Health checks completed for ${health.length} channel(s).`;
-    toast("Channel health refreshed", "ok");
-    await loadStatus();
-  } catch (e) {
-    const msg = cleanError(e);
-    setErrorPanel(msg);
-    out.textContent = msg;
-    toast("Failed to load channel health", "err");
-  } finally {
-    setLoading("btnLoadHealth", false);
-  }
-}
-
 async function saveWhatsApp() {
   const out = $("outWhatsApp");
   out.textContent = "Saving WhatsApp...";
@@ -532,7 +508,6 @@ async function login() {
 }
 
 $("btnLoadStatus").onclick = () => loadStatus();
-$("btnLoadHealth").onclick = () => loadHealth();
 $("btnSaveWhatsApp").onclick = () => saveWhatsApp();
 $("btnSaveFacebook").onclick = () => saveFacebook();
 $("btnDisableWhatsApp").onclick = () => disableChannel($("btnDisableWhatsApp").getAttribute("data-account-id") || "", "outWhatsApp", "WhatsApp");

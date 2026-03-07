@@ -432,23 +432,6 @@
       });
 
       try {
-        const res = await fetch(`${apiBase}/health`);
-        checks.push({
-          name: "health",
-          critical: true,
-          ok: res.ok,
-          detail: `${res.status}`,
-        });
-      } catch (e) {
-        checks.push({
-          name: "health",
-          critical: true,
-          ok: false,
-          detail: String(e),
-        });
-      }
-
-      try {
         await request("/api/v1/admin/handoff/metrics");
         checks.push({ name: "handoff_metrics", critical: true, ok: true, detail: "ok" });
       } catch (e) {

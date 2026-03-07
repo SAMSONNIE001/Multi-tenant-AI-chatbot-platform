@@ -129,11 +129,6 @@ def root():
     return RedirectResponse(url="/dashboard.html")
 
 
-@app.get("/health", tags=["system"])
-def health():
-    return {"status": "ok"}
-
-
 @app.get("/ready", tags=["system"])
 def readiness():
     try:
