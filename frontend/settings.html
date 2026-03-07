@@ -16,6 +16,7 @@
     .main{display:grid;gap:12px;align-content:start;} .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f5f8fc;border:1px solid var(--line);border-radius:12px;padding:9px 12px;}
     .badge{display:inline-flex;align-items:center;border:1px solid #d3dceb;background:#fff;color:#67758b;border-radius:999px;padding:6px 10px;font-size:12px;}
     .grid{display:grid;gap:12px;grid-template-columns:1fr 1fr;} .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:14px;}
+    .journey{display:flex;gap:8px;flex-wrap:wrap;} .journey a{text-decoration:none;font-size:12px;font-weight:700;border:1px solid #d5dfec;color:#334155;background:#f8fbff;border-radius:999px;padding:7px 11px;} .journey a.current{background:#2f7de1;border-color:#2f7de1;color:#fff;}
     h1,h2{margin:0 0 8px;letter-spacing:-.01em;} .muted{color:var(--muted);font-size:13px;}
     .row{display:grid;gap:6px;margin-top:10px;} label{font-size:12px;color:#5d6b80;font-weight:600;} input{width:100%;border:1px solid #cbd7e6;border-radius:8px;padding:9px 10px;font-size:13px;background:#fff;}
     button{border:0;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:600;font-size:12px;background:var(--accent);color:#fff;} button.alt{background:#5d6b81;}
@@ -46,8 +47,19 @@
         <span id="navUserBadge" class="badge">Current User: not authenticated</span>
       </div>
       <section class="panel">
-        <h1>Account And Company Settings</h1>
-        <div class="muted">Manage your account security and company workspace configuration in one place.</div>
+        <h2>Setup Journey</h2>
+        <div class="journey">
+          <a href="./dashboard.html">1. Dashboard</a>
+          <a href="./profile.html">2. Profile</a>
+          <a class="current" href="./settings.html">3. Settings</a>
+          <a href="./integrations.html">4. Integrations</a>
+          <a href="./tenant-setup.html">5. Knowledge Base</a>
+          <a href="./tenant-console.html">6. Unified Inbox</a>
+        </div>
+      </section>
+      <section class="panel">
+        <h1>Account And Workspace Settings</h1>
+        <div class="muted">Manage security and workspace controls in one place.</div>
         <div id="outSettings" class="status"></div>
       </section>
       <section class="panel">
@@ -63,7 +75,7 @@
         <div id="outSecurity" class="status"></div>
       </section>
       <div class="grid">
-        <section class="panel">
+        <section id="panelLimits" class="panel">
           <h2>Usage Limits</h2>
           <div class="row"><label>Daily Request Limit</label><input id="setDailyLimit" type="number" min="1" /></div>
           <div class="row"><label>Monthly Token Limit</label><input id="setMonthlyTokens" type="number" min="1" /></div>
@@ -73,7 +85,7 @@
           </div>
           <div id="outLimits" class="status"></div>
         </section>
-        <section class="panel">
+        <section id="panelRetention" class="panel">
           <h2>Retention Policy</h2>
           <div class="row"><label>Audit Logs Retention (days)</label><input id="setAuditDays" type="number" min="1" /></div>
           <div class="row"><label>Messages Retention (days)</label><input id="setMessageDays" type="number" min="1" /></div>

@@ -181,15 +181,29 @@ async function applyPasswordReset() {
   setStatus("outSettings", "Loading account context...");
   setStatus("outSecurity", "Use this section to update account password securely.");
   setStatus("outDelete", "Danger zone: account deletion is permanent.");
+  setStatus("outLimits", "");
+  setStatus("outRetention", "");
   try {
     const me = await api("/api/v1/auth/me");
+    const role = String(me.role || "").toLowerCase();
+    const isAdmin = role === "admin" || role === "owner";
     $("navUserBadge").textContent = `Current User: ${me.email || "-"}`;
     if ($("acEmail")) $("acEmail").value = me.email || "";
     if ($("fpTenantId")) $("fpTenantId").value = me.tenant_id || "";
     setStatus("outSettings", `Signed in as ${me.email || "-"} (${me.role || "-"}).`);
+
+    const limitsPanel = $("panelLimits");
+    const retentionPanel = $("panelRetention");
+    if (!isAdmin) {
+      if (limitsPanel) limitsPanel.style.display = "none";
+      if (retentionPanel) retentionPanel.style.display = "none";
+      setStatus("outSettings", `Signed in as ${me.email || "-"} (${me.role || "-"}). Admin-only controls are hidden for your role.`);
+      return;
+    }
+
+    loadLimits();
+    loadRetention();
   } catch (e) {
     setStatus("outSettings", cleanError(e));
   }
-  loadLimits();
-  loadRetention();
 })();

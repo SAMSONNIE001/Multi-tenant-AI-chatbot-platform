@@ -189,10 +189,14 @@ function initPrefs() {
     $("wsDocs").textContent = String(docs);
     $("wsReq7d").textContent = String(req7d);
     $("wsTokens7d").textContent = String(tok7d);
-    setStatus("outWorkspace", "Workspace summary loaded.");
+    if (Number(bots) === 0 && Number(docs) === 0 && String(req7d) === "0") {
+      setStatus("outWorkspace", "Workspace is ready. Data will appear after bots are configured and traffic starts.");
+    } else {
+      setStatus("outWorkspace", "Workspace summary loaded.");
+    }
   } catch (e) {
     const msg = cleanError(e);
     setStatus("outProfile", msg);
-    setStatus("outWorkspace", "Unable to load workspace summary.");
+    setStatus("outWorkspace", "Unable to load workspace summary right now.");
   }
 })();
