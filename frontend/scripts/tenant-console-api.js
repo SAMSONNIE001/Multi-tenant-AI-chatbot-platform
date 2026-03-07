@@ -201,7 +201,13 @@
 
     function _integrationDetail(channel) {
       if (!channel) return "-";
-      if (channel.last_error) return `error: ${channel.last_error}`;
+      if (channel.last_error) {
+        const raw = String(channel.last_error || "");
+        if (raw.includes("401")) return "Needs valid channel token";
+        if (raw.includes("403")) return "Provider permission blocked";
+        if (raw.toLowerCase().includes("timeout")) return "Provider timeout";
+        return "Channel connection error";
+      }
       if (channel.last_webhook_at || channel.last_outbound_at) {
         const inbound = channel.last_webhook_at ? shortDate(channel.last_webhook_at) : "-";
         const outbound = channel.last_outbound_at ? shortDate(channel.last_outbound_at) : "-";

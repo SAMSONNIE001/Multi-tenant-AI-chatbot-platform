@@ -172,7 +172,7 @@ function integrationRow(title, payload) {
   const enabled = !!payload.enabled;
   const cls = enabled ? "enabled" : "disabled";
   const detail = payload.last_error
-    ? `error: ${payload.last_error}`
+    ? summarizeChannelError(payload.last_error)
     : (
       payload.note
       || `inbound ${shortDate(payload.last_webhook_at)} | outbound ${shortDate(payload.last_outbound_at)}`
@@ -184,9 +184,17 @@ function integrationRow(title, payload) {
         <span class="state ${cls}">${payload.status_label || (enabled ? "Enabled" : "Disabled")}</span>
       </div>
       <div class="muted">${detail}</div>
-      <div class="muted">health=${payload.health_status || "-"} account=${payload.account_id || "-"}</div>
     </div>
   `;
+}
+
+function summarizeChannelError(rawErr) {
+  const raw = String(rawErr || "");
+  if (!raw) return "Connection error. Reconnect this channel in settings.";
+  if (raw.includes("401")) return "Connection needs a valid access token. Reconnect this channel.";
+  if (raw.includes("403")) return "Connection is blocked by provider permissions. Check app permissions.";
+  if (raw.toLowerCase().includes("timeout")) return "Provider did not respond. Please retry.";
+  return "Connection error. Open channel settings and reconnect.";
 }
 
 function applyChannelDefaults(accounts) {
