@@ -11,6 +11,7 @@ from app.auth.deps import get_current_user
 from app.auth.models import User
 from app.channels.models import CustomerChannelHandle, CustomerProfile, TenantChannelAccount
 from app.channels.schemas import (
+    ChannelAccountHealthOut,
     ChannelAccountCreateRequest,
     ChannelAccountOut,
     ChannelAccountPatchRequest,
@@ -34,6 +35,16 @@ from app.handoff.models import HandoffRequest
 
 admin_router = APIRouter()
 webhook_router = APIRouter()
+
+
+def _health_status(row: TenantChannelAccount) -> str:
+    if not row.is_active:
+        return "inactive"
+    if row.last_error:
+        return "error"
+    if row.last_webhook_at or row.last_outbound_at:
+        return "healthy"
+    return "configured"
 
 
 def _require_admin_or_owner(user: User) -> None:
@@ -210,6 +221,36 @@ def rotate_verify_token(
     db.commit()
     db.refresh(row)
     return ChannelAccountRotateTokenResponse(id=row.id, verify_token=row.verify_token)
+
+
+@admin_router.get("/accounts/{account_id}/health", response_model=ChannelAccountHealthOut)
+def get_account_health(
+    account_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_scope(current_user, "channels:read")
+
+    row = db.execute(
+        select(TenantChannelAccount).where(
+            TenantChannelAccount.id == account_id,
+            TenantChannelAccount.tenant_id == current_user.tenant_id,
+        )
+    ).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Channel account not found")
+
+    return ChannelAccountHealthOut(
+        id=row.id,
+        tenant_id=row.tenant_id,
+        channel_type=row.channel_type,
+        is_active=row.is_active,
+        status=_health_status(row),
+        last_webhook_at=row.last_webhook_at,
+        last_outbound_at=row.last_outbound_at,
+        last_error=row.last_error,
+        last_error_at=row.last_error_at,
+    )
 
 
 @admin_router.get("/profiles", response_model=CustomerProfilesResponse)
