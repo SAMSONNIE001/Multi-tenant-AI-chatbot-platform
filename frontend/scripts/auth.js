@@ -288,11 +288,22 @@ $("btnEnvLocal").onclick = () => {
   setupPasswordToggle("lgShowPassword", "lgPassword");
   setupPasswordToggle("fpShowPassword", "fpNewPassword");
   setupPasswordToggle("obShowPassword", "obAdminPassword");
+  const forgotToggle = $("btnToggleForgot");
+  const forgotPanel = $("forgotPanel");
+  if (forgotToggle && forgotPanel) {
+    forgotToggle.addEventListener("click", () => {
+      const open = forgotPanel.style.display === "block";
+      forgotPanel.style.display = open ? "none" : "block";
+    });
+  }
 
   const params = new URLSearchParams(window.location.search || "");
   const authRequired = params.get("auth_required");
   const resetToken = params.get("reset_token");
-  if (resetToken) $("fpResetToken").value = resetToken;
+  if (resetToken) {
+    $("fpResetToken").value = resetToken;
+    if (forgotPanel) forgotPanel.style.display = "block";
+  }
   if (sessionStorage.getItem(SESSION_EXPIRED_KEY) === "1") {
     $("outLogin").textContent = "Session expired. Please sign in again.";
     sessionStorage.removeItem(SESSION_EXPIRED_KEY);

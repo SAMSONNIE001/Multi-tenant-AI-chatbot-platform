@@ -138,6 +138,22 @@
       width: auto;
       min-height: 0;
     }
+    .link-btn {
+      border: 0;
+      background: transparent;
+      color: #1f4f97;
+      padding: 0;
+      min-height: 0;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .forgot-panel {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #e3eaf3;
+      display: none;
+    }
     .full {
       grid-column: 1 / -1;
     }
@@ -169,19 +185,21 @@
       <button id="btnLogin" type="button">Login</button>
       <div id="outLogin" class="out"></div>
 
-      <details>
-        <summary>Forgot Password</summary>
-        <div class="row" style="margin-top:10px;"><label>Account Email</label><input id="fpEmail" placeholder="admin@example.com" /></div>
-        <div class="row"><label>Tenant ID (optional)</label><input id="fpTenantId" placeholder="Enter tenant ID if provided" /></div>
-        <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
-        <div id="outForgotPassword" class="out"></div>
-        <input id="fpResetToken" type="hidden" />
-        <div class="row" style="margin-top:10px;"><label>Reset Code</label><input id="fpCode" placeholder="6-digit code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" /></div>
-        <div class="row"><label>New Password</label><input id="fpNewPassword" type="password" maxlength="72" placeholder="Enter new password" autocomplete="new-password" /></div>
-        <label class="check"><input id="fpShowPassword" type="checkbox" /> Show new password</label>
-        <button id="btnResetPassword" class="alt" type="button">Reset Password</button>
-        <div id="outResetPassword" class="out"></div>
-      </details>
+      <div style="margin-top:10px;">
+        <button id="btnToggleForgot" class="link-btn" type="button">Forgot Password</button>
+        <div id="forgotPanel" class="forgot-panel">
+          <div class="row" style="margin-top:10px;"><label>Account Email</label><input id="fpEmail" placeholder="admin@example.com" /></div>
+          <div class="row"><label>Tenant ID (optional)</label><input id="fpTenantId" placeholder="Enter tenant ID if provided" /></div>
+          <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
+          <div id="outForgotPassword" class="out"></div>
+          <input id="fpResetToken" type="hidden" />
+          <div class="row" style="margin-top:10px;"><label>Reset Code</label><input id="fpCode" placeholder="6-digit code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" /></div>
+          <div class="row"><label>New Password</label><input id="fpNewPassword" type="password" maxlength="72" placeholder="Enter new password" autocomplete="new-password" /></div>
+          <label class="check"><input id="fpShowPassword" type="checkbox" /> Show new password</label>
+          <button id="btnResetPassword" class="alt" type="button">Reset Password</button>
+          <div id="outResetPassword" class="out"></div>
+        </div>
+      </div>
     </section>
 
     <section class="panel">
