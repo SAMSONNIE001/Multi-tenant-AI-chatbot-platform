@@ -55,6 +55,12 @@
       return `${count} ${count === 1 ? one : many}`;
     }
 
+    function setKnowledgeEmptyState(visible) {
+      const el = $("kbEmptyState");
+      if (!el) return;
+      el.style.display = visible ? "block" : "none";
+    }
+
     $("saveToken").onclick = () => {
       saveSessionToken($("accessToken").value);
       localStorage.setItem("tenant_console_api_base", $("apiBase").value);
@@ -324,6 +330,7 @@
         out.textContent = docId
           ? `Upload complete. Document ID: ${docId}`
           : "Upload complete. Document queued for indexing.";
+        setKnowledgeEmptyState(false);
         if (data && data.document_id) $("kgDocId").value = data.document_id;
       } catch (e) {
         out.textContent = cleanError(e);
@@ -339,6 +346,7 @@
         const docs = Number(data?.documents_total ?? data?.total_documents ?? 0);
         const indexed = Number(data?.indexed_documents ?? data?.ready_documents ?? 0);
         out.textContent = `Knowledge base status: ${pluralize(docs, "document", "documents")} total, ${indexed} indexed.`;
+        setKnowledgeEmptyState(docs <= 0);
       } catch (e) {
         out.textContent = cleanError(e);
       }
@@ -651,6 +659,7 @@
       const savedAdvanced = localStorage.getItem("tenant_console_advanced");
       const savedRoleMode = localStorage.getItem("tenant_console_role_mode");
       const onSetupPage = (window.location.pathname || "").toLowerCase().includes("tenant-setup");
+      setKnowledgeEmptyState(onSetupPage);
       const tabDaily = $("tabDaily");
       const tabQa = $("tabQa");
       if (onSetupPage && tabDaily) tabDaily.style.display = "none";

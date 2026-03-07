@@ -31,11 +31,14 @@
     function renderQueueTable(items) {
       const wrap = $("queueTableWrap");
       const body = $("queueTableBody");
+      const empty = $("queueEmptyState");
       body.innerHTML = "";
       if (!Array.isArray(items) || !items.length) {
         wrap.style.display = "none";
+        if (empty) empty.style.display = "block";
         return;
       }
+      if (empty) empty.style.display = "none";
       wrap.style.display = "block";
       for (const item of items) {
         const tr = document.createElement("tr");
@@ -530,6 +533,8 @@
       } catch (e) {
         out.textContent = summarizeRequestError(e);
         state.lastQueueItems = [];
+        const empty = $("queueEmptyState");
+        if (empty) empty.style.display = "none";
         renderQueueMetrics([]);
         renderQueueTable([]);
       }

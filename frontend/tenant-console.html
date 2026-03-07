@@ -578,6 +578,46 @@
       border-color: #dbe2ed;
       background: #f2f5fa;
     }
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .section-title h2 {
+      margin: 0;
+    }
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 8px;
+    }
+    .button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .empty-state {
+      display: none;
+      border: 1px dashed #cbd5e1;
+      border-radius: 10px;
+      background: #f8fafc;
+      padding: 14px;
+      margin-top: 10px;
+    }
+    .empty-state strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+      color: #0f172a;
+    }
+    .empty-state p {
+      margin: 0;
+      font-size: 12px;
+      color: #64748b;
+    }
   </style>
 </head>
 <body>
@@ -783,25 +823,12 @@
       </section>
 
       <section class="card" data-pane="daily">
-        <h2>Unified Inbox</h2>
-        <div class="small">Function: central queue for all incoming customer messages across connected channels.</div>
-        <div class="row">
-          <label>Status Filter</label>
-          <select id="hfStatus">
-            <option value="">(all)</option>
-            <option value="new_open">new + open</option>
-            <option value="new">new</option>
-            <option value="open">open</option>
-            <option value="pending_customer">pending_customer</option>
-            <option value="resolved">resolved</option>
-            <option value="closed">closed</option>
-          </select>
+        <div class="section-title">
+          <h2>Unified Inbox Queue</h2>
+          <button id="btnHandoffList" type="button">Load Queue</button>
         </div>
-        <div class="row">
-          <label>Assigned To Filter (user id)</label>
-          <input id="hfAssignedTo" placeholder="u_admin_3" />
-        </div>
-        <div class="inline">
+        <div class="small">Central queue for all customer conversations across connected channels.</div>
+        <div class="filters-grid">
           <div class="row">
             <label>Priority Filter</label>
             <select id="hfPriorityFilter">
@@ -827,7 +854,23 @@
             </select>
           </div>
         </div>
-        <div class="inline">
+        <div class="filters-grid">
+          <div class="row">
+            <label>Status Filter</label>
+            <select id="hfStatus">
+              <option value="">(all)</option>
+              <option value="new_open">new + open</option>
+              <option value="new">new</option>
+              <option value="open">open</option>
+              <option value="pending_customer">pending_customer</option>
+              <option value="resolved">resolved</option>
+              <option value="closed">closed</option>
+            </select>
+          </div>
+          <div class="row">
+            <label>Assigned To Filter (user id)</label>
+            <input id="hfAssignedTo" placeholder="u_admin_3" />
+          </div>
           <div class="row">
             <label>Sort</label>
             <select id="hfSort">
@@ -846,7 +889,10 @@
             </select>
           </div>
         </div>
-        <button id="btnHandoffList">Load Queue</button>
+        <div id="queueEmptyState" class="empty-state">
+          <strong>No active conversations yet</strong>
+          <p>When customers start new chats from website, WhatsApp, or Messenger, they will appear here automatically.</p>
+        </div>
         <div id="outHandoffList" class="out"></div>
         <div id="queueMetrics" class="kpi-grid" style="display:none;"></div>
         <div id="queueTableWrap" class="table-wrap" style="display:none;">

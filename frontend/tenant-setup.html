@@ -510,6 +510,41 @@
       border-color: #dbe2ed;
       background: #f2f5fa;
     }
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .section-title h2 {
+      margin: 0;
+    }
+    .action-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .empty-state {
+      display: none;
+      border: 1px dashed #cbd5e1;
+      border-radius: 10px;
+      background: #f8fafc;
+      padding: 14px;
+      margin-top: 10px;
+    }
+    .empty-state strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+      color: #0f172a;
+    }
+    .empty-state p {
+      margin: 0;
+      font-size: 12px;
+      color: #64748b;
+    }
   </style>
 </head>
 <body>
@@ -686,7 +721,10 @@
       </section>
 
       <section class="card" data-pane="setup">
-        <h2>Knowledge Base Portal</h2>
+        <div class="section-title">
+          <h2>Knowledge Base Portal</h2>
+          <button id="btnStatus" class="alt" type="button">Check Status</button>
+        </div>
         <p class="small">Manage approved documents, monitor indexing readiness, and reindex content when updates are published.</p>
         <div class="kb-columns">
           <div class="kb-col">
@@ -718,8 +756,13 @@
           <label>Upload file (.txt, .md, .json, .pdf, .docx)</label>
           <input id="kgFile" type="file" />
         </div>
-        <button id="btnUpload">Upload</button>
-        <button id="btnStatus" class="alt">Check Status</button>
+        <div class="action-row">
+          <button id="btnUpload" type="button">Upload</button>
+        </div>
+        <div id="kbEmptyState" class="empty-state">
+          <strong>No documents uploaded yet</strong>
+          <p>Upload your first file to activate knowledge answers for this tenant.</p>
+        </div>
         <div id="outUpload" class="out"></div>
         <div class="row" style="margin-top:10px;">
           <label>Document ID to reindex</label>
