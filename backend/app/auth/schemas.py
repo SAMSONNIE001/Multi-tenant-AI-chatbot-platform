@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+from app.auth.password_policy import validate_password_input
 
 
 class RegisterRequest(BaseModel):
@@ -12,12 +14,22 @@ class RegisterRequest(BaseModel):
         description="owner | admin | editor | viewer"
     )
 
+    @field_validator("password")
+    @classmethod
+    def _validate_password(cls, value: str) -> str:
+        return validate_password_input(value)
+
 
 class LoginRequest(BaseModel):
     tenant_id: str | None = Field(default=None, min_length=3, max_length=64)
     email: EmailStr
     # prevent bcrypt crash on long input
     password: str = Field(min_length=1, max_length=72)
+
+    @field_validator("password")
+    @classmethod
+    def _validate_password(cls, value: str) -> str:
+        return validate_password_input(value)
 
 
 class TokenResponse(BaseModel):
@@ -74,9 +86,16 @@ class ForgotPasswordResponse(BaseModel):
 
 
 class ResetPasswordRequest(BaseModel):
-    reset_token: str = Field(min_length=20, max_length=512)
-    code: str = Field(min_length=4, max_length=16)
+    tenant_id: str | None = Field(default=None, min_length=3, max_length=64)
+    email: EmailStr | None = None
+    reset_token: str | None = Field(default=None, min_length=20, max_length=512)
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
     new_password: str = Field(min_length=8, max_length=72)
+
+    @field_validator("new_password")
+    @classmethod
+    def _validate_new_password(cls, value: str) -> str:
+        return validate_password_input(value)
 
 
 class ResetPasswordResponse(BaseModel):

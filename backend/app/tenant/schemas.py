@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+from app.auth.password_policy import validate_password_input
 
 
 class TenantOnboardRequest(BaseModel):
@@ -13,6 +15,11 @@ class TenantOnboardRequest(BaseModel):
     admin_password: str = Field(min_length=8, max_length=72)
     bot_name: str = Field(default="Main Website Bot", min_length=2, max_length=255)
     allowed_origins: list[str] = Field(default_factory=list)
+
+    @field_validator("admin_password")
+    @classmethod
+    def _validate_admin_password(cls, value: str) -> str:
+        return validate_password_input(value)
 
 
 class TenantAdminOut(BaseModel):

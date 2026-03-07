@@ -659,9 +659,12 @@ def forgot_password(payload: ForgotPasswordRequest, request: Request, db: Sessio
 @router.post("/password/reset", response_model=ResetPasswordResponse)
 def reset_password(payload: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)):
     now = datetime.now(timezone.utc)
-    token_hash_value = hash_token(payload.reset_token.strip())
     client_ip = request.client.host if request.client else "unknown"
-    limit_key = f"{token_hash_value}:{client_ip}"
+    tenant_hint = (payload.tenant_id or "").strip() or "*"
+    email_hint = str(payload.email or "").strip().lower()
+    token_value = str(payload.reset_token or "").strip()
+    limit_identity = hash_token(token_value) if token_value else f"{tenant_hint}:{email_hint or 'unknown'}"
+    limit_key = f"{limit_identity}:{client_ip}"
     if _is_rate_limited(_reset_fail_attempts, limit_key, now, RESET_FAIL_WINDOW_SECONDS, RESET_FAIL_MAX):
         _log_auth_security_event(
             db,
@@ -675,30 +678,51 @@ def reset_password(payload: ResetPasswordRequest, request: Request, db: Session 
         db.commit()
         raise HTTPException(status_code=429, detail="Too many failed reset attempts. Request a new reset email.")
 
-    row = (
-        db.query(PasswordResetToken)
-        .filter(
-            PasswordResetToken.token_hash == token_hash_value,
+    row = None
+    if token_value:
+        token_hash_value = hash_token(token_value)
+        row = (
+            db.query(PasswordResetToken)
+            .filter(
+                PasswordResetToken.token_hash == token_hash_value,
+                PasswordResetToken.used_at.is_(None),
+                PasswordResetToken.expires_at > now,
+            )
+            .order_by(PasswordResetToken.created_at.desc())
+            .first()
+        )
+    else:
+        if not email_hint:
+            raise HTTPException(status_code=422, detail="email is required when reset_token is not provided")
+        q = db.query(PasswordResetToken).filter(
+            PasswordResetToken.email == email_hint,
             PasswordResetToken.used_at.is_(None),
             PasswordResetToken.expires_at > now,
         )
-        .order_by(PasswordResetToken.created_at.desc())
-        .first()
-    )
+        if payload.tenant_id:
+            q = q.filter(PasswordResetToken.tenant_id == payload.tenant_id.strip())
+        candidates = q.order_by(PasswordResetToken.created_at.desc()).limit(10).all()
+        code_hash_value = hash_token(payload.code.strip())
+        for candidate in candidates:
+            if candidate.code_hash == code_hash_value:
+                row = candidate
+                break
     if not row:
         _register_attempt(_reset_fail_attempts, limit_key, now)
         _log_auth_security_event(
             db,
             tenant_id=None,
             user_id=None,
-            email="unknown",
+            email=email_hint or "unknown",
             event_type="password_reset",
-            outcome="invalid_token",
+            outcome="invalid_token" if token_value else "invalid_code",
             ip_address=client_ip,
         )
         db.commit()
-        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
-    if row.code_hash != hash_token(payload.code.strip()):
+        if token_value:
+            raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+        raise HTTPException(status_code=400, detail="Invalid reset code")
+    if token_value and row.code_hash != hash_token(payload.code.strip()):
         _register_attempt(_reset_fail_attempts, limit_key, now)
         _log_auth_security_event(
             db,

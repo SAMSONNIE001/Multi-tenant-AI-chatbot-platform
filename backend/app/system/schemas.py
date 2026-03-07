@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+from app.auth.password_policy import validate_password_input
 
 
 class BootstrapRequest(BaseModel):
@@ -8,3 +10,8 @@ class BootstrapRequest(BaseModel):
     admin_id: str = Field(min_length=3, max_length=64, description="Admin user ID like u_admin")
     admin_email: EmailStr
     admin_password: str = Field(min_length=8, max_length=72)
+
+    @field_validator("admin_password")
+    @classmethod
+    def _validate_admin_password(cls, value: str) -> str:
+        return validate_password_input(value)

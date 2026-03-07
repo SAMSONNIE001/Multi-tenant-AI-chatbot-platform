@@ -1,7 +1,7 @@
 from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 
-MAX_FAILURES = 5
+MAX_FAILURES = 3
 WINDOW_SECONDS = 15 * 60
 LOCK_SECONDS = 15 * 60
 

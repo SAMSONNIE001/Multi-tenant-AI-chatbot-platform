@@ -120,6 +120,18 @@
       font-weight: 700;
       color: #33435b;
     }
+    .check {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #475569;
+      margin-top: 6px;
+    }
+    .check input {
+      width: auto;
+      min-height: 0;
+    }
     .full {
       grid-column: 1 / -1;
     }
@@ -139,8 +151,9 @@
       <h2>Sign In</h2>
       <p class="muted">Use your existing tenant admin/support account.</p>
       <div class="row"><label>Email</label><input id="lgEmail" placeholder="Enter your work email" /></div>
-      <div class="row"><label>Password</label><input id="lgPassword" type="password" placeholder="Enter password" /></div>
-      <div class="row" id="lgTenantIdRow">
+      <div class="row"><label>Password</label><input id="lgPassword" type="password" maxlength="72" placeholder="Enter password" autocomplete="current-password" /></div>
+      <label class="check"><input id="lgShowPassword" type="checkbox" /> Show password</label>
+      <div class="row" id="lgTenantIdRow" style="display:none;">
         <label>Tenant ID (optional)</label><input id="lgTenantId" placeholder="Enter tenant ID if provided" />
       </div>
       <button id="btnLogin" type="button">Login</button>
@@ -152,9 +165,10 @@
         <div class="row"><label>Tenant ID (optional)</label><input id="fpTenantId" placeholder="Enter tenant ID if provided" /></div>
         <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
         <div id="outForgotPassword" class="out"></div>
-        <div class="row" style="margin-top:10px;"><label>Reset Token</label><input id="fpResetToken" placeholder="Paste reset token" /></div>
-        <div class="row"><label>Reset Code</label><input id="fpCode" placeholder="6-digit code" /></div>
-        <div class="row"><label>New Password</label><input id="fpNewPassword" type="password" placeholder="Enter new password" /></div>
+        <input id="fpResetToken" type="hidden" />
+        <div class="row" style="margin-top:10px;"><label>Reset Code</label><input id="fpCode" placeholder="6-digit code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" /></div>
+        <div class="row"><label>New Password</label><input id="fpNewPassword" type="password" maxlength="72" placeholder="Enter new password" autocomplete="new-password" /></div>
+        <label class="check"><input id="fpShowPassword" type="checkbox" /> Show new password</label>
         <button id="btnResetPassword" class="alt" type="button">Reset Password</button>
         <div id="outResetPassword" class="out"></div>
       </details>
@@ -165,9 +179,8 @@
       <p class="muted">Create a new tenant and sign in automatically.</p>
       <div class="row"><label>Company / Tenant Name</label><input id="obTenantName" placeholder="Enter company name" /></div>
       <div class="row"><label>Admin Email</label><input id="obAdminEmail" placeholder="Enter admin work email" /></div>
-      <div class="row"><label>Admin Password</label><input id="obAdminPassword" type="password" placeholder="Create a strong password" /></div>
-      <div class="row"><label>Bot Name</label><input id="obBotName" placeholder="Main Website Bot" /></div>
-      <div class="row"><label>Allowed Origins (comma-separated)</label><input id="obAllowedOrigins" placeholder="https://www.yourcompany.com,https://yourcompany.com" /></div>
+      <div class="row"><label>Admin Password</label><input id="obAdminPassword" type="password" maxlength="72" placeholder="Create a strong password" autocomplete="new-password" /></div>
+      <label class="check"><input id="obShowPassword" type="checkbox" /> Show password</label>
       <button id="btnOnboardCreate" class="alt" type="button">Create Account And Sign In</button>
       <div id="outOnboardCreate" class="out"></div>
     </section>
