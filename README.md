@@ -7,3 +7,10 @@ Website widget integration guide:
 
 - `docs/website-live-chat.md`
 - `docs/sprint1-tenant-self-serve.md`
+
+## Release Gate
+
+- Run the production/staging smoke gate:
+  - `.\frontend\scripts\run-release-gate.ps1`
+- Go-live checklist:
+  - `docs/go-live-checklist.md`

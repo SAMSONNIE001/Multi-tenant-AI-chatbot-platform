@@ -172,7 +172,7 @@
       <div id="outOnboardCreate" class="out"></div>
     </section>
 
-    <section id="connectionPanel" class="panel full">
+    <section id="connectionPanel" class="panel full" data-dev-only>
       <h2>Connection Settings</h2>
       <div class="row"><label>API Base</label><input id="apiBase" value="http://localhost:8000" /></div>
       <div class="row"><label>Staging API Base</label><input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" /></div>
@@ -185,6 +185,7 @@
   </div>
 
   <script src="./scripts/auth.js"></script>
+  <script src="./scripts/production-hardening.js"></script>
   <script src="./scripts/debug-panels.js"></script>
 </body>
 </html>
