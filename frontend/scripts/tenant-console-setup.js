@@ -576,8 +576,8 @@
       setActivePane("daily");
     };
     $("tabQa").onclick = () => {
-      localStorage.setItem("tenant_console_active_pane", "qa");
-      setActivePane("qa");
+      localStorage.setItem("tenant_console_active_pane", "daily");
+      setActivePane("daily");
     };
     const tabSetup = $("tabSetup");
     if (tabSetup) {
@@ -589,7 +589,6 @@
     const navDashboard = $("navDashboard");
     const navOps = $("navOps");
     const navSetup = $("navSetup");
-      const navRelease = $("navRelease");
       const path = (window.location.pathname || "").toLowerCase();
     if (path.includes("tenant-setup")) {
       if (navSetup) navSetup.classList.add("active");
@@ -597,7 +596,6 @@
       if (navOps) navOps.classList.add("active");
     }
     if (navDashboard && !path.includes("dashboard")) navDashboard.classList.remove("active");
-    if (navRelease && !path.includes("release-checklist")) navRelease.classList.remove("active");
     const btnNavSignOut = $("btnNavSignOut");
     if (btnNavSignOut) {
       btnNavSignOut.onclick = () => {
@@ -638,10 +636,7 @@
       const tabDaily = $("tabDaily");
       const tabQa = $("tabQa");
       if (onSetupPage && tabDaily) tabDaily.style.display = "none";
-      if (onSetupPage && tabQa) tabQa.style.display = "none";
-      if (prodFrontend && tabQa) tabQa.style.display = "none";
-      const releaseLink = $("navRelease");
-      if (prodFrontend && releaseLink) releaseLink.style.display = "none";
+      if (tabQa) tabQa.style.display = "none";
       if (savedToken) setToken(savedToken);
       if (savedToken) saveSessionToken(savedToken);
       const host = String(window.location.hostname || "").toLowerCase();
@@ -654,6 +649,15 @@
       if (savedRoleMode && roleModeEl && ["operator", "admin"].includes(savedRoleMode)) {
         roleModeEl.value = savedRoleMode;
       }
+      if (roleModeEl) {
+        const roleRow = roleModeEl.closest(".row");
+        if (roleRow) roleRow.style.display = "none";
+      }
+      const advToggle = $("toggleAdvanced");
+      if (advToggle) {
+        const toggleLabel = advToggle.closest("label");
+        if (toggleLabel) toggleLabel.style.display = "none";
+      }
       if (savedAdvanced === "1") $("toggleAdvanced").checked = true;
       $("hfStatus").value = "new_open";
       $("hfSort").value = "urgent_escalated";
@@ -662,9 +666,7 @@
       if (!$("cpMergeReason").value.trim()) $("cpMergeReason").value = "dedupe duplicate customer identities";
       const allowedPanes = onSetupPage
         ? ["setup"]
-        : (tabSetup
-          ? (prodFrontend ? ["daily", "setup"] : ["daily", "qa", "setup"])
-          : (prodFrontend ? ["daily"] : ["daily", "qa"]));
+        : (tabSetup ? ["daily", "setup"] : ["daily"]);
       const defaultPane = onSetupPage && tabSetup ? "setup" : "daily";
       setActivePane(savedPane && allowedPanes.includes(savedPane) ? savedPane : defaultPane);
       applyQaAvailability();

@@ -45,7 +45,6 @@ function nextPath() {
     "tenant-console.html",
     "tenant-setup.html",
     "integrations.html",
-    "release-checklist.html",
     "profile.html",
     "account-settings.html",
     "settings.html",

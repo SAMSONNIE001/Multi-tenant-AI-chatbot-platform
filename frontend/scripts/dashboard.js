@@ -46,7 +46,6 @@ function initDashboardSearch() {
     { label: "Integrations", action: () => { window.location.href = "./integrations.html"; } },
     { label: "Knowledge Base", action: () => { window.location.href = "./tenant-setup.html"; } },
     { label: "Unified Inbox", action: () => { window.location.href = "./tenant-console.html"; } },
-    { label: "Release", action: () => { window.location.href = "./release-checklist.html"; } },
     { label: "Refresh Snapshot", action: () => { $("btnRefreshAll")?.click(); } },
     { label: "Sign Out", action: () => { $("btnNavSignOut")?.click(); } },
     { label: "Open Daily Ops", action: () => { window.location.href = "./tenant-console.html"; } },
@@ -163,7 +162,6 @@ function getNextPathFromQuery() {
     "tenant-console.html",
     "tenant-setup.html",
     "integrations.html",
-    "release-checklist.html",
   ]);
   return allowed.has(next) ? `./${next}` : "";
 }
@@ -491,11 +489,9 @@ if (btnResetPassword) {
 const navDashboard = $("navDashboard");
 const navOps = $("navOps");
 const navSetup = $("navSetup");
-const navRelease = $("navRelease");
 if (navDashboard) navDashboard.classList.add("active");
 if (navOps) navOps.classList.remove("active");
 if (navSetup) navSetup.classList.remove("active");
-if (navRelease) navRelease.classList.remove("active");
 const btnNavSignOut = $("btnNavSignOut");
 if (btnNavSignOut) {
   btnNavSignOut.onclick = () => {

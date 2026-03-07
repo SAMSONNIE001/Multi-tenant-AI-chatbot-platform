@@ -518,7 +518,6 @@
         <a id="navSetup" href="./tenant-setup.html">Knowledge Base</a>
         <a href="./profile.html">Profile</a>
         <a href="./settings.html">Settings</a>
-        <a id="navRelease" href="./release-checklist.html">Release</a>
       </div>
       <div class="meta">
         <span id="currentUserBadge" class="user-badge">Current User: not authenticated</span>
@@ -649,10 +648,10 @@
 
       <section class="card" data-pane="setup">
         <h2>Tenant Onboarding</h2>
-        <div class="row"><label>Tenant Name</label><input id="obTenantName" value="Demo Tenant Console" /></div>
-        <div class="row"><label>Admin Email</label><input id="obAdminEmail" value="admin-console@demo.com" /></div>
+        <div class="row"><label>Tenant Name</label><input id="obTenantName" value="" placeholder="Enter company or tenant name" /></div>
+        <div class="row"><label>Admin Email</label><input id="obAdminEmail" value="" placeholder="admin@company.com" /></div>
         <div class="row"><label>Admin Password</label><input id="obAdminPassword" value="" placeholder="Enter a strong admin password" /></div>
-        <div class="row"><label>Bot Name</label><input id="obBotName" value="Main Website Bot" /></div>
+        <div class="row"><label>Bot Name</label><input id="obBotName" value="StaunchBot Assistant" /></div>
         <div class="row"><label>Allowed Origins (comma-separated)</label><input id="obAllowedOrigins" value="https://www.staunchbot.com,https://staunchbot.com" /></div>
         <button id="btnOnboard">Run Onboard</button>
         <div id="outOnboard" class="out"></div>
@@ -1073,7 +1072,6 @@
   <script src="./scripts/tenant-console-ops.js?v=20260304"></script>
   <script src="./scripts/tenant-console-qa.js?v=20260304"></script>
   <script src="./scripts/tenant-console-setup.js?v=20260304"></script>
-  <script src="./scripts/onboarding-flow.js"></script>
   <script src="./scripts/debug-panels.js"></script>
 </body>
 </html>

@@ -1,13 +1,13 @@
-﻿(() => {
-  const KEY = "sb_onboarding_flow_v1";
-
-  const steps = [
-    { id: "dashboard", label: "1. Dashboard", path: "dashboard.html" },
-    { id: "profile", label: "2. Profile", path: "profile.html" },
-    { id: "settings", label: "3. Settings", path: "settings.html" },
-    { id: "integrations", label: "4. Integrations", path: "integrations.html" },
-    { id: "knowledge", label: "5. Knowledge Base", path: "tenant-setup.html" },
-    { id: "inbox", label: "6. Unified Inbox", path: "tenant-console.html" },
+(() => {
+  const KEY = "sb_onboarding_flow_v2";
+  const DASHBOARD_PATH = "dashboard.html";
+  const STEPS = [
+    "Dashboard",
+    "Profile",
+    "Settings",
+    "Integrations",
+    "Knowledge Base",
+    "Unified Inbox",
   ];
 
   function currentPath() {
@@ -33,158 +33,54 @@
     const style = document.createElement("style");
     style.id = "sbFlowStyle";
     style.textContent = `
-      .sb-flow {
-        margin: 12px 0;
-        border: 1px solid #dbe3ee;
-        border-radius: 12px;
-        background: #ffffff;
-        padding: 10px;
-      }
-      .sb-flow-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 8px;
-      }
-      .sb-flow-title {
-        font-size: 14px;
-        font-weight: 700;
-        color: #0f172a;
-      }
-      .sb-flow-sub {
-        font-size: 12px;
-        color: #64748b;
-      }
-      .sb-flow-track {
-        display: grid;
-        gap: 6px;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      }
-      .sb-step {
-        border: 1px solid #dbe3ee;
-        border-radius: 8px;
-        padding: 6px 8px;
-        font-size: 12px;
-        color: #475569;
-        background: #f8fafc;
-      }
-      .sb-step.current {
-        border-color: #93c5fd;
-        background: #eff6ff;
-        color: #1d4ed8;
-        font-weight: 700;
-      }
-      .sb-step.done {
-        border-color: #bbf7d0;
-        background: #ecfdf5;
-        color: #166534;
-      }
-      .sb-flow-actions {
-        margin-top: 8px;
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .sb-flow-actions button, .sb-flow-actions a {
-        border: 0;
-        border-radius: 8px;
-        padding: 7px 10px;
-        font-size: 12px;
-        font-weight: 700;
-        text-decoration: none;
-      }
-      .sb-flow-next {
-        background: #2563eb;
-        color: #fff;
-      }
-      .sb-flow-skip {
-        background: #e2e8f0;
-        color: #334155;
-      }
+      .sb-flow { margin: 12px 0; border: 1px solid #dbe3ee; border-radius: 12px; background: #ffffff; padding: 10px; }
+      .sb-flow-title { font-size: 14px; font-weight: 700; color: #0f172a; }
+      .sb-flow-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
+      .sb-flow-track { display: grid; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-top: 8px; }
+      .sb-step { border: 1px solid #dbe3ee; border-radius: 8px; padding: 6px 8px; font-size: 12px; color: #475569; background: #f8fafc; }
+      .sb-flow-actions { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+      .sb-flow-next, .sb-flow-done { border: 0; border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+      .sb-flow-next { background: #2563eb; color: #fff; }
+      .sb-flow-done { background: #0f766e; color: #fff; }
     `;
     document.head.appendChild(style);
   }
 
-  function resolveStep() {
-    const path = currentPath();
-    return steps.findIndex((s) => s.path.toLowerCase() === path);
-  }
-
   function mountFlow() {
-    const current = resolveStep();
-    if (current < 0) return;
+    if (currentPath() !== DASHBOARD_PATH) return;
+
+    const state = readState();
+    if (state.completed) return;
 
     ensureStyles();
-    const state = readState();
-    const nowId = steps[current].id;
-    // Keep journey as guidance only; do not force-redirect page navigation.
 
     const container = document.createElement("section");
     container.className = "sb-flow";
     container.innerHTML = `
-      <div class="sb-flow-head">
-        <div>
-          <div class="sb-flow-title">Setup Journey</div>
-          <div class="sb-flow-sub">Follow this order for a complete, user-friendly workspace setup.</div>
-        </div>
-      </div>
+      <div class="sb-flow-title">Setup Journey</div>
+      <div class="sb-flow-sub">Complete your core setup once. This panel hides permanently after completion.</div>
       <div class="sb-flow-track"></div>
-      <div class="sb-flow-actions"></div>
+      <div class="sb-flow-actions">
+        <button type="button" class="sb-flow-next" id="sbFlowNext">Continue: Profile</button>
+        <button type="button" class="sb-flow-done" id="sbFlowDone">Mark Setup Complete</button>
+      </div>
     `;
 
     const track = container.querySelector(".sb-flow-track");
-    steps.forEach((step, idx) => {
+    STEPS.forEach((label, index) => {
       const node = document.createElement("div");
       node.className = "sb-step";
-      if (idx === current) node.classList.add("current");
-      if (state[step.id]) node.classList.add("done");
-      node.textContent = step.label;
+      node.textContent = `${index + 1}. ${label}`;
       track.appendChild(node);
     });
 
-    const actions = container.querySelector(".sb-flow-actions");
-    const next = steps[current + 1];
-    if (next) {
-      const btn = document.createElement("button");
-      btn.className = "sb-flow-next";
-      btn.type = "button";
-      btn.textContent = `Complete and Continue: ${next.label}`;
-      btn.onclick = () => {
-        const latest = readState();
-        latest[nowId] = true;
-        writeState(latest);
-        window.location.href = `./${next.path}`;
-      };
-      actions.appendChild(btn);
-    } else {
-      const doneBtn = document.createElement("button");
-      doneBtn.className = "sb-flow-next";
-      doneBtn.type = "button";
-      doneBtn.textContent = "Mark Journey Complete";
-      doneBtn.onclick = () => {
-        const latest = readState();
-        latest[nowId] = true;
-        writeState(latest);
-        window.location.reload();
-      };
-      actions.appendChild(doneBtn);
-
-      const done = document.createElement("div");
-      done.className = "sb-flow-sub";
-      done.textContent = "Journey complete. Your workspace is ready for daily operations.";
-      actions.appendChild(done);
-    }
-
-    const reset = document.createElement("button");
-    reset.className = "sb-flow-skip";
-    reset.type = "button";
-    reset.textContent = "Reset Journey";
-    reset.onclick = () => {
-      localStorage.removeItem(KEY);
-      window.location.reload();
+    container.querySelector("#sbFlowNext").onclick = () => {
+      window.location.href = "./profile.html";
     };
-    actions.appendChild(reset);
+    container.querySelector("#sbFlowDone").onclick = () => {
+      writeState({ completed: true, completed_at: new Date().toISOString() });
+      container.remove();
+    };
 
     const anchor = document.querySelector(".topbar, .topnav, .hero");
     if (anchor && anchor.parentNode) {
@@ -201,9 +97,3 @@
     mountFlow();
   }
 })();
-
-
-
-
-
-
