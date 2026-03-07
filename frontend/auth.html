@@ -3,62 +3,229 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>StaunchBot Auth</title>
+  <title>StaunchBot | AI Support Platform</title>
   <style>
     :root {
-      --bg: #eef2f8;
+      --bg: #f2f6fb;
       --panel: #ffffff;
-      --line: #d7e0eb;
-      --ink: #0f1b2d;
-      --muted: #5d6b80;
-      --nav-top: #1e2f4e;
-      --nav-bottom: #2c4e77;
-      --accent: #2f7de1;
-      --shadow: 0 10px 26px rgba(15, 27, 45, 0.08);
-      --control-h: 36px;
+      --ink: #0d1a2b;
+      --muted: #53637a;
+      --line: #d7e2ee;
+      --brand-1: #16325c;
+      --brand-2: #1f4f95;
+      --brand-3: #1a8f86;
+      --btn: #2f7de1;
+      --btn-2: #4f6077;
+      --danger: #b42318;
+      --shadow: 0 14px 30px rgba(13, 26, 43, 0.12);
     }
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
       font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
       color: var(--ink);
       background:
-        radial-gradient(900px 240px at 12% -10%, #dbe8ff 0%, transparent 65%),
-        radial-gradient(900px 240px at 85% -15%, #d8f1ee 0%, transparent 70%),
+        radial-gradient(1100px 340px at 10% -8%, #d9e8ff 0%, transparent 72%),
+        radial-gradient(1000px 320px at 90% -12%, #d3f0eb 0%, transparent 74%),
         var(--bg);
     }
-    .wrap {
-      max-width: 1120px;
-      margin: 24px auto;
-      padding: 0 12px;
+
+    .site {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px 14px 34px;
       display: grid;
-      gap: 12px;
-      grid-template-columns: 1fr 1fr;
+      gap: 14px;
     }
-    .hero {
-      grid-column: 1 / -1;
-      background: linear-gradient(180deg, var(--nav-top), var(--nav-bottom));
-      color: #d9e6ff;
+
+    .topbar {
+      position: sticky;
+      top: 10px;
+      z-index: 30;
+      border: 1px solid #c6d7ea;
       border-radius: 16px;
-      padding: 16px;
+      background: rgba(255, 255, 255, 0.9);
       box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
     }
-    .hero h1 {
-      margin: 0 0 6px;
-      color: #fff;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 26px;
+      color: #183962;
       letter-spacing: -0.02em;
     }
-    .panel {
-      background: var(--panel);
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: inline-grid;
+      place-items: center;
+      color: #fff;
+      font-size: 20px;
+      background: linear-gradient(145deg, var(--brand-2), var(--brand-3));
+      box-shadow: 0 8px 16px rgba(23, 67, 126, 0.28);
+    }
+    .top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .top-nav a {
+      text-decoration: none;
+      color: #183962;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid #cddbeb;
+      border-radius: 999px;
+      padding: 7px 12px;
+      background: #fff;
+    }
+    .top-nav a.primary {
+      color: #fff;
+      background: var(--btn);
+      border-color: transparent;
+    }
+
+    .hero {
+      border: 1px solid #c7d8ec;
+      border-radius: 22px;
+      background: linear-gradient(135deg, var(--brand-1), var(--brand-2));
+      color: #e4eeff;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 14px;
+      overflow: hidden;
+    }
+    .hero h1 {
+      margin: 0 0 8px;
+      color: #fff;
+      font-size: 38px;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+    }
+    .hero p {
+      margin: 0;
+      font-size: 15px;
+      color: #d7e5ff;
+      max-width: 640px;
+    }
+    .hero-cta {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .hero-cta a {
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 11px 14px;
+    }
+    .hero-cta .solid { background: #fff; color: #1a3f70; }
+    .hero-cta .ghost { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.44); }
+
+    .hero-media {
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      min-height: 240px;
+    }
+    .hero-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .integrations-strip {
       border: 1px solid var(--line);
       border-radius: 14px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .integrations-strip strong { font-size: 14px; }
+    .icons {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #d5e1ef;
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      color: #1a3558;
+    }
+    .chip img {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      object-fit: cover;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(180px, 1fr));
+      gap: 10px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
       box-shadow: var(--shadow);
       padding: 14px;
     }
-    .panel h2 {
-      margin: 0 0 8px;
+    .card h3 {
+      margin: 0 0 7px;
       font-size: 18px;
+      letter-spacing: -0.01em;
     }
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.42;
+    }
+
+    .auth-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      background: var(--panel);
+      padding: 14px;
+    }
+    .panel h2 { margin: 0 0 8px; font-size: 35px; }
     .muted {
       color: var(--muted);
       font-size: 13px;
@@ -69,74 +236,61 @@
       gap: 6px;
       margin-bottom: 10px;
     }
-    .field-error {
-      color: #b42318;
-      font-size: 12px;
-      font-weight: 600;
-      min-height: 14px;
-    }
     label {
       font-size: 12px;
-      color: #5d6b80;
-      font-weight: 600;
+      color: #53637a;
+      font-weight: 700;
     }
     input {
       width: 100%;
-      min-height: var(--control-h);
-      border: 1px solid #cbd7e6;
-      border-radius: 8px;
+      min-height: 38px;
+      border: 1px solid #c5d4e6;
+      border-radius: 9px;
       padding: 9px 10px;
-      font-size: 13px;
+      font-size: 15px;
       background: #fff;
     }
     button {
       border: 0;
-      border-radius: 8px;
-      min-height: var(--control-h);
+      border-radius: 9px;
+      min-height: 38px;
       padding: 9px 12px;
       cursor: pointer;
+      font-size: 15px;
       font-weight: 700;
-      font-size: 12px;
-      background: var(--accent);
+      background: var(--btn);
       color: #fff;
     }
-    button.alt { background: #5d6b81; }
+    button.alt { background: var(--btn-2); }
     .out {
       margin-top: 8px;
-      background: #f8fbff;
-      border: 1px solid #dbe5f2;
-      border-radius: 8px;
-      color: #2b3a4f;
-      min-height: 44px;
+      border: 1px solid #dbe6f4;
+      border-radius: 9px;
+      min-height: 42px;
       padding: 9px 10px;
+      font-size: 13px;
+      color: #2c3e58;
       white-space: pre-wrap;
-      font-size: 12px;
+      background: #f9fcff;
     }
     .out:empty { display: none; }
-    details {
-      margin-top: 10px;
-      border: 1px solid #dbe4ee;
-      border-radius: 10px;
-      background: #fbfdff;
-      padding: 8px;
-    }
-    summary {
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 700;
-      color: #33435b;
-    }
     .check {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 12px;
-      color: #475569;
-      margin-top: 6px;
+      font-size: 15px;
+      color: #3e4f67;
+      margin: 6px 0;
     }
     .check input {
       width: auto;
       min-height: 0;
+    }
+    .field-error {
+      color: var(--danger);
+      font-size: 12px;
+      font-weight: 700;
+      min-height: 14px;
     }
     .link-btn {
       border: 0;
@@ -154,67 +308,161 @@
       border-top: 1px solid #e3eaf3;
       display: none;
     }
-    .full {
-      grid-column: 1 / -1;
+
+    .about {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
-    @media (max-width: 920px) {
-      .wrap { grid-template-columns: 1fr; }
+    .about ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .support-email {
+      font-weight: 800;
+      color: #184379;
+      font-size: 18px;
+    }
+
+    .full { grid-column: 1 / -1; }
+    [data-dev-only] { display: none; }
+
+    @media (max-width: 980px) {
+      .hero { grid-template-columns: 1fr; }
+      .features { grid-template-columns: 1fr; }
+      .auth-grid { grid-template-columns: 1fr; }
+      .about { grid-template-columns: 1fr; }
+      .brand { font-size: 22px; }
+      .hero h1 { font-size: 32px; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="site">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon">🤖</span>
+        <span>StaunchBot</span>
+      </div>
+      <nav class="top-nav">
+        <a href="#signin">Sign In</a>
+        <a href="#create">Create Account</a>
+        <a href="#about">About</a>
+        <a href="#support" class="primary">Support</a>
+      </nav>
+    </header>
+
     <section class="hero">
-      <h1>StaunchBot Authentication</h1>
-      <p class="muted" id="authInfoLine" style="color:#d6e4ff;margin:0;">Sign in to access dashboard and operations pages.</p>
-    </section>
-
-    <section class="panel">
-      <h2>Sign In</h2>
-      <p class="muted">Use your existing tenant admin/support account.</p>
-      <div class="row"><label>Email</label><input id="lgEmail" placeholder="Enter your work email" /></div>
-      <div class="row">
-        <label>Password</label>
-        <input id="lgPassword" type="password" maxlength="72" placeholder="Enter password" autocomplete="current-password" />
-        <div id="lgPasswordError" class="field-error"></div>
-      </div>
-      <label class="check"><input id="lgShowPassword" type="checkbox" /> Show password</label>
-      <div class="row" id="lgTenantIdRow" style="display:none;">
-        <label>Tenant ID (optional)</label><input id="lgTenantId" placeholder="Enter tenant ID if provided" />
-      </div>
-      <button id="btnLogin" type="button">Login</button>
-      <div id="outLogin" class="out"></div>
-
-      <div style="margin-top:10px;">
-        <button id="btnToggleForgot" class="link-btn" type="button">Forgot Password</button>
-        <div id="forgotPanel" class="forgot-panel">
-          <div class="row" style="margin-top:10px;"><label>Account Email</label><input id="fpEmail" placeholder="admin@example.com" /></div>
-          <div class="row"><label>Tenant ID (optional)</label><input id="fpTenantId" placeholder="Enter tenant ID if provided" /></div>
-          <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
-          <div id="outForgotPassword" class="out"></div>
-          <input id="fpResetToken" type="hidden" />
-          <div class="row" style="margin-top:10px;"><label>Reset Code</label><input id="fpCode" placeholder="6-digit code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" /></div>
-          <div class="row"><label>New Password</label><input id="fpNewPassword" type="password" maxlength="72" placeholder="Enter new password" autocomplete="new-password" /></div>
-          <label class="check"><input id="fpShowPassword" type="checkbox" /> Show new password</label>
-          <button id="btnResetPassword" class="alt" type="button">Reset Password</button>
-          <div id="outResetPassword" class="out"></div>
+      <div>
+        <h1>Build Smarter AI-Driven Chatbots For Your Business</h1>
+        <p>
+          Launch customer support bots faster, connect your channels in one workspace,
+          and manage conversations with a unified, production-ready platform.
+        </p>
+        <div class="hero-cta">
+          <a class="solid" href="#create">Start Free Trial</a>
+          <a class="ghost" href="#signin">Sign In</a>
         </div>
       </div>
+      <div class="hero-media" aria-label="AI customer support agent image">
+        <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=900&q=80" alt="AI customer service assistant" />
+      </div>
     </section>
 
-    <section class="panel">
-      <h2>Create Account</h2>
-      <p class="muted">Create a new tenant and sign in automatically.</p>
-      <div class="row"><label>Company / Tenant Name</label><input id="obTenantName" placeholder="Enter company name" /></div>
-      <div class="row"><label>Admin Email</label><input id="obAdminEmail" placeholder="Enter admin work email" /></div>
-      <div class="row"><label>Admin Password</label><input id="obAdminPassword" type="password" maxlength="72" placeholder="Create a strong password" autocomplete="new-password" /></div>
-      <label class="check"><input id="obShowPassword" type="checkbox" /> Show password</label>
-      <button id="btnOnboardCreate" class="alt" type="button">Create Account And Sign In</button>
-      <div id="outOnboardCreate" class="out"></div>
+    <section class="integrations-strip">
+      <strong>Seamless Integrations Across Your Support Channels</strong>
+      <div class="icons">
+        <span class="chip"><img src="https://cdn.simpleicons.org/webflow/146EF5" alt="" /> Website Chat</span>
+        <span class="chip"><img src="https://cdn.simpleicons.org/whatsapp/25D366" alt="" /> WhatsApp</span>
+        <span class="chip"><img src="https://cdn.simpleicons.org/facebookmessenger/00B2FF" alt="" /> Messenger</span>
+        <span class="chip"><img src="https://cdn.simpleicons.org/instagram/E4405F" alt="" /> Instagram</span>
+      </div>
+    </section>
+
+    <section class="features">
+      <article class="card">
+        <h3>Boosted Conversations</h3>
+        <p>Deliver faster responses with AI-assisted workflows, escalation paths, and role-based team operations.</p>
+      </article>
+      <article class="card">
+        <h3>Easy Integrations</h3>
+        <p>Connect channels quickly and keep your customer support aligned across website, messaging apps, and social platforms.</p>
+      </article>
+      <article class="card">
+        <h3>Business Ready</h3>
+        <p>Built for growing companies that need reliability, security, and clear visibility into service performance.</p>
+      </article>
+    </section>
+
+    <section class="auth-grid">
+      <section class="panel" id="signin">
+        <h2>Sign In</h2>
+        <p class="muted">Use your existing tenant admin/support account.</p>
+        <div class="row"><label>Email</label><input id="lgEmail" placeholder="Enter your work email" /></div>
+        <div class="row">
+          <label>Password</label>
+          <input id="lgPassword" type="password" maxlength="72" placeholder="Enter password" autocomplete="current-password" />
+          <div id="lgPasswordError" class="field-error"></div>
+        </div>
+        <label class="check"><input id="lgShowPassword" type="checkbox" /> Show password</label>
+        <div class="row" id="lgTenantIdRow" style="display:none;">
+          <label>Tenant ID (optional)</label><input id="lgTenantId" placeholder="Enter tenant ID if provided" />
+        </div>
+        <button id="btnLogin" type="button">Login</button>
+        <div id="outLogin" class="out"></div>
+
+        <div style="margin-top:10px;">
+          <button id="btnToggleForgot" class="link-btn" type="button">Forgot Password</button>
+          <div id="forgotPanel" class="forgot-panel">
+            <div class="row" style="margin-top:10px;"><label>Account Email</label><input id="fpEmail" placeholder="admin@example.com" /></div>
+            <div class="row"><label>Tenant ID (optional)</label><input id="fpTenantId" placeholder="Enter tenant ID if provided" /></div>
+            <button id="btnForgotPassword" class="alt" type="button">Send Reset Link + Code</button>
+            <div id="outForgotPassword" class="out"></div>
+            <input id="fpResetToken" type="hidden" />
+            <div class="row" style="margin-top:10px;"><label>Reset Code</label><input id="fpCode" placeholder="6-digit code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" /></div>
+            <div class="row"><label>New Password</label><input id="fpNewPassword" type="password" maxlength="72" placeholder="Enter new password" autocomplete="new-password" /></div>
+            <label class="check"><input id="fpShowPassword" type="checkbox" /> Show new password</label>
+            <button id="btnResetPassword" class="alt" type="button">Reset Password</button>
+            <div id="outResetPassword" class="out"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="create">
+        <h2>Create Account</h2>
+        <p class="muted">Create a new tenant and sign in automatically.</p>
+        <div class="row"><label>Company / Tenant Name</label><input id="obTenantName" placeholder="Enter company name" /></div>
+        <div class="row"><label>Admin Email</label><input id="obAdminEmail" placeholder="Enter admin work email" /></div>
+        <div class="row"><label>Admin Password</label><input id="obAdminPassword" type="password" maxlength="72" placeholder="Create a strong password" autocomplete="new-password" /></div>
+        <label class="check"><input id="obShowPassword" type="checkbox" /> Show password</label>
+        <button id="btnOnboardCreate" class="alt" type="button">Create Account And Sign In</button>
+        <div id="outOnboardCreate" class="out"></div>
+      </section>
+    </section>
+
+    <section class="about" id="about">
+      <article class="card">
+        <h3>About StaunchBot</h3>
+        <p style="margin-bottom:8px;">StaunchBot helps businesses deploy AI-powered support operations from one secure, multi-tenant platform.</p>
+        <ul>
+          <li>Fast onboarding and account setup</li>
+          <li>Unified inbox for day-to-day support teams</li>
+          <li>Knowledge base workflows for better AI responses</li>
+          <li>Multi-channel integrations for consistent customer engagement</li>
+        </ul>
+      </article>
+      <article class="card" id="support">
+        <h3>Support Services</h3>
+        <p style="margin-bottom:8px;">Need help with setup, integrations, or rollout planning? Our team is ready to assist.</p>
+        <div class="support-email">support@staunchbot.com</div>
+      </article>
     </section>
 
     <section id="connectionPanel" class="panel full" data-dev-only>
-      <h2>Connection Settings</h2>
+      <h2 style="font-size:18px;">Connection Settings</h2>
       <div class="row"><label>API Base</label><input id="apiBase" value="http://localhost:8000" /></div>
       <div class="row"><label>Staging API Base</label><input id="stagingApiBase" placeholder="https://your-staging-api.up.railway.app" /></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -231,3 +479,4 @@
   <script src="./scripts/debug-panels.js"></script>
 </body>
 </html>
+
