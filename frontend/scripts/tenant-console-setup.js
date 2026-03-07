@@ -46,6 +46,7 @@
       if (raw.includes("403")) return "You do not have permission to perform this action.";
       if (raw.includes("404")) return "Requested resource was not found.";
       if (raw.includes("409") && raw.includes("Provide tenant_id")) return "This email belongs to multiple tenants. Enter Tenant ID and try again.";
+      if (raw.includes("Handoff has no conversation_id")) return "This ticket has no linked conversation yet. Wait for a real inbound message before sending an agent reply.";
       if (raw.includes("422")) return "Some fields are invalid. Check your inputs and try again.";
       if (raw.includes("500")) return "Server error. Please try again in a moment.";
       return raw.replace(/^\d+\s+/, "").slice(0, 220);
@@ -456,6 +457,9 @@
       try {
         const handoffId = $("hfId").value.trim();
         if (!handoffId) throw new Error("Provide handoff id.");
+        const selected = (state.lastQueueItems || []).find((x) => String(x.id || "") === handoffId);
+        const convId = String((selected && selected.conversation_id) || $("convId").value.trim() || "");
+        if (!convId) throw new Error("This ticket has no linked conversation yet. Wait for a real inbound message before sending an agent reply.");
         const review = await fetchReplyReview("none");
         renderReplyReview(review);
         if (review.requires_override && !$("hfSendOverride").checked) {
@@ -481,7 +485,7 @@
           $("btnLoadConversation").click();
         }
       } catch (e) {
-        out.textContent = String(e);
+        out.textContent = cleanError(e);
       }
     };
 
