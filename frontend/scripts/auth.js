@@ -1,6 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const TOKEN_KEY = "tenant_console_token";
 const SESSION_EXPIRED_KEY = "tenant_console_session_expired";
+const COMPANY_ASSISTANT_KEY = "staunchbot_company_assistant_bot_id";
 const MAX_LOGIN_TRIALS = 3;
 let loginFailures = 0;
 
@@ -172,6 +173,9 @@ $("btnOnboardCreate").onclick = async () => {
     });
     if (!data?.access_token) throw new Error("Account created but access_token missing.");
     setToken(data.access_token);
+    if (data?.bot_id) {
+      localStorage.setItem(COMPANY_ASSISTANT_KEY, String(data.bot_id));
+    }
     window.location.href = nextPath();
   } catch (e) {
     const msg = cleanError(e);

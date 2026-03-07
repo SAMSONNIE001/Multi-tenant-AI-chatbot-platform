@@ -99,7 +99,10 @@
           setToken(data.access_token);
           saveSessionToken(data.access_token);
         }
-        if (data && data.bot_id) $("botId").value = data.bot_id;
+        if (data && data.bot_id) {
+          $("botId").value = data.bot_id;
+          localStorage.setItem("staunchbot_company_assistant_bot_id", String(data.bot_id));
+        }
       } catch (e) {
         out.textContent = String(e);
       }
@@ -292,6 +295,7 @@
           : "No bots found yet. Create your first bot to continue.";
         if (Array.isArray(data) && data.length && data[0].id) {
           $("botId").value = data[0].id;
+          localStorage.setItem("staunchbot_company_assistant_bot_id", String(data[0].id));
         }
       } catch (e) {
         out.textContent = cleanError(e);

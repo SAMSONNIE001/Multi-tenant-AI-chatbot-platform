@@ -1,6 +1,7 @@
 ﻿const $ = (id) => document.getElementById(id);
 const TOKEN_KEY = "tenant_console_token";
 const SESSION_EXPIRED_KEY = "tenant_console_session_expired";
+const COMPANY_ASSISTANT_KEY = "staunchbot_company_assistant_bot_id";
 
 function pretty(v) {
   try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
@@ -539,6 +540,9 @@ if (btnOnboardCreate) {
       if (data && data.access_token) {
         setToken(data.access_token);
         saveSessionToken(data.access_token);
+      }
+      if (data && data.bot_id) {
+        localStorage.setItem(COMPANY_ASSISTANT_KEY, String(data.bot_id));
       }
       $("lgEmail").value = body.admin_email;
       $("lgPassword").value = body.admin_password;
