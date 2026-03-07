@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>StaunchBot Settings</title>
   <style>
-    :root { --bg:#eef2f8; --panel:#fff; --line:#d7e0eb; --ink:#0f1b2d; --muted:#5d6b80; --nav-top:#1e2f4e; --nav-bottom:#2c4e77; --nav-text:#d9e6ff; --accent:#2f7de1; --shadow:0 10px 26px rgba(15,27,45,.08); }
+    :root { --bg:#eef2f8; --panel:#fff; --line:#d7e0eb; --ink:#0f1b2d; --muted:#5d6b80; --nav-top:#1e2f4e; --nav-bottom:#2c4e77; --nav-text:#d9e6ff; --accent:#2f7de1; --shadow:0 10px 26px rgba(15,27,45,.08); --control-h:36px; }
     *{box-sizing:border-box;} body{margin:0;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;color:var(--ink);background:radial-gradient(900px 240px at 12% -10%, #dbe8ff 0%, transparent 65%),radial-gradient(900px 240px at 85% -15%, #d8f1ee 0%, transparent 70%),var(--bg);}
     .app{max-width:1240px;margin:18px auto;padding:0 12px;display:grid;grid-template-columns:220px 1fr;gap:14px;min-height:calc(100vh - 36px);}
     .sidebar{background:linear-gradient(180deg,var(--nav-top),var(--nav-bottom));border-radius:16px;padding:16px 12px;color:var(--nav-text);box-shadow:var(--shadow);display:grid;grid-template-rows:auto 1fr auto;gap:14px;position:sticky;top:18px;align-self:start;height:calc(100vh - 36px);overflow:auto;}
@@ -18,10 +18,11 @@
     .grid{display:grid;gap:12px;grid-template-columns:1fr 1fr;} .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:14px;}
     .journey{display:flex;gap:8px;flex-wrap:wrap;} .journey a{text-decoration:none;font-size:12px;font-weight:700;border:1px solid #d5dfec;color:#334155;background:#f8fbff;border-radius:999px;padding:7px 11px;} .journey a.current{background:#2f7de1;border-color:#2f7de1;color:#fff;}
     h1,h2{margin:0 0 8px;letter-spacing:-.01em;} .muted{color:var(--muted);font-size:13px;}
-    .row{display:grid;gap:6px;margin-top:10px;} label{font-size:12px;color:#5d6b80;font-weight:600;} input{width:100%;border:1px solid #cbd7e6;border-radius:8px;padding:9px 10px;font-size:13px;background:#fff;}
-    button{border:0;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:600;font-size:12px;background:var(--accent);color:#fff;} button.alt{background:#5d6b81;}
+    .row{display:grid;gap:6px;margin-top:10px;} label{font-size:12px;color:#5d6b80;font-weight:600;} input{width:100%;min-height:var(--control-h);border:1px solid #cbd7e6;border-radius:8px;padding:9px 10px;font-size:13px;background:#fff;}
+    button{border:0;border-radius:8px;min-height:var(--control-h);padding:8px 12px;cursor:pointer;font-weight:600;font-size:12px;background:var(--accent);color:#fff;} button.alt{background:#5d6b81;}
     button.danger{background:#b91c1c;}
     .status{margin-top:10px;font-size:12px;color:#334155;background:#f8fbff;border:1px solid #dbe5f2;border-radius:8px;padding:9px 10px;min-height:38px;white-space:pre-wrap;}
+    .status:empty{display:none;}
     .danger-panel{border-color:#fecaca;background:#fff1f2;}
     .danger-note{font-size:12px;color:#9f1239;}
     @media (max-width:1080px){ .app{grid-template-columns:1fr;} .sidebar{position:static;max-height:none;overflow:visible;} .grid{grid-template-columns:1fr;} .nav-list{grid-template-columns:repeat(2,minmax(120px,1fr));} }

@@ -17,6 +17,7 @@
       --accent: #2f7de1;
       --radius: 14px;
       --shadow: 0 10px 26px rgba(15, 27, 45, 0.08);
+      --control-h: 36px;
     }
     * { box-sizing: border-box; }
     body {
@@ -201,6 +202,7 @@
     }
     input {
       width: 100%;
+      min-height: var(--control-h);
       border: 1px solid #cbd7e6;
       border-radius: 8px;
       padding: 9px 10px;
@@ -210,6 +212,7 @@
     button {
       border: 0;
       border-radius: 8px;
+      min-height: var(--control-h);
       padding: 8px 12px;
       cursor: pointer;
       font-weight: 600;
@@ -229,6 +232,7 @@
       white-space: pre-wrap;
       font-size: 12px;
     }
+    .out:empty { display: none; }
     .error-panel {
       display: none;
       border: 1px solid #fecaca;

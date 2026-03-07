@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>StaunchBot Profile</title>
   <style>
-    :root { --bg:#eef2f8; --panel:#fff; --line:#d7e0eb; --ink:#0f1b2d; --muted:#5d6b80; --nav-top:#1e2f4e; --nav-bottom:#2c4e77; --nav-text:#d9e6ff; --accent:#2f7de1; --radius:14px; --shadow:0 10px 26px rgba(15,27,45,.08); }
+    :root { --bg:#eef2f8; --panel:#fff; --line:#d7e0eb; --ink:#0f1b2d; --muted:#5d6b80; --nav-top:#1e2f4e; --nav-bottom:#2c4e77; --nav-text:#d9e6ff; --accent:#2f7de1; --radius:14px; --shadow:0 10px 26px rgba(15,27,45,.08); --control-h:36px; }
     * { box-sizing:border-box; }
     body { margin:0; font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif; color:var(--ink); background:radial-gradient(900px 240px at 12% -10%, #dbe8ff 0%, transparent 65%),radial-gradient(900px 240px at 85% -15%, #d8f1ee 0%, transparent 70%),var(--bg); }
     .app { max-width:1240px; margin:18px auto; padding:0 12px; display:grid; grid-template-columns:220px 1fr; gap:14px; min-height:calc(100vh - 36px); }
@@ -43,9 +43,10 @@
       background:#f1f5f9;
       object-fit:cover;
     }
-    input,select { width:100%; border:1px solid #cbd7e6; border-radius:8px; padding:9px 10px; font-size:13px; background:#fff; }
-    button { border:0; border-radius:8px; padding:8px 12px; cursor:pointer; font-weight:600; font-size:12px; background:var(--accent); color:#fff; }
+    input,select { width:100%; min-height:var(--control-h); border:1px solid #cbd7e6; border-radius:8px; padding:9px 10px; font-size:13px; background:#fff; }
+    button { border:0; border-radius:8px; min-height:var(--control-h); padding:8px 12px; cursor:pointer; font-weight:600; font-size:12px; background:var(--accent); color:#fff; }
     button.alt { background:#5d6b81; }
+    .status:empty { display:none; }
     @media (max-width:1080px) { .app{grid-template-columns:1fr;} .sidebar{position:static;max-height:none;overflow:visible;} .grid{grid-template-columns:1fr;} .nav-list{grid-template-columns:repeat(2,minmax(120px,1fr));} }
   </style>
 </head>
